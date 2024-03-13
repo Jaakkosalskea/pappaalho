@@ -1,0 +1,147 @@
+global:
+  sql_adapter: wpcli
+
+local:
+  vhost: http://pappaalho.test
+  wordpress_path: <%= ENV['HOME'] %>/Projektit/pappaalho
+
+  database:
+    name: pappaalho_local_wp
+    user: root
+    password:
+    host: 127.0.0.1
+
+  exclude:
+    - '.env.example'
+
+  paths:
+     wp_content: web/wp/wp-content
+     uploads: web/app/uploads
+     plugins: web/app/plugins
+     mu_plugins: web/app/mu-plugins
+     themes: web/app/themes
+     languages: web/app/languages
+
+staging:
+  vhost: https://pappaalho.dev.salskea.fi
+  wordpress_path: /var/www/pappaalho.dev.salskea.fi/web
+
+  database:
+    name: c1pappaalho_wp
+    user: <%= ENV['STAG_DB_USER'] %>
+    password: "<%= ENV['STAG_DB_PASS'] %>"
+    host: localhost
+
+  exclude:
+    - '.git/'
+    - '.gitignore'
+    - '.gitmodules'
+    - '.env'
+    - '.env.example'
+    - 'node_modules/'
+    - 'bin/'
+    - 'tmp/*'
+    - 'Gemfile*'
+    - 'Movefile'
+    - 'movefile'
+    - 'movefile.yml'
+    - 'movefile.yaml'
+    - 'wp-content/*.sql.gz'
+    - 'web/app/*.sql.gz'
+    - 'web/app/db.php'
+    - '*.orig'
+    - '.DS_Store'
+    - 'stats/'
+    - 'CHANGELOG.md'
+    - '.editorconfig'
+    - '/composer.json'
+    - '/composer.lock'
+    - 'LICENSE.md'
+    - 'phpcs.xml'
+    - 'wp-cli.yml'
+    - '.valetphprc'
+    - '.history/'
+
+  paths:
+     wp_content: web/wp/wp-content
+     uploads: web/app/uploads
+     plugins: web/app/plugins
+     mu_plugins: web/app/mu-plugins
+     themes: web/app/themes
+     languages: web/app/languages
+
+  ssh:
+     host: phiphi.salskea.fi
+     user: root
+     rsync_options: '--verbose --itemize-changes'
+
+  hooks:
+     push:
+       before:
+         - command: '[ ! -d web/wp/wp-content/ ] && mkdir web/wp/wp-content/ || echo '
+           where: local
+       after:
+         - command: '[ -f /var/www/clients/client1/web327/web/.env ] && rm -rf /var/www/clients/client1/web327/web/.env.example ; chown web327:client1 -R /var/www/clients/client1/web327/web/. ; find /var/www/clients/client1/web327/web/. -type d -exec chmod 750 {} \; ; find /var/www/clients/client1/web327/web/. -type f -exec chmod 640 {} \; ; chmod 400 /var/www/clients/client1/web327/web/web/wp-config.php ; chmod 400 /var/www/clients/client1/web327/web/.env ; chmod -R 755 /var/www/clients/client1/web327/web/web/app/ ;'
+           where: remote
+
+production:
+  vhost: https://production.fi
+  wordpress_path: /var/www/production.fi/web
+
+  database:
+    name: c1production_wp
+    user: <%= ENV['PROD_DB_USER'] %>
+    password: "<%= ENV['PROD_DB_PASS'] %>"
+    host: localhost
+
+  exclude:
+    - '.git/'
+    - '.gitignore'
+    - '.gitmodules'
+    - '.env'
+    - '.env.example'
+    - 'node_modules/'
+    - 'bin/'
+    - 'tmp/*'
+    - 'Gemfile*'
+    - 'Movefile'
+    - 'movefile'
+    - 'movefile.yml'
+    - 'movefile.yaml'
+    - 'wp-content/*.sql.gz'
+    - 'web/app/*.sql.gz'
+    - 'web/app/db.php'
+    - '*.orig'
+    - '.DS_Store'
+    - 'stats/'
+    - 'CHANGELOG.md'
+    - '.editorconfig'
+    - '/composer.json'
+    - '/composer.lock'
+    - 'LICENSE.md'
+    - 'phpcs.xml'
+    - 'wp-cli.yml'
+    - '.valetphprc'
+    - '.history/'
+
+  paths:
+     wp_content: web/wp/wp-content
+     uploads: web/app/uploads
+     plugins: web/app/plugins
+     mu_plugins: web/app/mu-plugins
+     themes: web/app/themes
+     languages: web/app/languages
+
+  ssh:
+     host: production.salskea.fi
+     user: root
+     rsync_options: '--verbose --itemize-changes'
+
+  hooks:
+     push:
+       before:
+         - command: '[ ! -d web/wp/wp-content/ ] && mkdir web/wp/wp-content/ || echo '
+           where: local
+       after:
+         - command: '[ -f /var/www/clients/client1/webxxx_production/web/.env ] && rm -rf /var/www/clients/client1/webxxx_production/web/.env.example ; chown webxxx_production:client1 -R /var/www/clients/client1/webxxx_production/web/. ; find /var/www/clients/client1/webxxx_production/web/. -type d -exec chmod 750 {} \; ; find /var/www/clients/client1/webxxx_production/web/. -type f -exec chmod 640 {} \; ; chmod 400 /var/www/clients/client1/webxxx_production/web/web/wp-config.php ; chmod 400 /var/www/clients/client1/webxxx_production/web/.env ; chmod -R 755 /var/www/clients/client1/webxxx_production/web/web/app/ ;'
+           where: remote

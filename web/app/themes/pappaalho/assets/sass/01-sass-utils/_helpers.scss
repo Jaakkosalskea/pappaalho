@@ -1,0 +1,10 @@
+// Self-hosted fonts ->
+// Lataa Woff ja Woff2 versiot Google fonteista täältä:
+// https://google-webfonts-helper.herokuapp.com/fonts
+
+//Open Sans
+@include fontFace('Open Sans', '../../fonts/open-sans/open-sans-v28-latin-regular', 400);
+@include fontFace('Open Sans', '../../fonts/open-sans/open-sans-v28-latin-italic', 400, italic);
+@include fontFace('Open Sans', '../../fonts/open-sans/open-sans-v28-latin-600', 600);
+
+// <- Self-hosted fonts

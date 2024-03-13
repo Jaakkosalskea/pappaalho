@@ -1,0 +1,116 @@
+{
+  "name": "salskea/salskea-bigbang",
+  "type": "project",
+  "description": "Salskea projektin aloitus",
+  "homepage": "https://www.salskea.fi",
+  "authors": [
+    {
+      "name": "Tuomas Laine",
+      "email": "tuomas.laine@salskea.fi"
+    }
+  ],
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://wpackagist.org",
+      "only": ["wpackagist-plugin/*", "wpackagist-theme/*"]
+    },
+    {
+      "type": "composer",
+      "url": "https://wp-languages.github.io",
+      "only": [
+                "koodimonni-language/*",
+                "koodimonni-plugin-language/*",
+                "koodimonni-theme-language/*"
+            ]
+    },
+    {
+      "type": "vcs",
+      "url": "git@github.com:Salskea/happyfiles-pro.git"
+    },
+    {
+      "type": "vcs",
+      "url": "git@github.com:Salskea/advanced-custom-fields-pro.git"
+    },
+    {
+      "type": "vcs",
+      "url": "git@github.com:Salskea/bricksextras.git"
+    },
+    {
+      "type": "vcs",
+      "url": "git@github.com:Salskea/bricksultimate.git"
+    },
+    {
+      "type": "vcs",
+      "url": "git@github.com:Salskea/wpcodebox.git"
+    }
+  ],
+  "require": {
+    "php": ">=7.4",
+    "composer/installers": "^2.2",
+    "vlucas/phpdotenv": "^5.4",
+    "oscarotero/env": "^2.1",
+    "roots/bedrock-autoloader": "^1.0",
+    "roots/bedrock-disallow-indexing": "^2.0",
+    "roots/wordpress": "6.0.2",
+    "roots/wp-config": "1.0.0",
+    "roots/wp-password-bcrypt": "1.1.0",
+    "rbdwllr/wordpress-salts-generator": "0.2.*",
+    "koodimonni/composer-dropin-installer": "dev-master",
+    "koodimonni-language/fi": "*",
+    "koodimonni-language/en_gb": "*",
+    "wpackagist-plugin/wp-sanitize-accented-uploads": "*",
+    "wpackagist-plugin/simple-history": "*",
+    "wpackagist-plugin/mainwp-child": "*",
+    "wpackagist-plugin/seo-by-rank-math": "*",
+    "wpackagist-plugin/wp-time-capsule": "*",
+    "wpackagist-plugin/host-analyticsjs-local": "*",
+    "wpackagist-plugin/go-live-update-urls": "*",
+    "wpackagist-plugin/shortpixel-image-optimiser": "*",
+    "wpackagist-plugin/bricksable": "*",
+    "wpackagist-plugin/brickslabs-bricks-navigator": "*",
+    "salskea/happyfiles-pro": "dev-master",
+    "salskea/advanced-custom-fields-pro": "dev-main",
+    "salskea/bricksextras": "dev-main",
+    "salskea/bricksultimate": "dev-main",
+    "salskea/wpcodebox": "dev-main"
+  },
+  "require-dev": {
+    "squizlabs/php_codesniffer": "^3.7.1",
+    "roave/security-advisories": "dev-latest",
+    "rarst/laps": "*",
+    "wpackagist-plugin/query-monitor": "*"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "allow-plugins": {
+      "composer/installers": true,
+      "roots/wordpress-core-installer": true,
+      "koodimonni/composer-dropin-installer": true
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "extra": {
+    "installer-paths": {
+      "web/app/mu-plugins/{$name}/": ["type:wordpress-muplugin"],
+      "web/app/plugins/{$name}/": ["type:wordpress-plugin"],
+      "web/app/themes/{$name}/": ["type:wordpress-theme"]
+    },
+    "dropin-paths": {
+      "web/app/languages/": ["vendor:koodimonni-language"],
+      "web/app/languages/plugins/": ["vendor:koodimonni-plugin-language"],
+      "web/app/languages/themes/": ["vendor:koodimonni-theme-language"]
+    },
+    "wordpress-install-dir": "web/wp"
+  },
+  "scripts": {
+    "post-root-package-install": [
+      "php -r \"copy('.env.example', '.env');\""
+    ],
+    "test": [
+      "phpcs"
+    ]
+  }
+}

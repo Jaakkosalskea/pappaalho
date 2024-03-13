@@ -1,0 +1,204 @@
+# Translation of Plugins - Admin Color Schemer - Stable (latest release) in English (UK)
+# This file is distributed under the same license as the Plugins - Admin Color Schemer - Stable (latest release) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2023-12-20 18:43:11+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: GlotPress/4.0.0-alpha.11\n"
+"Language: en_GB\n"
+"Project-Id-Version: Plugins - Admin Color Schemer - Stable (latest release)\n"
+
+#: classes/plugin.php:348 classes/plugin.php:366
+msgid "Could not copy a core file."
+msgstr "Could not copy a core file."
+
+#: classes/plugin.php:317
+msgid "Previewing. Be sure to save if you like the result."
+msgstr "Previewing. Be sure to save if you like the result."
+
+#: classes/plugin.php:300
+msgid "Could not write compiled CSS file."
+msgstr "Could not write compiled CSS file."
+
+#: classes/plugin.php:280
+msgid "Could not write custom SCSS file."
+msgstr "Could not write custom SCSS file."
+
+#: classes/plugin.php:223
+msgid "Please make more selections to preview the color scheme."
+msgstr "Please make more selections to preview the colour scheme."
+
+#: classes/plugin.php:68
+msgid "Toolbar input background"
+msgstr "Toolbar input background"
+
+#: classes/plugin.php:67
+msgid "Toolbar avatar frame"
+msgstr "Toolbar avatar frame"
+
+#: classes/plugin.php:66
+msgid "Menu collapse icon interaction"
+msgstr "Menu collapse icon interaction"
+
+#: classes/plugin.php:65
+msgid "Menu collapse text interaction"
+msgstr "Menu collapse text interaction"
+
+#: classes/plugin.php:64
+msgid "Menu collapse icon"
+msgstr "Menu collapse icon"
+
+#: classes/plugin.php:63
+msgid "Menu collapse text"
+msgstr "Menu collapse text"
+
+#: classes/plugin.php:62
+msgid "Bubble current text"
+msgstr "Bubble current text"
+
+#: classes/plugin.php:61
+msgid "Bubble current background"
+msgstr "Bubble current background"
+
+#: classes/plugin.php:60
+msgid "Bubble text"
+msgstr "Bubble text"
+
+#: classes/plugin.php:59
+msgid "Bubble background"
+msgstr "Bubble background"
+
+#: classes/plugin.php:58
+msgid "Submenu current text"
+msgstr "Submenu current text"
+
+#: classes/plugin.php:57
+msgid "Submenu text interaction"
+msgstr "Submenu text interaction"
+
+#: classes/plugin.php:56
+msgid "Submenu alt background"
+msgstr "Submenu alt background"
+
+#: classes/plugin.php:55
+msgid "Submenu text"
+msgstr "Submenu text"
+
+#: classes/plugin.php:54
+msgid "Submenu background"
+msgstr "Submenu background"
+
+#: classes/plugin.php:53
+msgid "Menu current icon"
+msgstr "Menu current icon"
+
+#: classes/plugin.php:52
+msgid "Menu current text"
+msgstr "Menu current text"
+
+#: classes/plugin.php:51
+msgid "Menu current background"
+msgstr "Menu current background"
+
+#: classes/plugin.php:50
+msgid "Menu highlight icon"
+msgstr "Menu highlight icon"
+
+#: classes/plugin.php:49
+msgid "Menu highlight text"
+msgstr "Menu highlight text"
+
+#: classes/plugin.php:48
+msgid "Menu highlight background"
+msgstr "Menu highlight background"
+
+#: classes/plugin.php:47
+msgid "Menu icon"
+msgstr "Menu icon"
+
+#: classes/plugin.php:46
+msgid "Menu text"
+msgstr "Menu text"
+
+#: classes/plugin.php:45
+msgid "Menu background"
+msgstr "Menu background"
+
+#: classes/plugin.php:44
+msgid "Checked form controls"
+msgstr "Checked form controls"
+
+#: classes/plugin.php:43
+msgid "Link interaction"
+msgstr "Link interaction"
+
+#: classes/plugin.php:42
+msgid "Link"
+msgstr "Link"
+
+#: classes/plugin.php:41
+msgid "Body background"
+msgstr "Body background"
+
+#: classes/plugin.php:40
+msgid "Text (over Base)"
+msgstr "Text (over Base)"
+
+#: classes/plugin.php:39
+msgid "Button"
+msgstr "Button"
+
+#: classes/plugin.php:35
+msgid "Notification"
+msgstr "Notification"
+
+#: classes/plugin.php:34
+msgid "Highlight"
+msgstr "Highlight"
+
+#: classes/plugin.php:33
+msgid "Icon"
+msgstr "Icon"
+
+#: classes/plugin.php:32
+msgid "Base"
+msgstr "Base"
+
+#: classes/color-scheme.php:34
+msgid "Custom"
+msgstr "Custom"
+
+#: classes/version-check.php:38
+msgid "<strong>Admin Color Schemer</strong> requires WordPress 3.8 or higher, and has thus been <strong>deactivated</strong>. Please update your install and then try again!"
+msgstr "<strong>Admin Colour Schemer</strong> requires WordPress 3.8 or higher, and has thus been <strong>deactivated</strong>. Please update your install and then try again!"
+
+#: templates/admin-page.php:44
+msgid "Preview"
+msgstr "Preview"
+
+#: templates/admin-page.php:43
+msgid "Save and Use"
+msgstr "Save and Use"
+
+#: templates/updated.php:5
+msgid "Settings updated!"
+msgstr "Settings updated!"
+
+#: templates/empty-scheme.php:5
+msgid "Please make more selections to save the color scheme."
+msgstr "Please make more selections to save the colour scheme."
+
+#. Author of the plugin
+msgid "WordPress Core Team"
+msgstr "WordPress Core Team"
+
+#. Description of the plugin
+msgid "Create your own admin color schemes, right in the WordPress admin."
+msgstr "Create your own admin colour schemes, right in the WordPress admin."
+
+#. Plugin Name of the plugin
+msgid "Admin Color Schemer"
+msgstr "Admin Colour Schemer"

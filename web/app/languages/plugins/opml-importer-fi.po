@@ -1,0 +1,83 @@
+# Translation of Development (trunk) in Finnish
+# This file is distributed under the same license as the Development (trunk) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2010-06-22 17:42:57+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: GlotPress/0.1\n"
+"Project-Id-Version: Development (trunk)\n"
+
+msgid "http://wordpress.org/extend/plugins/opml-importer/"
+msgstr "http://wordpress.org/extend/plugins/opml-importer/"
+
+#: opml-importer.php:47 opml-importer.php:99
+msgid "Cheatin&#8217; uh?"
+msgstr "Hei, yritätkö huiputtaa?"
+
+#: opml-importer.php:154
+msgid "You need to supply your OPML url. Press back on your browser and try again"
+msgstr "OPML URL-osoite vaaditaan. Palaa edelliselle sivulle ja yritä uudestaan."
+
+msgid "wordpressdotorg"
+msgstr "wordpresspisteorg"
+
+msgid "http://wordpress.org/"
+msgstr "http://wordpress.org/"
+
+#: opml-importer.php:148
+msgid "Inserted %1$d links into category %2$s. All done! Go <a href=\"%3$s\">manage those links</a>."
+msgstr "Liitettiin %1$d linkkiä kategoriaan  %2$s. Valmis! <a href=\"%3$s\">Hallitse linkkejä.</a>"
+
+#: opml-importer.php:144
+msgid "Inserted <strong>%s</strong>"
+msgstr "Lisätty <strong>%s</strong>"
+
+msgid "OPML Importer"
+msgstr "OPML-tuontiohjelma"
+
+#: opml-importer.php:173
+msgid "Import links in OPML format."
+msgstr "Tuo linkit OPML-muodossa"
+
+#: opml-importer.php:173
+msgid "Blogroll"
+msgstr "Linkit"
+
+#: opml-importer.php:68
+msgid "Or choose from your local disk:"
+msgstr "Tai valitse paikallinen tiedosto:"
+
+#: opml-importer.php:63
+msgid "Specify an OPML URL:"
+msgstr "Anna OPML-virran osoite:"
+
+#: opml-importer.php:58
+msgid "If a program or website you use allows you to export your links or subscriptions as OPML you may import them here."
+msgstr "Jos voit tallettaa linkit ohjelmista tai web-sivustoilta OPML-muodossa, voit tuoda ne WordPressiin."
+
+#: opml-importer.php:54
+msgid "Import your blogroll from another system"
+msgstr "Tuo linkit toisesta järjestelmästä"
+
+#: opml-importer.php:103
+msgid "Importing..."
+msgstr "Tuodaan..."
+
+#: opml-importer.php:86
+msgid "Import OPML File"
+msgstr "Tuo OPML-tiedosto"
+
+#: opml-importer.php:75
+msgid "Category:"
+msgstr "Kategoria:"
+
+#: opml-importer.php:74
+msgid "Now select a category you want to put these links in."
+msgstr "Valitse kategoria, johon haluat linkit laittaa."
+
+#: opml-importer.php:28
+msgid "Import Blogroll"
+msgstr "Tuo linkit"

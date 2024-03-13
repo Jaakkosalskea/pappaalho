@@ -1,0 +1,105 @@
+# Translation of Development (trunk) in English (UK)
+# This file is distributed under the same license as the Development (trunk) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2014-12-29 01:50:49+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: GlotPress/1.0-alpha-1000\n"
+"Project-Id-Version: Development (trunk)\n"
+
+#: stp-importer.php:46
+msgid "Howdy! This imports tags from Simple Tagging 1.6.2 into WordPress tags."
+msgstr "Hey! This imports tags from Simple Tagging 1.6.2 into WordPress tags."
+
+#: stp-importer.php:112
+msgid "Step 2"
+msgstr "Step 2"
+
+#: stp-importer.php:128
+msgid "Step 3"
+msgstr "Step 3"
+
+#: stp-importer.php:170
+msgid "Import Complete!"
+msgstr "Import Complete!"
+
+#: stp-importer.php:171
+msgid "OK, so we lied about this being a 4-step program! You&#8217;re done!"
+msgstr "OK, so we lied about this being a 4-step program! You&#8217;re done!"
+
+#: stp-importer.php:125
+msgid "Done! <strong>%s</strong> tag was added!"
+msgid_plural "Done! <strong>%s</strong> tags were added!"
+msgstr[0] "Done! <strong>%s</strong> tag was added!"
+msgstr[1] "Done! <strong>%s</strong> tags were added!"
+
+#: stp-importer.php:120
+msgid "Adding Tags to Posts&#8230;"
+msgstr "Adding Tags to Posts&#8230;"
+
+#: stp-importer.php:172
+msgid "Now wasn&#8217;t that easy?"
+msgstr "Now wasn&#8217;t that easy?"
+
+#: stp-importer.php:107
+msgid "Done! <strong>%s</strong> tag to post relationships were read."
+msgid_plural "Done! <strong>%s</strong> tags to post relationships were read."
+msgstr[0] "Done! <strong>%s</strong> tag to post relationships were read."
+msgstr[1] "Done! <strong>%s</strong> tags to post relationships were read."
+
+#: stp-importer.php:96
+msgid "No posts were found to have tags!"
+msgstr "No posts were found to have tags!"
+
+#: stp-importer.php:89
+msgid "Reading STP Post Tags&#8230;"
+msgstr "Reading STP Post Tags&#8230;"
+
+#: stp-importer.php:52
+msgid "Step 1"
+msgstr "Step 1"
+
+#: stp-importer.php:49
+msgid "Don&#8217;t be stupid - backup your database before proceeding!"
+msgstr "Don&#8217;t be stupid - backup your database before proceeding!"
+
+#: stp-importer.php:48
+msgid "To accommodate larger databases for those tag-crazy authors out there, we have made this into an easy 4-step program to help you kick that nasty Simple Tagging habit. Just keep clicking along and we will let you know when you are in the clear!"
+msgstr "To accommodate larger databases for those tag-crazy authors out there, we have made this into an easy 4-step program to help you kick that nasty Simple Tagging habit. Just keep clicking along and we will let you know when you are in the clear!"
+
+#: stp-importer.php:47
+msgid "This has not been tested on any other versions of Simple Tagging. Mileage may vary."
+msgstr "This has not been tested on any other versions of Simple Tagging. Mileage may vary."
+
+#: stp-importer.php:37
+msgid "Steps may take a few minutes depending on the size of your database. Please be patient."
+msgstr "Steps may take a few minutes depending on the size of your database. Please be patient."
+
+#: stp-importer.php:36
+msgid "Import Simple Tagging"
+msgstr "Import Simple Tagging"
+
+#. Author URI of the plugin/theme
+msgid "http://wordpress.org/"
+msgstr "http://wordpress.org/"
+
+#. Author of the plugin/theme
+msgid "wordpressdotorg"
+msgstr "wordpressdotorg"
+
+#. Plugin URI of the plugin/theme
+msgid "http://wordpress.org/extend/plugins/stp-importer/"
+msgstr "http://wordpress.org/extend/plugins/stp-importer/"
+
+#. Plugin Name of the plugin/theme
+msgid "Simple Tags Importer"
+msgstr "Simple Tags Importer"
+
+#. #-#-#-#-#  stp-importer.pot (Simple Tags Importer 0.2)  #-#-#-#-#
+#. Description of the plugin/theme
+#: stp-importer.php:185
+msgid "Import Simple Tagging tags into WordPress tags."
+msgstr "Import Simple Tagging tags into WordPress tags."

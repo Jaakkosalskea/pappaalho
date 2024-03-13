@@ -1,0 +1,281 @@
+// Breakpoints ->
+// Layout widths
+$width-max-layout: 100%;
+$width-max-article: 800px;
+$width-grid-base: 1200px;
+
+// Breakpoints for containers
+$container-desktop: 1200px;
+$container-ipad: 991px;
+$container-mobile-landscape: 767px;
+$container-mobile: 478px;
+
+// Default widths
+$width-wide: 1200px;
+$width-full: 100%;
+
+@mixin breakpoint($point) {
+  @if $point == 'desktop-min' {
+    @media only screen and (min-width: $container-desktop + 1px) { @content ; }
+ }
+  @else if $point == 'desktop-max' {
+    @media only screen and (max-width: $container-desktop) { @content ; }
+ }
+  @else if $point == 'ipad' {
+    @media only screen and (max-width: $container-ipad) { @content ; }
+ }
+   @else if $point == 'mobile-landscape' {
+    @media only screen and (max-width: $container-mobile-landscape) { @content ; }
+ }
+ @else if $point == 'mobile-min' {
+   @media only screen and (min-width: $container-mobile + 1px) { @content ; }
+ }
+ @else if $point == 'mobile' {
+    @media only screen and (max-width: $container-mobile)  { @content ; }
+ }
+}
+
+// <- Breakpoints
+
+// Colors ->
+// Nimeä käyttämäsi fontit:
+// https://www.color-blindness.com/color-name-hue/
+// https://chir.ag/projects/name-that-color/
+:root {
+  // Brand color pool
+  --color-black: #000;
+  --color-white: #fff;
+  --color-black-rock: #333;
+  --color-east-bay: #666;
+  --color-science-blue: #0049d1;
+  --color-valhalla: #333;
+
+  // Main element colors
+  --color-heading: var(--color-main);
+  --color-footer-bg: var(--color-black);
+  --color-footer: var(--color-white);
+  --color-main: var(--color-valhalla);
+  --color-paragraph: var(--color-east-bay);
+
+  // Modern link that has background effect on hover
+  --color-link-border-bottom: var(--color-science-blue);
+  --color-link-border-focus: var(--color-black);
+  --color-link-comment: var(--color-scropion);
+  --color-link-comment-time-anchor: var(--color-east-bay);
+  --color-link-edit-background-hover: var(--color-pattens-blue);
+  --color-link-edit-border: var(--color-pattens-blue);
+  --color-link-edit-text: darken(#eaf1f8, 20%);
+  --color-link-edit-text-hover: var(--color-east-bay);
+  --color-link-text: var(--color-science-blue);
+  --color-link-text-focus: var(--color-black);
+  --color-link-text-hover: var(--color-white);
+  --color-link-background-hover: var(--color-link-text);
+
+  // Element colors
+  --color-background-code-block: var(--color-black-rock);
+  --color-background-code-inline: #f9f2f4;
+  --color-background-default: #f0f0f0;
+  --color-background-shade: #03061b;
+  --color-background-table-cell-odd: var(--color-white);
+  --color-background-table-cell-even: #f3f3f3;
+  --color-background-tag: var(--color-pattens-blue);
+  --color-blockquote: var(--color-science-blue);
+  --color-comment-text: var(--color-east-bay);
+  --color-comment-author-text: var(--color-east-bay);
+  --color-tag-border: rgba(6, 22, 41, .1);
+  --color-tag-border-hover: rgba(6, 22, 41, .4);
+  --color-tag-text: var(--color-black);
+  --color-category-border: #cdcfd4;
+  --color-category-text: var(--color-black);
+  --color-caption: #5c5c6a;
+  --color-code-block: #c7254e;
+  --color-code-text: #f5f5f5;
+  --color-error: #cc2e2e;
+  --color-kbd-border: #ccc;
+  --color-kbd-background: var(--color-pattens-blue);
+  --color-outline-overlay-items: #ff848a;
+  --color-pagination-text: var(--color-valhalla);
+  --color-pagination-background-hover: var(--color-valhalla);
+  --color-pagination-border-hover: var(--color-valhalla);
+  --color-pagination-text-hover: var(--color-white);
+  --color-pagination-background-current: var(--color-valhalla);
+  --color-pagination-border-current: var(--color-valhalla);
+  --color-pagination-text-current: var(--color-white);
+  --color-success: #8ed185;
+  --color-top-arrow-dark: var(--color-black);
+  --color-top-arrow-light: var(--color-white);
+  --color-warning: #f4aa71;
+  --color-error-block-border: #adb2ad; // Color picked from ACF
+  --color-error-block-background: #f9f9f9; // Color picked from ACF
+}
+// <- Colors
+
+:root {
+  // Gaps
+  --grid-gap: 4.8rem;
+
+  // Paddings
+  --padding-container-horizontal: 2rem;
+  --padding-container-horizontal-large: 6.4rem;
+  --padding-container-vertical: 6.4rem;
+  --padding-site-header-vertical: 2rem;
+  --padding-block: 8rem;
+
+  // Margins
+  --margin-between-text-elements: 4rem;
+  --margin-wp-block-image: 4rem;
+  --margin-between-paragraphs: 2.7rem;
+
+  // Mid-sized screens
+  @media (max-width: $width-wide + 150px) {
+    --padding-container-horizontal: 2rem;
+  }
+
+  // When navigation transforms to a responsive hamburger menu
+  @media (max-width: $container-ipad) {
+    --padding-site-header-vertical: 2rem;
+  }
+
+  // iPad
+  @media (max-width: $container-mobile-landscape) {
+    --grid-gap: 3.2rem;
+  }
+
+  @media (max-width: $container-ipad) {
+    --grid-gap: var(--padding-container-horizontal);
+    --padding-container-vertical: 5rem;
+  }
+
+  // Between iPad and a mobile phone
+  @media (max-width: $container-mobile-landscape) {
+    --padding-block: 6rem;
+  }
+
+  // Vars in mobile
+  @media (max-width: $container-mobile) {
+    --padding-container-vertical: 4rem;
+  }
+}
+// <- Spacings
+
+// Container ->
+
+.brxe-container {
+  padding-left: var(--padding-container-horizontal);
+  padding-right: var(--padding-container-horizontal);
+}
+
+// <- Container
+
+// Font family and sizes ->
+
+:root {
+  --font-serif: sans-serif;
+  --font-sans: 'Open Sans', -apple-system, sans-serif;
+  --font-monospace: 'Inconsolata', 'Menlo', 'Monaco', 'Consolas', 'Andale Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
+
+  // Fonts in use for content
+  --font-paragraph: var(--font-sans);
+  --font-heading: var(--font-sans);
+}
+
+// CSS Variables for responsive fonts
+:root {
+  // Heading font sizes
+  --font-size-hero:   5.2rem;
+  --font-size-h1:     3.6rem;
+  --font-size-h2:     3.6rem;
+  --font-size-h3:     2.4rem;
+  --font-size-h4:     2.2rem;
+  --font-size-h5:     1.6rem;
+  --font-size-h6:     1.4rem;
+
+  // Paragraph font sizes
+  --font-size-10: 1rem;
+  --font-size-12: 1.2rem;
+  --font-size-14: 1.4rem;
+  --font-size-15: 1.5rem;
+  --font-size-16: 1.6rem;
+  --font-size-17: 1.7rem;
+  --font-size-18: 1.8rem;
+  --font-size-20: 2rem;
+  --font-size-22: 2.2rem;
+  --font-size-24: 2.4rem;
+  --font-size-26: 2.6rem;
+  --font-size-28: 2.8rem;
+  --font-size-30: 3rem;
+
+  // Element font sizes
+  --font-size-default: var(--font-size-17);
+  --font-size-paragraphs: var(--font-size-17);
+  --font-size-captions: var(--font-size-14);
+
+  // Line-heights
+  --line-height-headings: 1.5;
+  --line-height-paragraphs: 1.7;
+
+  // Font weights
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extra-bold: 900;
+  --font-weight-paragraphs: var(--font-weight-regular);
+  --font-weight-headings: var(--font-weight-bold);
+
+  // Heading font sizes in mobile
+  @media (max-width: $container-mobile) {
+    --font-size-hero: 3.8rem;
+    --font-size-h1: 3.2rem;
+    --font-size-h2: 2.4rem;
+    --font-size-h3: 2.1rem;
+    --font-size-h4: 1.8rem;
+    --font-size-h5: 1.4rem;
+    --font-size-h6: 1.2rem;
+  }
+
+  // Paragraph font sizes in tiny phones like iPhone 5S
+  @media (max-width: 420px) {
+    --font-size-16: 1.4rem;
+  }
+
+  // Element font sizes in mobile
+  @media (max-width: $container-mobile) {
+    --font-size-paragraphs: 1.6rem;
+    --font-size-default: 1.6rem;
+  }
+}
+// <- Font family and sizes
+
+// Form variables ->
+// CSS Variables for radios and checkboxes
+:root {
+  // Form element colors
+  --color-background-input-field: var(--color-white);
+  --color-border-forms: #d9d9d9;
+  --color-border-forms-focus: rgba(42, 45, 62, .3);
+  --color-button: var(--color-white);
+  --color-button-hover: var(--color-white);
+  --color-button-background: var(--color-east-bay);
+  --color-button-background-hover: var(--color-valhalla);
+  --color-checkbox: var(--color-east-bay);
+  --color-checkbox-outline: 0 0 0 0.3rem rgba(84, 87, 115, .2);
+  --color-checkbox-border-hover: lighten(#545773, 15%);
+  --color-placeholder: var(--color-paragraph);
+  --color-placeholder-focus: var(--color-black);
+  --opacity-placeholder: .4;
+  --opacity-placeholder-focus: .8;
+
+  // Form element settings
+  --border-radius-checkbox: 0.4rem;
+  --border-radius-input-field: 0.4rem;
+  --border-radius-select: 0;
+  --border-width-checkbox: 0.2rem;
+  --border-width-input-field: 0.2rem;
+  --gap-checkbox: 1rem;
+  --line-height-checkbox: var(--line-height-paragraphs);
+  --size-checkbox-marker: 1.2rem;
+  --size-radio-button: 1.6rem;
+  --size-radio-button-marker: 0.8rem;
+}
+// <- Form variables

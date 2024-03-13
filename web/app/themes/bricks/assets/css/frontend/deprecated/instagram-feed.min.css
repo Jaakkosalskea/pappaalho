@@ -1,0 +1,102 @@
+.brxe-instagram-feed .bricks-instagram-user-wrapper {
+  display: inline-block;
+  margin-bottom: 20px;
+  align-items: center;
+}
+.brxe-instagram-feed .bricks-instagram-user-wrapper img {
+  float: left;
+  width: 75px;
+  margin-right: 15px;
+  border-radius: 50%;
+}
+.brxe-instagram-feed .bricks-instagram-user-wrapper .user-data {
+  text-align: left;
+}
+.brxe-instagram-feed .bricks-instagram-user-wrapper .name {
+  margin-bottom: 2px;
+  font-weight: 700;
+  color: currentColor;
+}
+.brxe-instagram-feed .bricks-instagram-user-wrapper .bio {
+  white-space: nowrap;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper > li {
+  position: relative;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper > li:hover .image {
+  filter: brightness(50%) saturate(50%);
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper > li:hover .meta-data {
+  opacity: 1;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper > li:hover .instagram {
+  transform: scale(1);
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper .image {
+  padding-top: 100%;
+  background-position: center;
+  background-size: cover;
+  transition: filter 0.2s;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper a {
+  display: block;
+  overflow: hidden;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper .meta-data {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 30px;
+  font-weight: 700;
+  color: #fff;
+  opacity: 0;
+  transition: 0.2s;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper span {
+  line-height: 30px;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper .likes-comments,
+.brxe-instagram-feed .bricks-instagram-feed-wrapper .tags {
+  display: flex;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper .likes + .comments {
+  margin-left: 15px;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper .likes,
+.brxe-instagram-feed .bricks-instagram-feed-wrapper .comments {
+  display: flex;
+  font-size: 21px;
+  font-weight: 300;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper .likes i,
+.brxe-instagram-feed .bricks-instagram-feed-wrapper .comments i {
+  margin: -2px 6px;
+  line-height: inherit;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper .tags li {
+  margin-right: 5px;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper .tags li:last-child {
+  margin: 0;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper .location {
+  position: absolute;
+  bottom: 30px;
+  opacity: 0.75;
+}
+.brxe-instagram-feed .bricks-instagram-feed-wrapper .instagram {
+  font-size: 30px;
+  transform: scale(0.75);
+  transition: 0.2s;
+}

@@ -1,0 +1,105 @@
+# Translation of Plugins - Test jQuery Updates - Stable (latest release) in English (UK)
+# This file is distributed under the same license as the Plugins - Test jQuery Updates - Stable (latest release) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2020-12-09 16:58:47+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: GlotPress/3.0.0-alpha.2\n"
+"Language: en_GB\n"
+"Project-Id-Version: Plugins - Test jQuery Updates - Stable (latest release)\n"
+
+#: class_wp_jquery_update_test.php:208
+msgid "If you have installed Test jQuery Updates on a live website, please uninstall it and use <a href=\"%s\">Enable jQuery Migrate Helper</a> instead."
+msgstr "If you have installed Test jQuery Updates on a live website, please uninstall it and use <a href=\"%s\">Enable jQuery Migrate Helper</a> instead."
+
+#: class_wp_jquery_update_test.php:192
+msgid "WordPress version 5.7 and newer are not supported yet."
+msgstr "WordPress version 5.7 and newer are not supported yet."
+
+#: class_wp_jquery_update_test.php:191
+msgid "For testing in WordPress 5.5 or earlier please install version 1.0.2 of the plugin."
+msgstr "For testing in WordPress 5.5 or earlier, please install version 1.0.2 of the plugin."
+
+#: class_wp_jquery_update_test.php:184
+msgid "However your WordPress version appears to be %s."
+msgstr "However, your WordPress version appears to be %s."
+
+#: class_wp_jquery_update_test.php:180 class_wp_jquery_update_test.php:203
+msgid "This plugin is intended for testing of jQuery and jQuery Migrate in WordPress 5.6."
+msgstr "This plugin is intended for testing of jQuery and jQuery Migrate in WordPress 5.6."
+
+#: class_wp_jquery_update_test.php:177 class_wp_jquery_update_test.php:290
+msgid "WordPress version not supported."
+msgstr "WordPress version not supported."
+
+#: class_wp_jquery_update_test.php:294
+msgid "Settings"
+msgstr "Settings"
+
+#: class_wp_jquery_update_test.php:266
+msgid "Disable"
+msgstr "Disable"
+
+#: class_wp_jquery_update_test.php:260
+msgid "Enable"
+msgstr "Enable"
+
+#: class_wp_jquery_update_test.php:254
+msgid "jQuery Migrate"
+msgstr "jQuery Migrate"
+
+#: class_wp_jquery_update_test.php:242
+msgid "Default"
+msgstr "Default"
+
+#: class_wp_jquery_update_test.php:236
+msgid "jQuery version"
+msgstr "jQuery version"
+
+#: class_wp_jquery_update_test.php:229
+msgid "This plugin outputs these versions in the browser console."
+msgstr "This plugin outputs these versions in the browser console."
+
+#: class_wp_jquery_update_test.php:228
+msgid "When reporting an issue please include the versions of jQuery, jQuery Migrate, and jQuery UI."
+msgstr "When reporting an issue, please include the versions of jQuery, jQuery Migrate, and jQuery UI."
+
+#: class_wp_jquery_update_test.php:224
+msgid "If the bug is in a jQuery plugin please also check if there is <a href=\"%s\">a new version on NPM</a>."
+msgstr "If the bug is in a jQuery plugin, please also check if there is <a href=\"%s\">a new version on NPM</a>."
+
+#: class_wp_jquery_update_test.php:218
+msgid "If you find a jQuery related bug <a href=\"%s\">please report it</a>."
+msgstr "If you find a jQuery related bug, <a href=\"%s\">please report it</a>."
+
+#: class_wp_jquery_update_test.php:204
+msgid "It is not intended for use in production."
+msgstr "It is not intended for use in production."
+
+#: class_wp_jquery_update_test.php:198
+msgid "Settings saved."
+msgstr "Settings saved."
+
+#. Author URI of the plugin
+msgid "https://wordpress.org"
+msgstr "https://en-gb.wordpress.org"
+
+#. Author of the plugin
+msgid "The WordPress Team"
+msgstr "The WordPress Team"
+
+#. Description of the plugin
+msgid "A feature plugin to help with testing updates of the jQuery JavaScript library (not intended for use in production)."
+msgstr "A feature plugin to help with testing updates of the jQuery JavaScript library (not intended for use in production)."
+
+#. Plugin URI of the plugin
+msgid "https://wordpress.org/plugins/wp-jquery-update-test"
+msgstr "https://en-gb.wordpress.org/plugins/wp-jquery-update-test"
+
+#. Plugin Name of the plugin
+#: class_wp_jquery_update_test.php:173 class_wp_jquery_update_test.php:278
+msgid "Test jQuery Updates"
+msgstr "Test jQuery Updates"

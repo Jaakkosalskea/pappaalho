@@ -1,0 +1,56 @@
+# Directories
+.DS_Store
+.vagrant
+.sass-cache/
+.git/
+.DS_Store
+composer.lock
+.vscode/
+stats/
+.history/
+
+# Application
+web/app/plugins/*
+!web/app/plugins/.gitkeep
+web/app/mu-plugins/*/
+web/app/themes/twentytwentytwo/
+web/app/upgrade
+web/app/uploads/*
+!web/app/uploads/.gitkeep
+web/app/cache/*
+
+# WordPress
+web/wp
+
+# Logs
+*.log
+package-lock.json
+access.log
+error.log
+log/
+
+# Special git hooks
+!.githooks
+!.githooks/*
+
+# Dotenv
+.env
+.env.*
+!.env.example
+!.env.local
+
+# Composer
+/vendor
+/vendor
+/vendor/*
+!vendor/.gitkeep
+node_modules/
+
+# WP-CLI
+wp-cli.local.yml
+
+# Misc
+*.codekit
+db-sync
+sql-dump-*.sql
+w3cErrors/

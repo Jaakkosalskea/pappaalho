@@ -1,0 +1,99 @@
+# Translation of Development (trunk) in Finnish
+# This file is distributed under the same license as the Development (trunk) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2010-06-21 21:14:05+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: GlotPress/0.1\n"
+"Project-Id-Version: Development (trunk)\n"
+
+#: stp-importer.php:112
+msgid "Step 2"
+msgstr "Vaihe 2"
+
+#: stp-importer.php:128
+msgid "Step 3"
+msgstr "Vaihe 3"
+
+#: stp-importer.php:170
+msgid "Import Complete!"
+msgstr "Tuonti valmis!"
+
+#: stp-importer.php:171
+msgid "OK, so we lied about this being a 4-step program! You&#8217;re done!"
+msgstr "OK, me valehtelimme tämän olevan 4-vaiheinen ohjelma! Kaikki on valmista!"
+
+#: stp-importer.php:125
+msgid "Done! <strong>%s</strong> tag was added!"
+msgid_plural "Done! <strong>%s</strong> tags were added!"
+msgstr[0] "Valmis! Lisättiin <strong>%s</strong> avainsana!"
+msgstr[1] "Valmis! Lisättiin <strong>%s</strong> avainsanaa!"
+
+#: stp-importer.php:120
+msgid "Adding Tags to Posts&#8230;"
+msgstr "Lisätään avainsanat artikkeleihin &#8230;"
+
+#: stp-importer.php:172
+msgid "Now wasn&#8217;t that easy?"
+msgstr "Eikö ollutkin helppoa?"
+
+#: stp-importer.php:107
+msgid "Done! <strong>%s</strong> tag to post relationships were read."
+msgid_plural "Done! <strong>%s</strong> tags to post relationships were read."
+msgstr[0] "Valmis! Löytyi <strong>%s</strong> avainsana artikkeliviitteineen."
+msgstr[1] "Valmis! Löytyi <strong>%s</strong> avainsanaa artikkeliviitteineen."
+
+#: stp-importer.php:96
+msgid "No posts were found to have tags!"
+msgstr "Ei avainsanoja!"
+
+#: stp-importer.php:89
+msgid "Reading STP Post Tags&#8230;"
+msgstr "Luetaan Simple Tagging -ohjelman avainsanoja&#8230;"
+
+#: stp-importer.php:52
+msgid "Step 1"
+msgstr "Vaihe 1"
+
+#: stp-importer.php:49
+msgid "Don&#8217;t be stupid - backup your database before proceeding!"
+msgstr "Älä hölmöile - ota varmuuskopio tietokannastasi ennen kuin jatkat."
+
+#: stp-importer.php:48
+msgid "To accommodate larger databases for those tag-crazy authors out there, we have made this into an easy 4-step program to help you kick that nasty Simple Tagging habit. Just keep clicking along and we will let you know when you are in the clear!"
+msgstr "Tämä nelivaiheinen tuontiohjelma auttaa sinua tuomaan avainsanat Simple Tagging -ohjelmasta. Klikkaile eteenpäin - kerromme, kun on valmista!"
+
+#: stp-importer.php:47
+msgid "This has not been tested on any other versions of Simple Tagging. Mileage may vary."
+msgstr "Tätä tuontiohjelmaa ei ole testattu Simple Tagging -ohjelman aikaisemmilla versioilla. Toimivuus voi vaihdella."
+
+#: stp-importer.php:46
+msgid "Howdy! This imports tags from Simple Tagging 1.6.2 into WordPress tags."
+msgstr "Moikka! Tämä tuontiohjelma tuo avainsanat Simple Tagging 1.6.2 -ohjelmasta."
+
+#: stp-importer.php:37
+msgid "Steps may take a few minutes depending on the size of your database. Please be patient."
+msgstr "Vaiheiden suoritus voi viedä muutamia minuutteja tietokantasi koosta riippuen. Ole hyvä ja odota rauhallisesti."
+
+#: stp-importer.php:36
+msgid "Import Simple Tagging"
+msgstr "Simple Tagging-tuonti"
+
+msgid "http://wordpress.org/"
+msgstr "http://wordpress.org/"
+
+msgid "wordpressdotorg"
+msgstr "wordpresspisteorg"
+
+msgid "http://wordpress.org/extend/plugins/stp-importer/"
+msgstr "http://wordpress.org/extend/plugins/stp-importer/"
+
+msgid "Simple Tags Importer"
+msgstr "Simple Tags-tuontiohjelma"
+
+#: stp-importer.php:185
+msgid "Import Simple Tagging tags into WordPress tags."
+msgstr "Tuo avainsanat Simple Tagging -ohjelmasta."

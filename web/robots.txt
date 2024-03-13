@@ -1,0 +1,8 @@
+# Development & Staging
+User-agent: *
+Disallow: /
+
+# Production
+#User-agent:  *
+#Disallow: /wp-admin/
+#Allow: /wp-admin/admin-ajax.php

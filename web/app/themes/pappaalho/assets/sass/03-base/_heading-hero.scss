@@ -1,0 +1,8 @@
+@mixin heading-hero() {
+  font-size: var(--font-size-hero);
+}
+
+.heading-hero,
+.heading-hero h1 {
+  @include heading-hero();
+}

@@ -1,0 +1,127 @@
+# Translation of Plugins - Movable Type and TypePad Importer - Stable (latest release) in Finnish
+# This file is distributed under the same license as the Plugins - Movable Type and TypePad Importer - Stable (latest release) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2016-02-21 15:58:50+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: GlotPress/4.0.0-alpha.4\n"
+"Language: fi\n"
+"Project-Id-Version: Plugins - Movable Type and TypePad Importer - Stable (latest release)\n"
+
+#. Author URI of the plugin/theme
+msgid "http://wordpress.org/"
+msgstr "http://wordpress.org/"
+
+#. Author of the plugin/theme
+msgid "wordpressdotorg"
+msgstr "wordpresspisteorg"
+
+#. Plugin URI of the plugin/theme
+msgid "http://wordpress.org/extend/plugins/movabletype-importer/"
+msgstr "http://wordpress.org/extend/plugins/movabletype-importer/"
+
+#. Plugin Name of the plugin/theme
+msgid "Movable Type and TypePad Importer"
+msgstr "Movable Type- ja TypePad-tuontiohjelma"
+
+#. #-#-#-#-#  tmp-movabletype-importer.pot (Movable Type and TypePad Importer
+#. 0.4)  #-#-#-#-#
+#. Description of the plugin/theme
+#: movabletype-importer.php:527
+msgid "Import posts and comments from a Movable Type or TypePad blog."
+msgstr "Tuo artikkelit ja kommentit Movable Type- tai TypePad-blogista."
+
+#: movabletype-importer.php:527
+msgid "Movable Type and TypePad"
+msgstr "Movable Type ja TypePad"
+
+#: movabletype-importer.php:481
+msgid "All done. <a href=\"%s\">Have fun!</a>"
+msgstr "Valmista. <a href=\"%s\">Pidä hauskaa!</a>"
+
+#: movabletype-importer.php:317
+msgid "(%s ping)"
+msgid_plural "(%s pings)"
+msgstr[0] "(%s päivitysilmoitus)"
+msgstr[1] "(%s päivitysilmoitusta)"
+
+#: movabletype-importer.php:300
+msgid "(%s comment)"
+msgid_plural "(%s comments)"
+msgstr[0] "(%s kommentti)"
+msgstr[1] "(%s kommenttia)"
+
+#: movabletype-importer.php:281
+msgid "Adding tags <em>%s</em>..."
+msgstr "Lisätään avainsanat <em>%s</em>..."
+
+#: movabletype-importer.php:263
+msgid "Importing post <em>%s</em>..."
+msgstr "Tuodaan artikkeli <em>%s</em>..."
+
+#: movabletype-importer.php:260
+msgid "Post <em>%s</em> already exists."
+msgstr "Artikkeli <em>%s</em> on jo olemassa."
+
+#: movabletype-importer.php:242
+msgid "Sorry, there has been an error"
+msgstr "Valitettavasti on tapahtunut virhe"
+
+#: movabletype-importer.php:236
+msgid "<code>mt-export.txt</code> does not exist"
+msgstr "<code>mt-export.txt</code>-tiedostoa ei löydy."
+
+#: movabletype-importer.php:226
+msgid "Submit"
+msgstr "Lähetä"
+
+#: movabletype-importer.php:221
+msgid "Create user %1$s or map to existing"
+msgstr "Luo käyttäjä %1$s tai liitä olemassa olevaan"
+
+#: movabletype-importer.php:221
+msgid "Current author:"
+msgstr "Nykyinen kirjoittaja:"
+
+#: movabletype-importer.php:210
+msgid "If a new user is created by WordPress, a password will be randomly generated. Manually change the user&#8217;s details if necessary."
+msgstr "Jos WordPress luo uuden käyttäjän, sille määritellään satunnainen salasana. Jos haluat, muuta salasana käsin profiilitiedoista."
+
+#: movabletype-importer.php:209
+msgid "Below, you can see the names of the authors of the Movable Type posts in <em>italics</em>. For each of these names, you can either pick an author in your WordPress installation from the menu, or enter a name for the author in the textbox."
+msgstr "Alla näet tekijöiden nimet ja Movable Type-viestit <em> kursiivilla </em>. Jokaiselle näistä nimistä, voit joko valita tekijän WordPress-asennuksesta valikosta tai kirjoittaa nimen tekstikenttään."
+
+#: movabletype-importer.php:208
+msgid "To make it easier for you to edit and save the imported posts and drafts, you may want to change the name of the author of the posts. For example, you may want to import all the entries as admin&#8217;s entries."
+msgstr "Jotta olisi helpompi muokata ja tallentaa tuodut tekstit ja luonnokset, saatat haluta muuttaa tekijän nimen ja viran. Esimerkiksi, saatat haluta tuoda kaikki viestit adminilta."
+
+#: movabletype-importer.php:207
+msgid "Assign Authors"
+msgstr "Määritä kirjoittajat"
+
+#: movabletype-importer.php:77
+msgid "&mdash; Select &mdash;"
+msgstr "&mdash; Valitse &mdash;"
+
+#: movabletype-importer.php:68
+msgid "The importer is smart enough not to import duplicates, so you can run this multiple times without worry if&#8212;for whatever reason&#8212;it doesn&#8217;t finish. If you get an <strong>out of memory</strong> error try splitting up the import file into pieces."
+msgstr "Tuojan on fiksu, ja se ei tuo päällekkäisyyksiä, joten voit käyttää tätä useita kertoja huoletta jos se ei jostain syystä pääty. Jos saat <strong> muisti loppu</ strong>-virheen, yrittä pilkkoa tuonti moneksi palaksi."
+
+#: movabletype-importer.php:65
+msgid "Import mt-export.txt"
+msgstr "Tuo mt-export.txt"
+
+#: movabletype-importer.php:63
+msgid "Or use <code>mt-export.txt</code> in your <code>/wp-content/</code> directory"
+msgstr "Tai käytä <code>mt-export.txt</code>-tiedostoa <code>/wp-content/</code>-hakemistossasi."
+
+#: movabletype-importer.php:55
+msgid "Howdy! We are about to begin importing all of your Movable Type or TypePad entries into WordPress. To begin, either choose a file to upload and click &#8220;Upload file and import&#8221;, or use FTP to upload your MT export file as <code>mt-export.txt</code> in your <code>/wp-content/</code> directory and then click &#8220;Import mt-export.txt&#8221;."
+msgstr "Terve! Aiomme aloittaa kaikkien  Movable Type tai TypePad.viestien tuonnin WordPress:iin. Aloita joko valitsemalla ladattava tiedosto ja klikkaamalla \"Lataa tiedosto ja tuo\", tai käytä FTP:tä ladatataksesi MT-vientitiedoston <code> mt-export.txt </code><code> / WP-content / </ code>-hakemistoon ja valitse \"Tuo MT-export.txt\"."
+
+#: movabletype-importer.php:44
+msgid "Import Movable Type or TypePad"
+msgstr "Movable Type ja TypePad-tuonti"

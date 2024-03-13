@@ -1,0 +1,251 @@
+# Translation of Stable (latest release) in Finnish
+# This file is distributed under the same license as the Stable (latest release) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2016-02-21 10:43:03+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: GlotPress/2.0.0\n"
+"Project-Id-Version: Stable (latest release)\n"
+
+#. Author URI of the plugin/theme
+msgid "http://wordpress.org/"
+msgstr "http://wordpress.org/"
+
+#. Description of the plugin/theme
+msgid "Import posts and comments from LiveJournal."
+msgstr "Tuo artikkelit ja kommentit Livejournalista."
+
+#. Author of the plugin/theme
+msgid "wordpressdotorg"
+msgstr "wordpresspisteorg"
+
+#. Plugin URI of the plugin/theme
+msgid "http://wordpress.org/extend/plugins/livejournal-importer/"
+msgstr "http://wordpress.org/extend/plugins/livejournal-importer/"
+
+#. Plugin Name of the plugin/theme
+msgid "LiveJournal Importer"
+msgstr "LiveJournal-tuontiohjelma"
+
+#: livejournal-importer.php:1126
+msgid "LiveJournal"
+msgstr "LiveJournal"
+
+#: livejournal-importer.php:1126
+msgid "Import posts from LiveJournal using their API."
+msgstr "Tuo artikkelit LiveJournalista käyttämllä heidän APIaan."
+
+#: livejournal-importer.php:1058
+msgid "Processing next batch."
+msgstr "Käsitellään seuraava kommenttirypäs."
+
+#: livejournal-importer.php:1024 livejournal-importer.php:1052
+msgid "Continuing in %d&#8230;"
+msgstr "Jatketaan %d&#8230;"
+
+#: livejournal-importer.php:1029
+msgid "Continuing&#8230;"
+msgstr "Jatkuu&#8230;"
+
+#: livejournal-importer.php:991
+msgid "All done. <a href=\"%s\">Have fun!</a>"
+msgstr "Valmista. <a href=\"%s\">Pidä hauskaa!</a>"
+
+#: livejournal-importer.php:952
+msgid "We are now re-building the threading of your comments (this can also take a while if you have lots of comments)..."
+msgstr "Järjestetään kommentteja... (tämä saattaa kestää kauan)"
+
+#: livejournal-importer.php:989
+msgid "Successfully re-threaded %s comments."
+msgstr "%s kommenttia järjestetty onnistuneesti."
+
+#: livejournal-importer.php:951
+msgid "Threading Comments&#8230;"
+msgstr "Jaetaan kommentteja&#8230;"
+
+#: livejournal-importer.php:935
+msgid "Rebuild my comment threads &raquo;"
+msgstr "Rakenna kommenttihierarkia uudelleen &raquo;"
+
+#: livejournal-importer.php:934
+msgid "Your comments have all been imported now, but we still need to rebuild your conversation threads."
+msgstr "Kaikki kommenttisi on tuotu, järjestämme vielä keskustelut oikeaan järjestykseen."
+
+#: livejournal-importer.php:926
+msgid "Imported comment batch %d of <strong>approximately</strong> %d"
+msgstr "Tuotiin kommentit %d, <strong>noin</strong> %d"
+
+#: livejournal-importer.php:899
+msgid "Downloading Comments&#8230;"
+msgstr "Ladataan kommentteja&#8230;"
+
+#: livejournal-importer.php:900
+msgid "Now we will download your comments so we can import them (this could take a <strong>long</strong> time if you have lots of comments)..."
+msgstr "Aloitetaan artikkeleiden tuontia (tähän voi mennä <strong>kauan</strong> jos sinulle on tullut paljon kommentteja)..."
+
+#: livejournal-importer.php:881
+msgid "Download my comments &raquo;"
+msgstr "Tuo kommentit &raquo;"
+
+#: livejournal-importer.php:880
+msgid "Your posts have all been imported, but wait &#8211; there&#8217;s more! Now we need to download &amp; import your comments."
+msgstr "Kaikki artikkelisi on tuotu, mutta älähän hätäile vielä! Seuraavaksi tuodaan vielä artikkeleihisi liittyvät kommentit."
+
+#: livejournal-importer.php:875 livejournal-importer.php:929
+msgid "Import the next batch"
+msgstr "Tuo seuraava joukko posteja"
+
+#: livejournal-importer.php:862 livejournal-importer.php:999
+msgid "Try Again"
+msgstr "Yritä uudelleen."
+
+#: livejournal-importer.php:860
+msgid "We&#8217;ve saved where you were up to though, so if you come back to this importer in about 30 minutes, you should be able to continue from where you were."
+msgstr "Kokeile uudelleen artikkeleiden tuontia n. 30 minuutin päästä, niin voimme luultavasti jatkaa siitä mihin jäit."
+
+#: livejournal-importer.php:859
+msgid "Uh oh &ndash; LiveJournal has disconnected us because we made too many requests to their servers too quickly."
+msgstr "Hups! Yhteys LiveJournaliin katkesi, koska suoritimme liian monta kyselyä heidän palvelimilleen lyhyessä ajassa."
+
+#: livejournal-importer.php:841
+msgid "Imported post batch %d of <strong>approximately</strong> %d"
+msgstr "Tuotiin artikkelit %d, <strong>noin</strong> %d"
+
+#: livejournal-importer.php:836
+msgid "Importing Posts"
+msgstr "Tuodaan artikkelit..."
+
+#: livejournal-importer.php:837
+msgid "We&#8217;re downloading and importing your LiveJournal posts..."
+msgstr "Ladataan ja tuodaan LiveJournal-artikkeleitasi..."
+
+#: livejournal-importer.php:790
+msgid "Logging in to LiveJournal failed. Check your username and password and try again."
+msgstr "Sisäänkirjautuminen LiveJournal-palveluun epäonnistui. Tarkista että kirjoitit käyttäjätunnuksesi ja salasanasi oikein ja kokeile sitten uudelleen."
+
+#: livejournal-importer.php:779 livejournal-importer.php:791
+msgid "Start again"
+msgstr "Aloitussivu"
+
+#: livejournal-importer.php:778
+msgid "Please enter your LiveJournal username <em>and</em> password so we can download your posts and comments."
+msgstr "Anna LiveJournal-käyttäjätunnuksesi <em>ja</em> salasanasi, jotta voimme ladata LiveJournalista artikkelisi ja kommenttisi."
+
+#: livejournal-importer.php:718
+msgid "XML-RPC Request Failed -- "
+msgstr "XML-RPC-pyyntö epäonnistui"
+
+#: livejournal-importer.php:708
+msgid "LiveJournal is not responding to authentication requests. Please wait a while and then try again."
+msgstr "LiveJournal ei vastaa kirjautumispyyntöön. Odota vähän aikaa ja yritä sitten uudelleen."
+
+#: livejournal-importer.php:557
+msgid "Failed to retrieve comment bodies from LiveJournal. Please try again soon."
+msgstr "Kommenttien sisällön lukeminen LiveJournalista ei onnistunut. Kokeile vähän ajan päästä uudelleen."
+
+#: livejournal-importer.php:648 livejournal-importer.php:656
+msgid "Anonymous"
+msgstr "Nimetön"
+
+#: livejournal-importer.php:532
+msgid "Comment metadata downloaded successfully, proceeding with comment bodies..."
+msgstr "Kommenttien metadata ladattu onnistuneesti, käsitellään kommenttien rakenteita..."
+
+#: livejournal-importer.php:505
+msgid "You have no comments to import!"
+msgstr "Tuotavia kommentteja ei ole!"
+
+#: livejournal-importer.php:497
+msgid "Failed to retrieve comment meta information from LiveJournal. Please try again soon."
+msgstr "Kommenttien metatietojen lukeminen LiveJournalista ei onnistunut. Kokeile vähän ajan päästä uudelleen."
+
+#: livejournal-importer.php:476
+msgid "Could not get a cookie from LiveJournal. Please try again soon."
+msgstr "Evästettä ei voitu lukea LiveJournalista. Kokeile vähän ajan päästä uudelleen."
+
+#: livejournal-importer.php:431
+msgid "Failed to create post."
+msgstr "Tiedoston tallennus levylle epäonnistui."
+
+#: livejournal-importer.php:429
+msgid "Couldn&#8217;t get post ID (creating post failed!)"
+msgstr "Artikkelin ID-numeroa ei onnistuttu hakemaan (artikkelin luonti epäonnistui)"
+
+#: livejournal-importer.php:418
+msgid "Post <strong>%s</strong> already exists."
+msgstr "Artikkeli <em>%s</em> on jo olemassa."
+
+#: livejournal-importer.php:420
+msgid "Imported post <strong>%s</strong>..."
+msgstr "Lisätty <strong>%s</strong>"
+
+#: livejournal-importer.php:316
+msgid "Post metadata has been downloaded, proceeding with posts..."
+msgstr "Artikkeleiden metadata luettiin onnistuneesti, jatketaan artikkeleiden lataukseen..."
+
+#: livejournal-importer.php:271
+msgid "<strong>NOTE:</strong> You appear to have JavaScript disabled, so you will need to manually click through each step of this importer. If you enable JavaScript, it will step through automatically."
+msgstr "<strong>HUOM:</strong> JavaScript vaikuttaa olevan pois käytöstä, joten joudut manuaalisesti käymään läpi jokaisen tuontivaiheen. Jos otat selaimesi asetuksista JavaScriptin käyttöön, tuontitoiminto etenee automaattisesti."
+
+#: livejournal-importer.php:268
+msgid "<strong>NOTE:</strong> If the import process is interrupted for <em>any</em> reason, come back to this page and it will continue from where it stopped automatically."
+msgstr "<strong>HUOM:</strong> Jos tuonti keskeytyy <em>mistä tahansa</em> syystä, tule takaisin tälle sivulle ja tuonti jatkuu automaattisesti siitä mihin se jäi."
+
+#: livejournal-importer.php:265
+msgid "Connect to LiveJournal and Import"
+msgstr "Yhdistä LiveJournal-palveluun ja tuo artikkelit"
+
+#: livejournal-importer.php:262
+msgid "<strong>WARNING:</strong> This can take a really long time if you have a lot of entries in your LiveJournal, or a lot of comments. Ideally, you should only start this process if you can leave your computer alone while it finishes the import."
+msgstr "<strong>HUOM:</strong> Tässä voi kestää todella kauan, jos sinulla on paljon artikkeleita LiveJournalissa tai suuri määrä kommentteja. Silloin tuonti kannattaa tehdä vain jos voit jättää tietokoneesi päälle siksi aikaa kun artikkeleita tuodaan."
+
+#: livejournal-importer.php:256
+msgid "Protected Post Password"
+msgstr "Artikkelin salasana"
+
+#: livejournal-importer.php:252
+msgid "Enter the password you would like to use for all protected entries here:"
+msgstr "Anna haluamasi salasana suojatuille artikkeleille:"
+
+#: livejournal-importer.php:251
+msgid "If you don&#8217;t enter a password, ALL ENTRIES from your LiveJournal will be imported as public posts in WordPress."
+msgstr "Jos et anna tässä salasanaa, KAIKKI LiveJournalista tuodut artikkelit muutetaan julkisiksi WordPressissä."
+
+#: livejournal-importer.php:250
+msgid "If you have any entries on LiveJournal which are marked as private, they will be password-protected when they are imported so that only people who know the password can see them."
+msgstr "LiveJournalissa yksityiseksi merkityt artikkelit muutetaan tuonnin yhteydessä salasanasuojatuiksi, jotta vain salasanan tietävät lukijat pääsevät niihin käsiksi."
+
+#: livejournal-importer.php:244
+msgid "LiveJournal Password"
+msgstr "LiveJournal-salasanasi"
+
+#: livejournal-importer.php:239
+msgid "LiveJournal Username"
+msgstr "LiveJournal-käyttäjänimesi"
+
+#: livejournal-importer.php:234
+msgid "Enter your LiveJournal username and password below so we can connect to your account:"
+msgstr "Syötä LiveJournal-käyttäjätunnuksesi ja salasanasi alla oleviin kenttiin:"
+
+#: livejournal-importer.php:233
+msgid "Howdy! This importer allows you to connect directly to LiveJournal and download all your entries and comments"
+msgstr "Moikka! Tämä tuontiohjelma tuo suoraan LiveJournalista kaikki artikkelisi ja niihin tulleet kommentit."
+
+#: livejournal-importer.php:228
+msgid "Cancel &amp; start a new import"
+msgstr "Peruuta ja aloita uusi sisällön tuonti"
+
+#: livejournal-importer.php:226
+msgid "Continue previous import"
+msgstr "Jatka edellistä tuontioperaatiota"
+
+#: livejournal-importer.php:224
+msgid "It looks like you attempted to import your LiveJournal posts previously and got interrupted."
+msgstr "Näyttää siltä, että yritit tuoda LiveJournalista sisältöä aiemmin, mutta toiminto keskeytyi."
+
+#: livejournal-importer.php:210
+msgid "Import LiveJournal"
+msgstr "LiveJournal-tuonti"
