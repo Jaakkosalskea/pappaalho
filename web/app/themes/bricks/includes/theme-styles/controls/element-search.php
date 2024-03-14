@@ -29,7 +29,7 @@ $controls['iconBackgroundColor'] = [
 	'css'   => [
 		[
 			'property' => 'background-color',
-			'selector' => '.bricks-search-icon',
+			'selector' => 'button',
 		],
 	],
 ];
@@ -40,7 +40,7 @@ $controls['iconTypography'] = [
 	'css'     => [
 		[
 			'property' => 'font',
-			'selector' => '.bricks-search-icon',
+			'selector' => 'button',
 		],
 	],
 	'exclude' => [
@@ -61,7 +61,7 @@ $controls['iconWidth'] = [
 	'css'   => [
 		[
 			'property' => 'width',
-			'selector' => '.bricks-search-icon',
+			'selector' => 'button',
 		],
 	],
 ];

@@ -32,19 +32,28 @@ class Element_Heading extends Element {
 
 		$this->controls['tag'] = [
 			'tab'         => 'content',
-			'label'       => esc_html__( 'Tag', 'bricks' ),
+			'label'       => esc_html__( 'HTML tag', 'bricks' ),
 			'type'        => 'select',
 			'options'     => [
-				'h1' => 'h1',
-				'h2' => 'h2',
-				'h3' => 'h3',
-				'h4' => 'h4',
-				'h5' => 'h5',
-				'h6' => 'h6',
+				'h1'     => 'h1',
+				'h2'     => 'h2',
+				'h3'     => 'h3',
+				'h4'     => 'h4',
+				'h5'     => 'h5',
+				'h6'     => 'h6',
+				'custom' => esc_html__( 'Custom', 'bricks' ),
 			],
 			'inline'      => true,
-			'clearable'   => false,
-			'placeholder' => 'h3',
+			'placeholder' => ! empty( $this->theme_styles['tag'] ) ? $this->theme_styles['tag'] : 'h3',
+		];
+
+		$this->controls['customTag'] = [
+			'tab'         => 'content',
+			'label'       => esc_html__( 'Custom tag', 'bricks' ),
+			'type'        => 'text',
+			'inline'      => true,
+			'placeholder' => 'div',
+			'required'    => [ 'tag', '=', 'custom' ],
 		];
 
 		$this->controls['type'] = [
@@ -90,6 +99,7 @@ class Element_Heading extends Element {
 				'none'  => esc_html__( 'None', 'bricks' ),
 			],
 			'inline'      => true,
+			'pasteStyles' => true,
 			'placeholder' => esc_html__( 'None', 'bricks' ),
 		];
 
@@ -168,20 +178,20 @@ class Element_Heading extends Element {
 		];
 
 		$this->controls['separatorAlignItems'] = [
-			'tab'         => 'content',
-			'group'       => 'separator',
-			'label'       => esc_html__( 'Align', 'bricks' ),
-			'type'        => 'align-items',
-			'exclude'     => 'stretch',
-			'css'         => [
+			'tab'       => 'content',
+			'group'     => 'separator',
+			'label'     => esc_html__( 'Align', 'bricks' ),
+			'type'      => 'align-items',
+			'direction' => 'row',
+			'exclude'   => 'stretch',
+			'inline'    => true,
+			'css'       => [
 				[
 					'property'  => 'align-items',
 					'selector'  => '&.has-separator',
 					'important' => true,
 				],
 			],
-			'inline'      => true,
-			'placeholder' => esc_html__( 'Center', 'bricks' ),
 		];
 
 		$this->controls['separatorColor'] = [
@@ -199,8 +209,7 @@ class Element_Heading extends Element {
 	}
 
 	public function render() {
-		$settings  = $this->settings;
-		$separator = ! empty( $settings['separator'] ) ? $settings['separator'] : 'none';
+		$settings = $this->settings;
 
 		if ( ! empty( $settings['type'] ) ) {
 			$this->set_attribute( '_root', 'class', "bricks-type-{$settings['type']}" );
@@ -210,14 +219,20 @@ class Element_Heading extends Element {
 			$this->set_attribute( '_root', 'class', "bricks-color-{$settings['style']}" );
 		}
 
-		if ( isset( $settings['separator'] ) ) {
+		// Separator (check theme style, then element settings)
+		$separator = ! empty( $this->theme_styles['separator'] ) ? $this->theme_styles['separator'] : 'none';
+
+		if ( ! empty( $settings['separator'] ) ) {
+			$separator = $settings['separator'];
+		}
+
+		if ( $separator !== 'none' ) {
 			$this->set_attribute( '_root', 'class', 'has-separator' );
 		}
 
 		// Render
 		$output = "<{$this->tag} {$this->render_attributes( '_root' )}>";
 
-		// Separator
 		if ( $separator === 'left' || $separator === 'both' ) {
 			$output .= '<span class="separator left"></span>';
 		}
@@ -227,7 +242,7 @@ class Element_Heading extends Element {
 			$output .= "<a {$this->render_attributes( 'a' )}>";
 		}
 
-		if ( ! empty( $settings['text'] ) ) {
+		if ( isset( $settings['text'] ) ) {
 			$output .= isset( $settings['separator'] ) ? '<span class="text">' . $settings['text'] . '</span>' : $settings['text'];
 		}
 
@@ -249,6 +264,8 @@ class Element_Heading extends Element {
 		<script type="text/x-template" id="tmpl-bricks-element-heading">
 			<component
 				:is="tag"
+				:name="name"
+				:lineBreak="'br'"
 				:class="[
 					settings.type ? `bricks-type-${settings.type}` : null,
 					settings.style ? `bricks-color-${settings.style}` : null,
@@ -261,14 +278,16 @@ class Element_Heading extends Element {
 					v-if="settings.link"
 					tag="a"
 					:name="name"
+					:lineBreak="'br'"
 					controlKey="text"
 					toolbar="style align"
 					:settings="settings"/>
 
 				<contenteditable
 					v-else
-					tag="span"
+					tag="div"
 					:name="name"
+					:lineBreak="'br'"
 					controlKey="text"
 					toolbar="style align"
 					:settings="settings"/>

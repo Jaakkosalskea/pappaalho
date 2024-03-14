@@ -14,33 +14,71 @@ class Element_Search extends Element {
 		return esc_html__( 'Search', 'bricks' );
 	}
 
+	public function set_control_groups() {
+		$this->control_groups['input'] = [
+			'title' => esc_html__( 'Input', 'bricks' ),
+		];
+
+		$this->control_groups['button'] = [
+			'title' => esc_html__( 'Button', 'bricks' ) . ' / ' . esc_html__( 'Icon', 'bricks' ),
+		];
+
+		$this->control_groups['overlay'] = [
+			'title' => esc_html__( 'Overlay', 'bricks' ),
+		];
+	}
+
 	public function set_controls() {
 		$this->controls['searchType'] = [
-			'tab'         => 'content',
-			'label'       => esc_html__( 'Search type', 'bricks' ),
+			'label'       => esc_html__( 'Type', 'bricks' ),
 			'type'        => 'select',
+			'inline'      => true,
 			'options'     => [
 				'input'   => esc_html__( 'Input', 'bricks' ),
-				'overlay' => esc_html__( 'Icon', 'bricks' ),
+				'overlay' => esc_html__( 'Icon', 'bricks' ) . ' & ' . esc_html__( 'Overlay', 'bricks' ),
 			],
-			'inline'      => true,
 			'placeholder' => esc_html__( 'Input', 'bricks' ),
 		];
 
-		// Input
-
-		$this->controls['inputSeparator'] = [
-			'tab'   => 'content',
-			'label' => esc_html__( 'Input', 'bricks' ),
-			'type'  => 'separator',
+		$this->controls['ariaLabel'] = [
+			'label'       => 'aria-label',
+			'type'        => 'text',
+			'inline'      => true,
+			'placeholder' => esc_html__( 'Toggle search', 'bricks' ),
+			'required'    => [ 'searchType', '=', 'overlay' ],
 		];
 
+		$this->controls['actionURL'] = [
+			'label'       => esc_html__( 'Action URL', 'bricks' ),
+			'type'        => 'text',
+			'placeholder' => home_url( '/' ),
+			'description' => esc_html__( 'Leave empty to use the default WordPress home URL.', 'bricks' ),
+		];
+
+		$this->controls['additionalParams'] = [
+			'label'         => esc_html__( 'Additional parameters', 'bricks' ),
+			'type'          => 'repeater',
+			'titleProperty' => 'paramKey',
+			'fields'        => [
+				'paramKey'   => [
+					'label' => esc_html__( 'Key', 'bricks' ),
+					'type'  => 'text',
+				],
+				'paramValue' => [
+					'label' => esc_html__( 'Value', 'bricks' ),
+					'type'  => 'text',
+				],
+			],
+			'description'   => esc_html__( 'Added to the search form as hidden input fields.', 'bricks' ),
+		];
+
+		// INPUT
+
 		$this->controls['inputHeight'] = [
-			'tab'   => 'content',
+			'group' => 'input',
 			'label' => esc_html__( 'Height', 'bricks' ),
 			'type'  => 'number',
 			'units' => true,
-			'small' => false,
 			'css'   => [
 				[
 					'property' => 'height',
@@ -50,11 +88,10 @@ class Element_Search extends Element {
 		];
 
 		$this->controls['inputWidth'] = [
-			'tab'   => 'content',
+			'group' => 'input',
 			'label' => esc_html__( 'Width', 'bricks' ),
 			'type'  => 'number',
 			'units' => true,
-			'small' => false,
 			'css'   => [
 				[
 					'property' => 'width',
@@ -64,7 +101,7 @@ class Element_Search extends Element {
 		];
 
 		$this->controls['placeholder'] = [
-			'tab'         => 'content',
+			'group'       => 'input',
 			'label'       => esc_html__( 'Placeholder', 'bricks' ),
 			'type'        => 'text',
 			'inline'      => true,
@@ -72,7 +109,7 @@ class Element_Search extends Element {
 		];
 
 		$this->controls['placeholderColor'] = [
-			'tab'   => 'content',
+			'group' => 'input',
 			'label' => esc_html__( 'Placeholder color', 'bricks' ),
 			'type'  => 'color',
 			'css'   => [
@@ -84,7 +121,7 @@ class Element_Search extends Element {
 		];
 
 		$this->controls['inputBackgroundColor'] = [
-			'tab'   => 'content',
+			'group' => 'input',
 			'label' => esc_html__( 'Background color', 'bricks' ),
 			'type'  => 'color',
 			'css'   => [
@@ -96,7 +133,7 @@ class Element_Search extends Element {
 		];
 
 		$this->controls['inputBorder'] = [
-			'tab'   => 'content',
+			'group' => 'input',
 			'label' => esc_html__( 'Border', 'bricks' ),
 			'type'  => 'border',
 			'css'   => [
@@ -108,7 +145,7 @@ class Element_Search extends Element {
 		];
 
 		$this->controls['inputBoxShadow'] = [
-			'tab'   => 'content',
+			'group' => 'input',
 			'label' => esc_html__( 'Box shadow', 'bricks' ),
 			'type'  => 'box-shadow',
 			'css'   => [
@@ -119,156 +156,197 @@ class Element_Search extends Element {
 			],
 		];
 
-		// Icon
+		// BUTTON
 
-		$this->controls['iconSeparator'] = [
-			'tab'   => 'content',
-			'label' => esc_html__( 'Icon', 'bricks' ),
-			'type'  => 'separator',
+		$this->controls['buttonAriaLabel'] = [
+			'group'  => 'button',
+			'label'  => 'aria-label',
+			'type'   => 'text',
+			'inline' => true,
+		];
+
+		$this->controls['buttonAriaLabelInfo'] = [
+			'group'    => 'button',
+			'content'  => esc_html__( 'You have set an icon, but no text. Please provide the "aria-label" for accessibility.', 'bricks' ),
+			'type'     => 'info',
+			'required' => [
+				[ 'buttonAriaLabel', '=', '' ],
+				[ 'buttonText', '=', '' ],
+				[ 'icon', '!=', '' ],
+			],
+		];
+
+		$this->controls['buttonText'] = [
+			'group'  => 'button',
+			'label'  => esc_html__( 'Text', 'bricks' ),
+			'type'   => 'text',
+			'inline' => true,
 		];
 
 		$this->controls['icon'] = [
-			'tab'   => 'content',
+			'group' => 'button',
 			'label' => esc_html__( 'Icon', 'bricks' ),
 			'type'  => 'icon',
-			'info'  => esc_html__( 'Click on search icon opens search overlay.', 'bricks' ),
 		];
 
-		$this->controls['iconBackgroundColor'] = [
-			'tab'      => 'content',
-			'label'    => esc_html__( 'Icon background', 'bricks' ),
-			'type'     => 'color',
-			'css'      => [
+		$this->controls['buttonPadding'] = [
+			'group' => 'button',
+			'label' => esc_html__( 'Padding', 'bricks' ),
+			'type'  => 'spacing',
+			'css'   => [
 				[
-					'property' => 'background-color',
-					'selector' => '.bricks-search-icon',
+					'property' => 'padding',
+					'selector' => 'button',
 				],
 			],
-			'required' => [ 'icon', '!=', '' ],
-		];
-
-		$this->controls['iconTypography'] = [
-			'tab'      => 'content',
-			'label'    => esc_html__( 'Icon typography', 'bricks' ),
-			'type'     => 'typography',
-			'css'      => [
-				[
-					'property' => 'font',
-					'selector' => '.bricks-search-icon',
-				],
-			],
-			'exclude'  => [
-				'font-family',
-				'font-weight',
-				'font-style',
-				'text-align',
-				'text-decoration',
-				'text-transform',
-				'letter-spacing',
-			],
-			'required' => [ 'icon.icon', '!=', '' ],
-		];
-
-		$this->controls['iconWidth'] = [
-			'tab'         => 'content',
-			'label'       => esc_html__( 'Icon width', 'bricks' ),
-			'type'        => 'number',
-			'units'       => true,
-			'small'       => false,
-			'css'         => [
-				[
-					'property' => 'width',
-					'selector' => '.bricks-search-submit',
-				],
-				[
-					'property' => 'width',
-					'selector' => '.bricks-search-icon',
-				],
-			],
-			'placeholder' => 60,
-			'required'    => [ 'icon', '!=', '' ],
 		];
 
 		$this->controls['iconHeight'] = [
-			'tab'         => 'content',
-			'label'       => esc_html__( 'Icon height', 'bricks' ),
-			'type'        => 'number',
-			'units'       => true,
-			'small'       => false,
-			'css'         => [
+			'group' => 'button',
+			'label' => esc_html__( 'Height', 'bricks' ),
+			'type'  => 'number',
+			'units' => true,
+			'css'   => [
 				[
 					'property' => 'height',
-					'selector' => '.bricks-search-icon',
+					'selector' => 'button',
 				],
 			],
-			'placeholder' => 40,
-			'required'    => [ 'icon', '!=', '' ],
 		];
 
-		// Search Overlay
-		$this->controls['searchOverlaySeparator'] = [
-			'tab'         => 'content',
-			'label'       => esc_html__( 'Search Overlay', 'bricks' ),
-			'type'        => 'separator',
-			'description' => esc_html__( 'Disabled in builder.', 'bricks' ),
-			'required'    => [ 'searchType', '=', 'overlay' ],
+		$this->controls['iconWidth'] = [
+			'group' => 'button',
+			'label' => esc_html__( 'Width', 'bricks' ),
+			'type'  => 'number',
+			'units' => true,
+			'css'   => [
+				[
+					'property' => 'width',
+					'selector' => 'button',
+				],
+			],
 		];
+
+		$this->controls['iconBackgroundColor'] = [
+			'group' => 'button',
+			'label' => esc_html__( 'Background color', 'bricks' ),
+			'type'  => 'color',
+			'css'   => [
+				[
+					'property' => 'background-color',
+					'selector' => 'button',
+				],
+			],
+		];
+
+		$this->controls['iconTypography'] = [
+			'group'   => 'button',
+			'label'   => esc_html__( 'Typography', 'bricks' ),
+			'type'    => 'typography',
+			'css'     => [
+				[
+					'property' => 'font',
+					'selector' => 'button',
+				],
+			],
+			'exclude' => [ 'none' ],
+		];
+
+		// SEARCH OVERLAY
 
 		$this->controls['searchOverlayTitle'] = [
-			'tab'      => 'content',
-			'label'    => esc_html__( 'Title', 'bricks' ),
-			'type'     => 'text',
-			'inline'   => true,
-			'default'  => esc_html__( 'Search site', 'bricks' ),
-			'required' => [ 'searchType', '=', 'overlay' ],
+			'group'   => 'overlay',
+			'label'   => esc_html__( 'Title', 'bricks' ),
+			'type'    => 'text',
+			'inline'  => true,
+			'default' => esc_html__( 'Search site', 'bricks' ),
+		];
+
+		$this->controls['searchOverlayTitleTag'] = [
+			'group'       => 'overlay',
+			'label'       => esc_html__( 'Title tag', 'bricks' ),
+			'type'        => 'text',
+			'inline'      => true,
+			'placeholder' => 'h4',
 		];
 
 		$this->controls['searchOverlayTitleTypography'] = [
-			'tab'      => 'content',
-			'label'    => esc_html__( 'Title typography', 'bricks' ),
-			'type'     => 'typography',
-			'css'      => [
+			'group' => 'overlay',
+			'label' => esc_html__( 'Title typography', 'bricks' ),
+			'type'  => 'typography',
+			'css'   => [
 				[
 					'property' => 'font',
 					'selector' => '.title',
 				],
 			],
-			'required' => [ 'searchType', '=', 'overlay' ],
 		];
 
 		$this->controls['searchOverlayBackground'] = [
-			'tab'      => 'content',
-			'label'    => esc_html__( 'Background', 'bricks' ),
-			'type'     => 'background',
-			'css'      => [
+			'group' => 'contoverlaynt',
+			'label' => esc_html__( 'Background', 'bricks' ),
+			'type'  => 'background',
+			'css'   => [
 				[
 					'property' => 'background',
 					'selector' => '.bricks-search-overlay',
 				],
 			],
-			'required' => [ 'searchType', '=', 'overlay' ],
 		];
 
 		$this->controls['searchOverlayBackgroundOverlay'] = [
-			'tab'      => 'content',
-			'label'    => esc_html__( 'Background Overlay', 'bricks' ),
-			'type'     => 'color',
-			'css'      => [
+			'group' => 'overlay',
+			'label' => esc_html__( 'Background', 'bricks' ),
+			'type'  => 'color',
+			'css'   => [
 				[
 					'property' => 'background-color',
 					'selector' => '.bricks-search-overlay:after',
 				],
 			],
-			'required' => [ 'searchType', '=', 'overlay' ],
 		];
 	}
 
 	public function render() {
-		$settings = $this->settings;
+		$settings   = $this->settings;
+		$element_id = $this->id;
 
-		$search_title = isset( $settings['searchOverlayTitle'] ) ? esc_html( $settings['searchOverlayTitle'] ) : esc_html__( 'Search site', 'bricks' );
-		$search_type  = isset( $settings['searchType'] ) ? $settings['searchType'] : 'input';
-		$icon         = isset( $settings['icon'] ) ? self::render_icon( $settings['icon'] ) : false;
+		$search_title     = isset( $settings['searchOverlayTitle'] ) ? esc_html( $settings['searchOverlayTitle'] ) : esc_html__( 'Search site', 'bricks' );
+		$search_title_tag = isset( $settings['searchOverlayTitleTag'] ) ? esc_html( $settings['searchOverlayTitleTag'] ) : 'h4';
+		$search_type      = isset( $settings['searchType'] ) ? $settings['searchType'] : 'input';
+		$icon             = isset( $settings['icon'] ) ? self::render_icon( $settings['icon'] ) : false;
+		$aria_label       = isset( $settings['ariaLabel'] ) ? $settings['ariaLabel'] : esc_html__( 'Toggle search', 'bricks' );
+		$pre_search_value = ''; // Will be using in searchform.php @since 1.9.5
+
+		// Action URL: Parse dynamic data (@since 1.9.5)
+		if ( ! empty( $settings['actionURL'] ) ) {
+			$settings['actionURL'] = bricks_render_dynamic_data( $settings['actionURL'] );
+		}
+
+		// Parse additionalParams (@since 1.9.5)
+		if ( ! empty( $settings['additionalParams'] ) ) {
+			$additional_params = [];
+
+			foreach ( $settings['additionalParams'] as $param ) {
+				$key   = bricks_render_dynamic_data( sanitize_text_field( $param['paramKey'] ?? '' ) );
+				$value = bricks_render_dynamic_data( sanitize_text_field( $param['paramValue'] ?? '' ) );
+
+				if ( empty( $key ) || empty( $value ) ) {
+					continue;
+				}
+
+				// If user predefined search value, store it for later use
+				if ( $key === 's' ) {
+					$pre_search_value = $value;
+					continue;
+				}
+
+				$additional_params[ $key ] = $value;
+			}
+
+			// Overwrite additionalParams
+			$settings['additionalParams'] = $additional_params;
+		}
 
 		echo "<div {$this->render_attributes( '_root' )}>";
 
@@ -276,20 +354,30 @@ class Element_Search extends Element {
 			// Use include to pass $settings
 			include locate_template( 'searchform.php' );
 		} else {
-			echo '<div class="bricks-search-icon overlay-trigger">' . $icon . '</div>';
+			// Return: No icon set
+			if ( ! $icon ) {
+				return $this->render_element_placeholder(
+					[
+						'title' => esc_html__( 'No icon selected.', 'bricks' )
+					]
+				);
+			}
+
+			echo '<button aria-expanded="false" aria-label="' . esc_attr( $aria_label ) . '" class="toggle">' . $icon . '</button>';
 
 			unset( $settings['icon'] );
 			?>
 			<div class="bricks-search-overlay">
 				<div class="bricks-search-inner">
-					<h4 class="title"><?php echo $search_title; ?></h4>
 					<?php
+					echo "<$search_title_tag class=\"title\">$search_title</$search_title_tag>";
+
 					// Use include to pass $settings
 					include locate_template( 'searchform.php' );
 					?>
 				</div>
 
-				<?php echo '<span class="close">×</span>'; ?>
+				<?php echo '<button aria-label="' . esc_html__( 'Close search', 'bricks' ) . '" class="close">×</button>'; ?>
 			</div>
 			<?php
 		}

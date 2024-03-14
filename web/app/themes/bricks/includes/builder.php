@@ -4,11 +4,18 @@ namespace Bricks;
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class Builder {
+
+	public static $dynamic_data = []; // key: DD tag; value: DD tag value (@since 1.7.1)
+
 	public function __construct() {
+		add_action( 'wp_print_styles', [ $this, 'remove_admin_bar_inline_styles' ] );
+
 		add_filter( 'show_admin_bar', [ $this, 'show_admin_bar' ] );
 
 		add_action( 'init', [ $this, 'set_language_direction' ] );
-		add_filter( 'locale', [ $this, 'maybe_set_locale' ], 10, 1 );
+		add_filter( 'locale', [ $this, 'maybe_set_locale' ], 99999, 1 ); // Hook in after TranslatePress
+
+		add_action( 'send_headers', [ $this, 'dont_cache_headers' ] );
 
 		add_action( 'wp_footer', [ $this, 'element_x_templates' ] );
 
@@ -16,12 +23,49 @@ class Builder {
 		add_action( 'bricks_after_site_wrapper', [ $this, 'after_site_wrapper' ] );
 
 		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
+		// add_action( 'wp_enqueue_scripts', [ $this, 'static_area_styles' ] );
+
 		add_filter( 'tiny_mce_before_init', [ $this, 'tiny_mce_before_init' ] );
 
 		add_action( 'template_redirect', [ $this, 'template_redirect' ] );
 
 		// In the builder force our own template to avoid conflicts with other builders
 		add_filter( 'template_include', [ $this, 'template_include' ], 1001 );
+	}
+
+	/**
+	 * Remove 'admin-bar' inline styles
+	 *
+	 * Necessary for WordPress 6.4+ as html {margin-top: 32px !important} causes gap in builder.
+	 *
+	 * @since 1.9.3
+	 */
+	public function remove_admin_bar_inline_styles() {
+		// Remove 'admin-bar' inline style
+		if ( wp_style_is( 'admin-bar', 'enqueued' ) ) {
+			wp_style_add_data( 'admin-bar', 'after', '' );
+		}
+	}
+
+	/**
+	 * Don't cache headers or browser history buffer in builder
+	 *
+	 * To fix browser back button issue.
+	 *
+	 * https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching
+	 * https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
+	 *
+	 * "at present any pages using Cache-Control: no-store will not be eligible for bfcache."
+	 * - https://web.dev/bfcache/#minimize-use-of-cache-control-no-store
+	 *
+	 * @since 1.6.2
+	 */
+	public function dont_cache_headers() {
+		header_remove( 'Cache-Control' );
+
+		header( 'Cache-Control: no-cache, no-store, must-revalidate, max-age=0' ); // HTTP 1.1
+		header( 'Pragma: no-cache' ); // HTTP 1.0
+		header( 'Expires: 0' ); // HTTP 1.0 proxies
 	}
 
 	/**
@@ -72,7 +116,22 @@ class Builder {
 		$direction = Database::get_setting( 'builderLanguageDirection', false );
 
 		if ( ! $direction ) {
-			return;
+			$builder_locale = Database::get_setting( 'builderLocale', false );
+
+			// If builderLocale is set to "site-default", get the site's default locale
+			if ( $builder_locale == 'site-default' ) {
+				$builder_locale = get_locale();
+			}
+
+			// Determine if the locale is a RTL or LTR language
+			// NOTE: Best not to hardcode RTL languages if possible!
+			$rtl_languages = [ 'ar', 'he', 'fa', 'ur', 'yi', 'ps', 'dv', 'ckb', 'sd', 'ug' ];
+
+			// Apply filter to allow RTL languages to be added
+			$rtl_languages = apply_filters( 'bricks/rtl_languages', $rtl_languages );
+
+			$language_code = substr( $builder_locale, 0, 2 );
+			$direction     = in_array( $language_code, $rtl_languages ) ? 'rtl' : 'ltr';
 		}
 
 		global $wp_locale, $wp_styles;
@@ -155,9 +214,6 @@ class Builder {
 		}
 
 		if ( bricks_is_builder_main() ) {
-			// Builder fonts: Inter (https://font-display.glitch.me)
-			wp_enqueue_style( 'bricks-builder-fonts', 'https://fonts.googleapis.com/css?family=Inter:400,500,600,700&display=swap', [], null );
-
 			// Manually enqueue dashicons for 'wp_enqueue_media' as 'get_wp_editor' prevents dashicons enqueue
 			wp_enqueue_style( 'bricks-dashicons', includes_url( '/css/dashicons.min.css' ), [], null );
 
@@ -173,22 +229,36 @@ class Builder {
 		}
 
 		if ( bricks_is_builder_iframe() ) {
+			// Load Adobe fonts file (@since 1.7.1)
+			$adobe_fonts_project_id = ! empty( Database::get_setting( 'adobeFontsProjectId' ) ) ? Database::get_setting( 'adobeFontsProjectId' ) : false;
+
+			if ( $adobe_fonts_project_id ) {
+				wp_enqueue_style( "adobe-fonts-project-id-$adobe_fonts_project_id", "https://use.typekit.net/$adobe_fonts_project_id.css" );
+			}
+
 			wp_enqueue_script( 'bricks-countdown' );
 			wp_enqueue_script( 'bricks-counter' );
 			wp_enqueue_script( 'bricks-flatpickr' );
 			wp_enqueue_script( 'bricks-google-maps' );
-			wp_enqueue_script( 'bricks-photoswipe' );
 			wp_enqueue_script( 'bricks-piechart' );
 			wp_enqueue_script( 'bricks-swiper' );
 			wp_enqueue_script( 'bricks-typed' );
-			wp_enqueue_script( 'bricks-webfont' );
+			wp_enqueue_script( 'bricks-tocbot' );
 
 			wp_enqueue_script( 'bricks-builder', BRICKS_URL_ASSETS . 'js/iframe.min.js', [ 'bricks-scripts', 'jquery' ], filemtime( BRICKS_PATH_ASSETS . 'js/iframe.min.js' ), true );
 		}
 
-		$post_id         = get_the_ID();
-		$featured_image  = false;
-		$control_options = Setup::$control_options;
+		$post_id        = get_the_ID();
+		$featured_image = false;
+
+		/**
+		 * Get control options to ensure filter 'bricks/setup/control_options' ran
+		 *
+		 * Eaxmples: 'queryTypes', custom user control options, etc.
+		 *
+		 * @since 1.5.5
+		 */
+		$control_options = Setup::get_control_options();
 
 		// NOTE: Set post ID to posts page
 		if ( is_home() ) {
@@ -215,32 +285,45 @@ class Builder {
 			'bricks-builder',
 			'bricksData',
 			[
-				'loadData'                  => self::builder_data(), // Initial data to bootstrap builder iframe
+				'loadData'                      => self::builder_data( $post_id ), // Initial data to bootstrap builder iframe
+				'dynamicWrapper'                => apply_filters( 'bricks/builder/dynamic_wrapper', [] ),
 
-				'disableGlobalClasses'      => Database::get_setting( 'builderDisableGlobalClassesInterface', false ),
-				'disableElementSpacing'     => Database::get_setting( 'disableElementSpacing', false ),
-				'structureAutoSync'         => Database::get_setting( 'structureAutoSync', false ),
-				'structureDuplicateElement' => Database::get_setting( 'structureDuplicateElement', false ),
-				'structureDeleteElement'    => Database::get_setting( 'structureDeleteElement', false ),
-				'structureCollapsed'        => Database::get_setting( 'structureCollapsed', false ),
-				'builderDisableRestApi'     => Database::get_setting( 'builderDisableRestApi', false ),
-				'builderWrapElement'        => Database::get_setting( 'builderWrapElement', 'block' ),
-				'builderInsertElement'      => Database::get_setting( 'builderInsertElement', 'block' ),
-				'builderInsertLayout'       => Database::get_setting( 'builderInsertLayout', 'block' ),
-				'autosave'                  => [
+				// Bricks settings
+				'customBreakpoints'             => Database::get_setting( 'customBreakpoints', false ),
+				'disableClassManager'           => Database::get_setting( 'disableClassManager', false ),
+				'disableClassChaining'          => Database::get_setting( 'disableClassChaining', false ),
+				'disableGlobalClasses'          => Database::get_setting( 'builderDisableGlobalClassesInterface', false ),
+				'disablePanelAutoExpand'        => Database::get_setting( 'builderDisablePanelAutoExpand', false ),
+				'disableElementSpacing'         => Database::get_setting( 'disableElementSpacing', false ),
+				'canvasScrollIntoView'          => Database::get_setting( 'canvasScrollIntoView', false ),
+				'structureAutoSync'             => Database::get_setting( 'structureAutoSync', false ),
+				'structureDuplicateElement'     => Database::get_setting( 'structureDuplicateElement', false ),
+				'structureDeleteElement'        => Database::get_setting( 'structureDeleteElement', false ),
+				'structureCollapsed'            => Database::get_setting( 'structureCollapsed', false ),
+				'builderDisableRestApi'         => Database::get_setting( 'builderDisableRestApi', false ),
+				'builderWrapElement'            => Database::get_setting( 'builderWrapElement', 'block' ),
+				'builderInsertElement'          => Database::get_setting( 'builderInsertElement', 'block' ),
+				'builderInsertLayout'           => Database::get_setting( 'builderInsertLayout', 'block' ),
+				'enableDynamicDataPreview'      => Database::get_setting( 'enableDynamicDataPreview', false ),
+				'enableQueryFilters'            => Database::get_setting( 'enableQueryFilters', false ),
+				'builderDynamicDropdownKey'     => Database::get_setting( 'builderDynamicDropdownKey', false ),
+				'builderDynamicDropdownNoLabel' => Database::get_setting( 'builderDynamicDropdownNoLabel', false ),
+				'builderDynamicDropdownExpand'  => Database::get_setting( 'builderDynamicDropdownExpand', false ),
+				'autosave'                      => [
 					'disabled' => Database::get_setting( 'builderAutosaveDisabled', false ),
 					'interval' => Database::get_setting( 'builderAutosaveInterval', 60 ),
 				],
-				'toolbarLogoLink'           => Database::get_setting( 'builderToolbarLogoLink', 'current' ),
-				'toolbarLogoLinkNewTab'     => Database::get_setting( 'builderToolbarLogoLinkNewTab', '' ),
-				'mode'                      => Database::get_setting( 'builderMode', 'dark' ),
-				'featuredImage'             => $featured_image,
-				'panelWidth'                => get_option( BRICKS_DB_PANEL_WIDTH, 300 ),
-				'scaleOff'                  => get_user_meta( get_current_user_id(), BRICKS_DB_BUILDER_SCALE_OFF, true ),
-				'widthLocked'               => get_user_meta( get_current_user_id(), BRICKS_DB_BUILDER_WIDTH_LOCKED, true ),
+				'toolbarLogoLink'               => Database::get_setting( 'builderToolbarLogoLink', 'current' ),
+				'toolbarLogoLinkCustom'         => Database::get_setting( 'builderToolbarLogoLinkCustom', '' ),
+				'toolbarLogoLinkNewTab'         => Database::get_setting( 'builderToolbarLogoLinkNewTab', '' ),
+				'mode'                          => Database::get_setting( 'builderMode', 'dark' ),
+				'featuredImage'                 => $featured_image,
+				'panelWidth'                    => get_option( BRICKS_DB_PANEL_WIDTH, 300 ),
+				'scaleOff'                      => get_user_meta( get_current_user_id(), BRICKS_DB_BUILDER_SCALE_OFF, true ),
+				'widthLocked'                   => get_user_meta( get_current_user_id(), BRICKS_DB_BUILDER_WIDTH_LOCKED, true ),
 
-				'wp'                        => self::get_wordpress_data(),
-				'academy'                   => [
+				'wp'                            => self::get_wordpress_data(),
+				'academy'                       => [
 					'home'              => 'https://academy.bricksbuilder.io/',
 					'layout'            => 'https://academy.bricksbuilder.io/article/layout/',
 					'headerTemplate'    => 'https://academy.bricksbuilder.io/article/create-template/',
@@ -249,78 +332,87 @@ class Builder {
 					'globalElement'     => 'https://academy.bricksbuilder.io/article/global-elements/',
 					'keyboardShortcuts' => 'https://academy.bricksbuilder.io/article/keyboard-shortcuts/',
 					'pseudoClasses'     => 'https://academy.bricksbuilder.io/article/pseudo-classes/',
+					'conditions'        => 'https://academy.bricksbuilder.io/article/element-conditions/',
+					'interactions'      => 'https://academy.bricksbuilder.io/article/interactions/',
+					'popups'            => 'https://academy.bricksbuilder.io/article/popup-builder/',
 				],
 
-				'version'                   => BRICKS_VERSION,
-				'debug'                     => isset( $_GET['debug'] ) && Capabilities::current_user_has_full_access() ? $_GET['debug'] : false,
-				'breakpoints'               => Setup::$breakpoints,
-				'builderPreviewParam'       => BRICKS_BUILDER_IFRAME_PARAM,
-				'maxUploadSize'             => wp_max_upload_size(),
+				'version'                       => BRICKS_VERSION,
+				'debug'                         => isset( $_GET['debug'] ) && Capabilities::current_user_has_full_access() ? $_GET['debug'] : false,
+				'message'                       => isset( $_GET['message'] ) ? $_GET['message'] : false,
+				'breakpoints'                   => Breakpoints::$breakpoints,
+				'builderPreviewParam'           => BRICKS_BUILDER_IFRAME_PARAM,
+				'maxUploadSize'                 => wp_max_upload_size(),
 
-				'dynamicTags'               => Integrations\Dynamic_Data\Providers::get_dynamic_tags_list(),
+				'dynamicTags'                   => Integrations\Dynamic_Data\Providers::get_dynamic_tags_list(),
 
 				// URL to edit header/content/footer templates
-				'editHeaderUrl'             => ! empty( Database::$active_templates['header'] ) ? Helpers::get_builder_edit_link( Database::$active_templates['header'] ) : '',
-				'editContentUrl'            => ! empty( Database::$active_templates['content'] ) ? Helpers::get_builder_edit_link( Database::$active_templates['content'] ) : '',
-				'editFooterUrl'             => ! empty( Database::$active_templates['footer'] ) ? Helpers::get_builder_edit_link( Database::$active_templates['footer'] ) : '',
+				'editHeaderUrl'                 => ! empty( Database::$active_templates['header'] ) ? Helpers::get_builder_edit_link( Database::$active_templates['header'] ) : '',
+				'editContentUrl'                => ! empty( Database::$active_templates['content'] ) ? Helpers::get_builder_edit_link( Database::$active_templates['content'] ) : '',
+				'editFooterUrl'                 => ! empty( Database::$active_templates['footer'] ) ? Helpers::get_builder_edit_link( Database::$active_templates['footer'] ) : '',
 
-				'locale'                    => get_locale(),
-				'i18n'                      => self::i18n(),
-				'nonce'                     => wp_create_nonce( 'bricks-nonce' ),
-				'ajaxUrl'                   => admin_url( 'admin-ajax.php' ),
-				'restApiUrl'                => Api::get_rest_api_url(),
-				'homeUrl'                   => home_url( '/' ),
-				'adminUrl'                  => admin_url(),
-				'loginUrl'                  => wp_login_url(),
-				'themeUrl'                  => BRICKS_URL,
-				'assetsUrl'                 => BRICKS_URL_ASSETS,
-				'editPostUrl'               => get_edit_post_link( $post_id ),
-				'previewUrl'                => get_the_permalink( $post_id ),
-				'siteName'                  => get_bloginfo( 'name' ),
-				'siteUrl'                   => get_site_url(),
-				'settingsUrl'               => Helpers::settings_url(),
+				'locale'                        => get_locale(),
+				'i18n'                          => self::i18n(),
+				'nonce'                         => wp_create_nonce( 'bricks-nonce' ),
+				'ajaxUrl'                       => admin_url( 'admin-ajax.php' ),
+				'restApiUrl'                    => Api::get_rest_api_url(),
+				'homeUrl'                       => home_url( '/' ),
+				'adminUrl'                      => admin_url(),
+				'loginUrl'                      => wp_login_url(),
+				'themeUrl'                      => BRICKS_URL,
+				'assetsUrl'                     => BRICKS_URL_ASSETS,
+				'editPostUrl'                   => get_edit_post_link( $post_id ),
+				'previewUrl'                    => add_query_arg( 'bricks_preview', time(), get_the_permalink( $post_id ) ),
+				'siteName'                      => get_bloginfo( 'name' ),
+				'siteUrl'                       => get_site_url(),
+				'settingsUrl'                   => Helpers::settings_url(),
 
-				'defaultImageSize'          => 'large',
-				'author'                    => get_the_author_meta( 'display_name', get_post_field( 'post_author', $post_id ) ),
-				'isAdmin'                   => current_user_can( 'manage_options' ),
-				'isTemplate'                => get_post_type() === BRICKS_DB_TEMPLATE_SLUG,
-				'isRtl'                     => is_rtl(),
-				'postId'                    => $post_id,
-				'postStatus'                => get_post_status( $post_id ),
-				'postType'                  => get_post_type( $post_id ),
-				'postTypeUrl'               => admin_url( 'edit.php?post_type=' ) . get_post_type( $post_id ),
-				'postTypesRegistered'       => Helpers::get_registered_post_types(),
-				'postTypesSupported'        => Helpers::get_supported_post_types(),
-				'postsPerPage'              => get_option( 'posts_per_page' ),
-				'elements'                  => Elements::$elements,
-				'elementsCatFirst'          => $this->get_first_elements_category( $post_id ),
-				'wpEditor'                  => $this->get_wp_editor(),
-				'recaptchaIds'              => [],
-				'saveMessages'              => $this->save_messages(),
-				'builderParam'              => BRICKS_BUILDER_PARAM,
+				'defaultImageSize'              => 'large',
+				'author'                        => get_the_author_meta( 'display_name', get_post_field( 'post_author', $post_id ) ),
+				'isAdmin'                       => current_user_can( 'manage_options' ),
+				'isTemplate'                    => get_post_type() === BRICKS_DB_TEMPLATE_SLUG,
+				'isRtl'                         => is_rtl(),
+				'postId'                        => $post_id,
+				'postStatus'                    => get_post_status( $post_id ),
+				'postType'                      => get_post_type( $post_id ),
+				'postTypeUrl'                   => admin_url( 'edit.php?post_type=' ) . get_post_type( $post_id ),
+				'postTypesRegistered'           => Helpers::get_registered_post_types(),
+				'postTypesSupported'            => Helpers::get_supported_post_types(),
+				'postsPerPage'                  => get_option( 'posts_per_page' ),
+				'elements'                      => Elements::$elements,
+				'elementsCatFirst'              => $this->get_first_elements_category( $post_id ),
+				'wpEditor'                      => $this->get_wp_editor(),
+				'recaptchaIds'                  => [],
+				'saveMessages'                  => $this->save_messages(),
+				'builderParam'                  => BRICKS_BUILDER_PARAM,
 
-				'animatedTypingInstances'   => [], // Necessary to destroy and then reinit TypedJS instances
-				'videoInstances'            => [], // Necessary to destroy and then reinit Plyr instances
-				'splideInstances'           => [], // Necessary to destroy and then reinit SplideJS instances
-				'swiperInstances'           => [], // Necessary to destroy and then reinit SwiperJS instances
+				'animatedTypingInstances'       => [], // Necessary to destroy and then reinit TypedJS instances
+				'videoInstances'                => [], // Necessary to destroy and then reinit Plyr instances
+				'splideInstances'               => [], // Necessary to destroy and then reinit SplideJS instances
+				'tocbotInstances'               => [], // Necessary to destroy and then reinit Tocbot instances
+				'swiperInstances'               => [], // Necessary to destroy and then reinit SwiperJS instances
+				'isotopeInstances'              => [], // Necessary to destroy and then reinit Isotope instances
+				'filterInstances'               => [], // Necessary to destroy and then reinit query filter instances
 
-				'mapStyles'                 => Setup::get_map_styles(),
-				'icons'                     => self::get_icon_font_classes(),
+				'icons'                         => self::get_icon_font_classes(),
 
-				'controls'                  => [
-					'themeStyles' => Theme_Styles::get_controls_data(),
-					'settings'    => Settings::get_controls_data(),
+				'controls'                      => [
+					'themeStyles'  => Theme_Styles::get_controls_data(),
+					'settings'     => Settings::get_controls_data(),
+					'conditions'   => Conditions::get_controls_data(),
+					'interactions' => Interactions::get_controls_data(),
 				],
 
-				'controlOptions'            => $control_options, // Static data
+				'controlOptions'                => $control_options, // Static data
 
-				'themeStyles'               => Theme_Styles::$styles,
+				'themeStyles'                   => Theme_Styles::$styles,
 
-				'template'                  => [
+				'remoteTemplateSettings'        => Templates::get_remote_template_settings(),
+
+				'template'                      => [
 					'defaultTemplatesDisabled' => Database::get_setting( 'defaultTemplatesDisabled' ),
-					'remoteUrl'                => Database::get_setting( 'remoteTemplatesUrl' ),
 					'orderBy'                  => $control_options['templatesOrderBy'],
-					'preview'                  => self::get_template_preview_data(),
+					'preview'                  => self::get_template_preview_data( $post_id ),
 
 					'authors'                  => Templates::get_template_authors(),
 					'bundles'                  => Templates::get_template_bundles(),
@@ -329,18 +421,74 @@ class Builder {
 					'types'                    => $control_options['templateTypes'],
 				],
 
-				'userCan'                   => [
-					'publishPosts' => current_user_can( 'publish_posts' ),
-					'publishPages' => current_user_can( 'publish_pages' ),
-					'uploadSvg'    => current_user_can( Capabilities::UPLOAD_SVG ),
-					'executeCode'  => current_user_can( Capabilities::EXECUTE_CODE ),
-				],
-
-				'mailchimpLists'            => Integrations\Form\Actions\Mailchimp::get_list_options(),
-				'wooCommerceActive'         => Woocommerce::is_woocommerce_active(),
-				'googleFontsDisabled'       => Helpers::google_fonts_disabled(),
+				'mailchimpLists'                => Integrations\Form\Actions\Mailchimp::get_list_options(),
+				'wooCommerceActive'             => Woocommerce::$is_active,
+				'googleFontsDisabled'           => Helpers::google_fonts_disabled(),
+				'fonts'                         => self::get_fonts(), // @since 1.7.1
 			]
 		);
+
+		/**
+		 * Deregister wp-polyfill.min.js as it is causing performance issue for Firefox browser (in WordPress 6.4+)
+		 *
+		 * @since 1.9.5
+		 */
+		if ( ! Database::get_setting( 'builderWpPolyfill', false ) && wp_script_is( 'wp-polyfill', 'registered' ) ) {
+			wp_deregister_script( 'wp-polyfill' );
+			wp_register_script( 'wp-polyfill', false );
+		}
+	}
+
+	/**
+	 * Enqueue inline styles for static areas
+	 *
+	 * NOTE: Not in use (handled in StaticArea.vue line198). Keep for future reference.
+	 *
+	 * @since 1.8.2 (#862jzhynp)
+	 */
+	public function static_area_styles() {
+		return;
+
+		// Return: Is main window (static area styles only needed on iframe canvas)
+		if ( ! bricks_is_builder_iframe() ) {
+			return;
+		}
+
+		$static_areas  = [];
+		$template_type = Templates::get_template_type();
+
+		// Header template: Static areas are 'content' & 'footer'
+		if ( $template_type === 'header' ) {
+			$static_areas = [ 'content', 'footer' ];
+		} elseif ( $template_type === 'content' ) {
+			$static_areas = [ 'header', 'footer' ];
+		} elseif ( $template_type === 'footer' ) {
+			$static_areas = [ 'header', 'content' ];
+		}
+
+		foreach ( $static_areas as $static_area ) {
+			$preview_id         = ! empty( Database::$active_templates[ $static_area ] ) ? Database::$active_templates[ $static_area ] : 0;
+			$static_area_handle = "bricks-static-area-{$static_area}-{$preview_id}";
+
+			if ( $preview_id ) {
+				// Generate & use only inline styles for this static area
+				Assets::generate_inline_css( $preview_id );
+				$styles = ! empty( Assets::$inline_css[ $static_area ] ) ? Assets::$inline_css[ $static_area ] : '';
+
+				// Dynamic background image inside query loop (@see assets.php (l1365))
+				if ( Database::get_setting( 'cssLoading' ) === 'file' ) {
+					$styles .= Assets::$inline_css_dynamic_data;
+				}
+
+				if ( ! $styles ) {
+					continue;
+				}
+
+				wp_register_style( $static_area_handle, false );
+				wp_enqueue_style( $static_area_handle );
+				wp_add_inline_style( $static_area_handle, $styles );
+			}
+		}
 	}
 
 	/**
@@ -360,7 +508,12 @@ class Builder {
 	}
 
 	/**
-	 * Get all fonts: Standard, Custom, Google
+	 * Get all fonts
+	 *
+	 * - Adobe fonts (@since 1.7.1)
+	 * - Custom fonts
+	 * - Google fonts
+	 * - Standard fonts
 	 *
 	 * @since 1.2.1
 	 *
@@ -372,7 +525,73 @@ class Builder {
 		// Build font dropdown 'options' for ControlTypography.vue
 		$options = [];
 
-		// STEP: Standard Fonts
+		// STEP: Adobe fonts
+		$adobe_fonts = Database::$adobe_fonts;
+
+		if ( is_array( $adobe_fonts ) && count( $adobe_fonts ) ) {
+			$options['adobeFontsGroupTitle'] = 'Adobe fonts';
+
+			foreach ( $adobe_fonts as $adobe_font ) {
+				$adobe_font_family_name      = $adobe_font['name'] ?? '';
+				$adobe_font_family_slug      = $adobe_font['slug'] ?? '';
+				$adobe_font_family_css_names = $adobe_font['css_names'] ?? [];
+
+				if ( ! $adobe_font_family_name ) {
+					continue;
+				}
+
+				/**
+				 * Segmented fonts: For legacy Adobe Fonts kits, a font may have multiple CSS names (is always an array, though) (@since 1.9.4)
+				 *
+				 * Example: Azo Sans (where 'slug' is 'azo-sans', but css_names[0] is 'azo-sans-web', the latter which we need).
+				 *
+				 * https://fonts.adobe.com/docs/api/css_names
+				 */
+				if ( is_array( $adobe_font_family_css_names ) && count( $adobe_font_family_css_names ) ) {
+						// Concatenate CSS names
+						$adobe_font_family_key = implode( ', ', $adobe_font_family_css_names );
+
+						$options[ $adobe_font_family_key ] = $adobe_font_family_name;
+				}
+
+				// Fallack to font slug
+				else {
+					$options[ $adobe_font_family_slug ] = $adobe_font_family_name;
+				}
+			}
+
+			if ( count( $adobe_fonts ) ) {
+				$fonts['adobe'] = $adobe_fonts;
+			}
+		}
+
+		// STEP: Custom fonts
+		$custom_fonts = Custom_Fonts::get_custom_fonts();
+
+		if ( $custom_fonts ) {
+			$options['customFontsGroupTitle'] = esc_html__( 'Custom Fonts', 'bricks' );
+
+			foreach ( $custom_fonts as $custom_font_id => $custom_font ) {
+				$options[ $custom_font_id ] = $custom_font['family'];
+			}
+
+			$fonts['custom'] = $custom_fonts;
+		}
+
+		// STEP: Google fonts (if not disabled via filter OR settings)
+		if ( ! Helpers::google_fonts_disabled() ) {
+			$google_fonts = self::get_google_fonts();
+
+			$options['googleFontsGroupTitle'] = 'Google fonts';
+
+			foreach ( $google_fonts as $google_font ) {
+				$options[ $google_font['family'] ] = $google_font['family'];
+			}
+
+			$fonts['google'] = $google_fonts;
+		}
+
+		// STEP: Standard fonts
 		$standard_fonts = self::get_standard_fonts();
 
 		$options['standardFontsGroupTitle'] = esc_html__( 'Standard fonts', 'bricks' );
@@ -382,30 +601,6 @@ class Builder {
 		}
 
 		$fonts['standard'] = $standard_fonts;
-
-		// STEP: Custom Fonts
-		$custom_fonts = self::get_custom_fonts();
-
-		$options['customFontsGroupTitle'] = esc_html__( 'Custom Fonts', 'bricks' );
-
-		foreach ( $custom_fonts as $custom_font_id => $custom_font ) {
-			$options[ $custom_font_id ] = $custom_font['family'];
-		}
-
-		$fonts['custom'] = $custom_fonts;
-
-		// STEP: Google Fonts (if not disabled via filter OR settings)
-		if ( ! Helpers::google_fonts_disabled() ) {
-			$google_fonts = self::get_google_fonts();
-
-			$options['googleFontsGroupTitle'] = esc_html__( 'Google fonts', 'bricks' );
-
-			foreach ( $google_fonts as $google_font ) {
-				$options[ $google_font['family'] ] = $google_font['family'];
-			}
-
-			$fonts['google'] = $google_fonts;
-		}
 
 		$fonts['options'] = $options;
 
@@ -433,55 +628,71 @@ class Builder {
 		return apply_filters( 'bricks/builder/standard_fonts', $standard_fonts );
 	}
 
-	public static function get_custom_fonts() {
-		return Custom_Fonts::$fonts;
-	}
-
 	/**
 	 * Get Google fonts
 	 *
-	 * Return font object with family, variants etc. (to update font-weight for each font in builder)
+	 * Return fonts array with 'family' & 'variants' (to update font-weight for each font in builder)
 	 *
 	 * @since 1.0
 	 *
 	 * @return array
 	 */
 	public static function get_google_fonts() {
-		$google_fonts_file_contents = Helpers::get_file_contents( BRICKS_URL_ASSETS . 'fonts/google-fonts.min.json' );
+		/**
+		 * STEP: Generate Google fonts JSON file from API response
+		 *
+		 * We only need the 'family' & 'variants' properties from the Google fonts API response.
+		 *
+		 * DEV_ONLY: Set $google_fonts_generate below to true to generate the JSON file!
+		 *
+		 * @since 1.7.1
+		 */
+		$google_fonts_generate = false;
 
-		// Return: Empty file OR not found
-		if ( ! $google_fonts_file_contents ) {
-			return [];
-		}
+		if ( $google_fonts_generate ) {
+			$google_fonts = file_get_contents( BRICKS_URL . 'src/assets/fonts/google-fonts.json' );
+			$google_fonts = json_decode( $google_fonts, true );
+			$google_fonts = ! empty( $google_fonts['items'] ) ? $google_fonts['items'] : [];
 
-		$google_fonts = json_decode( $google_fonts_file_contents, true );
-		$google_fonts = ! empty( $google_fonts['items'] ) ? $google_fonts['items'] : false;
+			$google_fonts_processed = [];
 
-		// Return: Not a Google fonts array
-		if ( ! is_array( $google_fonts ) ) {
-			return [];
-		}
+			foreach ( $google_fonts as $google_font ) {
+				$family   = ! empty( $google_font['family'] ) ? $google_font['family'] : false;
+				$variants = ! empty( $google_font['variants'] ) ? wp_json_encode( $google_font['variants'] ) : false;
 
-		foreach ( $google_fonts as $font_index => $google_font ) {
-			if ( isset( $google_font['variants'] ) ) {
-				foreach ( $google_font['variants'] as $variant_index => $variant ) {
-					// Replace 'regular' with 400
-					if ( $variant === 'regular' ) {
-						$google_fonts[ $font_index ]['variants'][ $variant_index ] = '400';
-					}
+				$variants = str_replace( 'regular', '400', $variants );
 
-					// Remove 'italic' variant
-					if ( strpos( $variant, 'italic' ) !== false ) {
-						unset( $google_fonts[ $font_index ]['variants'][ $variant_index ] );
-					}
+				if ( ! $family ) {
+					continue;
 				}
 
-				// Re-index variants array
-				$google_fonts[ $font_index ]['variants'] = array_values( $google_fonts[ $font_index ]['variants'] );
+				$google_fonts_processed[] = [
+					'family'   => $family,
+					'variants' => json_decode( $variants, true ),
+				];
 			}
+
+			// Encode into minified JSON format
+			$json = wp_json_encode( $google_fonts_processed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+
+			// Save the modified JSON data back to the file
+			file_put_contents( BRICKS_PATH . 'src/assets/fonts/google-fonts.min.json', $json );
+
+			return [];
 		}
 
-		return $google_fonts;
+		// STEP: Get contents of the Google fonts JSON file
+		$google_fonts = Helpers::file_get_contents( BRICKS_PATH_ASSETS . 'fonts/google-fonts.min.json' );
+
+		// Return: Empty file OR not found
+		if ( ! $google_fonts ) {
+			return [];
+		}
+
+		// Decode the JSON data into a PHP object
+		$google_fonts = json_decode( $google_fonts, true );
+
+		return is_array( $google_fonts ) ? $google_fonts : [];
 	}
 
 	/**
@@ -498,7 +709,7 @@ class Builder {
 	 *
 	 * @since 1.0
 	 */
-	public static function get_template_preview_data() {
+	public static function get_template_preview_data( $post_id ) {
 		$preview_data = [];
 
 		// Placeholder HTML
@@ -515,15 +726,16 @@ class Builder {
 
 		$preview_data['placeholder'] = $placeholder;
 
-		$post_id = get_the_ID();
+		// Only add the preview post id if there is a preview (@since 1.5.1)
+		if ( Helpers::is_bricks_template( $post_id ) ) {
+			$template_settings = Helpers::get_template_settings( $post_id );
 
-		$template_settings = Helpers::get_template_settings( $post_id );
+			if ( ! empty( $template_settings['templatePreviewPostId'] ) ) {
+				$post_id = intval( $template_settings['templatePreviewPostId'] );
+			}
 
-		if ( isset( $template_settings['templatePreviewPostId'] ) && ! empty( $template_settings['templatePreviewPostId'] ) ) {
-			$post_id = intval( $template_settings['templatePreviewPostId'] );
+			$preview_data['postId'] = $post_id;
 		}
-
-		$preview_data['postId'] = $post_id;
 
 		return $preview_data;
 	}
@@ -551,8 +763,9 @@ class Builder {
 	public function tiny_mce_before_init( $in ) {
 		// Remove certain TinyMCE plugins in builder
 		$plugins = explode( ',', $in['plugins'] );
+		$key     = array_search( 'fullscreen', $plugins );
 
-		if ( ( $key = array_search( 'fullscreen', $plugins ) ) !== false ) {
+		if ( isset( $plugins[ $key ] ) ) {
 			unset( $plugins[ $key ] );
 		}
 
@@ -625,70 +838,6 @@ class Builder {
 	}
 
 	/**
-	 * Default color palette (https://www.materialui.co/colors)
-	 *
-	 * Only used if no custom colorPalette is saved in db.
-	 *
-	 * @since 1.0
-	 *
-	 * @return array
-	 */
-	public static function default_color_palette() {
-		$colors = [
-			// Grey
-			[ 'hex' => '#f5f5f5' ],
-			[ 'hex' => '#e0e0e0' ],
-			[ 'hex' => '#9e9e9e' ],
-			[ 'hex' => '#616161' ],
-			[ 'hex' => '#424242' ],
-			[ 'hex' => '#212121' ],
-
-			// A200
-			[ 'hex' => '#ffeb3b' ],
-			[ 'hex' => '#ffc107' ],
-			[ 'hex' => '#ff9800' ],
-			[ 'hex' => '#ff5722' ],
-			[ 'hex' => '#f44336' ],
-			[ 'hex' => '#9c27b0' ],
-
-			[ 'hex' => '#2196f3' ],
-			[ 'hex' => '#03a9f4' ],
-			[ 'hex' => '#81D4FA' ],
-			[ 'hex' => '#4caf50' ],
-			[ 'hex' => '#8bc34a' ],
-			[ 'hex' => '#cddc39' ],
-		];
-
-		$colors = apply_filters( 'bricks/builder/color_palette', $colors );
-
-		foreach ( $colors as $key => $color ) {
-			$colors[ $key ]['id']   = Helpers::generate_random_id( false );
-			$colors[ $key ]['name'] = sprintf( esc_html__( 'Color #%s', 'bricks' ), $key + 1 );
-		}
-
-		$palettes[] = [
-			'id'     => Helpers::generate_random_id( false ),
-			'name'   => esc_html__( 'Default', 'bricks' ),
-			'colors' => $colors
-		];
-
-		return $palettes;
-	}
-
-	/**
-	 * Default pseudo-classes (i.e. states)
-	 *
-	 * Load into builder when no db options entry for 'pseudoClasses' exists.
-	 *
-	 * @since 1.3.5
-	 *
-	 * @return array
-	 */
-	public static function default_pseudo_classes() {
-		return [ ':hover', ':active', ':focus' ];
-	}
-
-	/**
 	 * Builder strings
 	 *
 	 * @since 1.0
@@ -706,21 +855,31 @@ class Builder {
 			'addClass'                         => esc_html__( 'Add class', 'bricks' ),
 			'addImages'                        => esc_html__( 'Add images', 'bricks' ),
 			'addItem'                          => esc_html__( 'Add Item', 'bricks' ),
-			'advanced'                         => esc_html__( 'Advanced', 'bricks' ),
+			'addPrefix'                        => esc_html__( 'Add prefix', 'bricks' ),
+			'addSuffix'                        => esc_html__( 'Add suffix', 'bricks' ),
+			'ajaxLoader'                       => esc_html__( 'AJAX loader', 'bricks' ),
+			'ajaxLoaderDesc'                   => esc_html__( 'Shows when using infinite scroll, load more interaction, AJAX pagination.', 'bricks' ),
+			'ajaxLoaderSelector'               => esc_html__( 'CSS selector', 'bricks' ),
+			'ajaxLoaderSelectorDesc'           => esc_html__( 'CSS selector of the element to insert the AJAX loader into.', 'bricks' ),
+			'ajaxLoaderAnimation'              => esc_html__( 'Animation', 'bricks' ),
+
 			'align'                            => esc_html__( 'Align', 'bricks' ),
 			'alignItems'                       => esc_html__( 'Align items', 'bricks' ),
 			'all'                              => esc_html__( 'All', 'bricks' ),
 			'alpha'                            => esc_html__( 'Transparency', 'bricks' ),
+			'alphabetically'                   => esc_html__( 'Alphabetically', 'bricks' ),
+			'and'                              => esc_html__( 'And', 'bricks' ),
 			'angle'                            => esc_html__( 'Angle in °', 'bricks' ),
 			'any'                              => esc_html__( 'Any', 'bricks' ),
+			'anyBreakpoint'                    => esc_html__( 'Any breakpoint', 'bricks' ),
 			'apply'                            => esc_html__( 'Apply', 'bricks' ),
 			'applyTo'                          => esc_html__( 'Apply to', 'bricks' ),
 			'archive'                          => esc_html__( 'Archive', 'bricks' ),
-			'ariaLabel'                        => esc_html__( 'Aria Label', 'bricks' ),
 			'arrows'                           => esc_html__( 'Arrows', 'bricks' ),
 			'ascending'                        => esc_html__( 'Ascending', 'bricks' ),
 			'author'                           => esc_html__( 'Author', 'bricks' ),
 			'attachment'                       => esc_html__( 'Attachment', 'bricks' ),
+			'attribute'                        => esc_html__( 'Attribute', 'bricks' ),
 			'autosaveBy'                       => esc_html__( 'Autosave by', 'bricks' ),
 
 			'background'                       => esc_html__( 'Background', 'bricks' ),
@@ -731,11 +890,13 @@ class Builder {
 			'backgroundRepeat'                 => esc_html__( 'Background repeat', 'bricks' ),
 			'backgroundSize'                   => esc_html__( 'Background size', 'bricks' ),
 			'backgroundAttachment'             => esc_html__( 'Background attachment', 'bricks' ),
+			'backgroundBlendMode'              => esc_html__( 'Background blend mode', 'bricks' ),
 			'backgroundVideo'                  => esc_html__( 'Background video', 'bricks' ),
 			'backgroundVideoAspectRatio'       => esc_html__( 'Aspect ratio', 'bricks' ),
+			'backgroundVideoStartAt'           => esc_html__( 'Select smallest breakpoint that this video should play at. Preview on frontend.', 'bricks' ),
 			'backgroundVideoDescription'       => esc_html__( 'YouTube, Vimeo or file URL.', 'bricks' ),
-			'backgroundVideoScale'             => esc_html__( 'BG video scale', 'bricks' ),
 			'backToBuilder'                    => esc_html__( 'Back to builder', 'bricks' ),
+			'baseBreakpoint'                   => esc_html__( 'Base breakpoint', 'bricks' ),
 			'baseline'                         => esc_html__( 'Baseline', 'bricks' ),
 			'basic'                            => esc_html__( 'Basic', 'bricks' ),
 			'blockquote'                       => esc_html__( 'Blockquote', 'bricks' ),
@@ -751,87 +912,121 @@ class Builder {
 			'bottomCenter'                     => esc_html__( 'Bottom center', 'bricks' ),
 			'bottomRight'                      => esc_html__( 'Bottom right', 'bricks' ),
 			'boxShadow'                        => esc_html__( 'Box shadow', 'bricks' ),
+			'breakpoint'                       => esc_html__( 'Breakpoint', 'bricks' ),
+			'breakpoints'                      => esc_html__( 'Breakpoints', 'bricks' ),
+			'breakpointBaseMessage'            => esc_html__( 'Editing the base breakpoint width affects all media queries.', 'bricks' ),
+			'breakpointDeleteDescription'      => esc_html__( 'Are you sure that you want to delete this breakpoint?', 'bricks' ),
 			'bricksAcademy'                    => esc_html__( 'Bricks Academy', 'bricks' ),
 			'brightness'                       => esc_html__( 'Brightness', 'bricks' ),
 			'browse'                           => esc_html__( 'Browse', 'bricks' ),
 			'browseMediaLibrary'               => esc_html__( 'Browse Media Library', 'bricks' ),
 			'browseUnsplash'                   => esc_html__( 'Browse Unsplash', 'bricks' ),
+			'builder'                          => esc_html__( 'Builder', 'bricks' ),
 			'builderHelpTitle'                 => esc_html__( 'Need help? Found a bug? Suggest a feature?', 'bricks' ),
 			'builderHelpDescription'           => sprintf(
+				// translators: %s: Bricks support email address (link)
 				__( 'Please use your Bricks account email address for all customer support requests. To attach larger files, please send an email directly to %1$s. To see what is currently in development or submit/upvote feature requests please visit our %2$s.', 'bricks' ),
 				'<a href="mailto:help@bricksbuilder.io" target="_blank">help@bricksbuilder.io</a>',
 				'<a href="https://bricksbuilder.io/roadmap/" target="_blank" rel="noopener">' . esc_html__( 'official roadmap', 'bricks' ) . '</a>'
 			),
+			// translators: %s: Max. upload size (e.g. 2 MB)
 			'builderHelpUploadLimitExceeded'   => sprintf( esc_html__( 'Your attached files exceed your server max. upload size of %s.', 'bricks' ), size_format( wp_max_upload_size() ) ),
 			'builderHelpGmailLimitExceeded'    => esc_html__( 'Your attached files exceed the max. upload limit of 25 MB.', 'bricks' ),
 			'bulletedlist'                     => esc_html__( 'Bulleted list', 'bricks' ),
+			'bulkActions'                      => esc_html__( 'Bulk actions', 'bricks' ),
 			'by'                               => esc_html__( 'by', 'bricks' ),
 
 			'cancel'                           => esc_html__( 'Cancel', 'bricks' ),
 			'capitalize'                       => esc_html__( 'Capitalize', 'bricks' ),
+			'categories'                       => esc_html__( 'Categories', 'bricks' ),
+			'categorize'                       => esc_html__( 'Categorize', 'bricks' ),
+			'category'                         => esc_html__( 'Category', 'bricks' ),
+			'categoriesDeleted'                => esc_html__( 'Categories deleted', 'bricks' ),
+			'category'                         => esc_html__( 'Category', 'bricks' ),
+			'categoryNamePlaceholder'          => esc_html__( 'New category name', 'bricks' ),
 			'center'                           => esc_html__( 'Center', 'bricks' ),
 			'centerLeft'                       => esc_html__( 'Center left', 'bricks' ),
 			'centerCenter'                     => esc_html__( 'Center center', 'bricks' ),
 			'centerRight'                      => esc_html__( 'Center right', 'bricks' ),
 			'childOf'                          => esc_html__( 'Child of', 'bricks' ),
 			'childless'                        => esc_html__( 'Childless', 'bricks' ),
-			'classNamePlaceholder'             => esc_html__( 'Enter CSS class name', 'bricks' ),
+			'className'                        => esc_html__( 'Class name', 'bricks' ),
+			'classNameExists'                  => esc_html__( 'Class name already exists', 'bricks' ),
+			'classNamePlaceholder'             => esc_html__( 'New class name', 'bricks' ),
 			'clickToDownload'                  => esc_html__( 'Click to download', 'bricks' ),
+			'circle'                           => esc_html__( 'Circle', 'bricks' ),
 			'chooseFiles'                      => esc_html__( 'Choose files', 'bricks' ),
 			'chooseImage'                      => esc_html__( 'Choose image', 'bricks' ),
+			'classes'                          => esc_html__( 'Classes', 'bricks' ),
+			'classesDuplicated'                => esc_html__( 'Classes duplicated', 'bricks' ),
+			'classesRenamed'                   => esc_html__( 'Classes renamed', 'bricks' ),
 			'clearSearchControlFilters'        => esc_html__( 'Clear search filter', 'bricks' ),
 			'clone'                            => esc_html__( 'Clone', 'bricks' ),
 			'cloned'                           => esc_html__( 'cloned', 'bricks' ),
 			'clean'                            => esc_html__( 'Clean', 'bricks' ),
 			'clear'                            => esc_html__( 'Clear', 'bricks' ),
 			'close'                            => esc_html__( 'Close', 'bricks' ),
+			'closestSide'                      => esc_html__( 'Closest side', 'bricks' ),
+			'closestCorner'                    => esc_html__( 'Closest corner', 'bricks' ),
 			'closeEsc'                         => esc_html__( 'Close (ESC)', 'bricks' ),
 			'collapse'                         => esc_html__( 'Collapse', 'bricks' ),
-			'collapseAll'                      => esc_html__( 'Collapse all', 'bricks' ),
 			'color'                            => esc_html__( 'Color', 'bricks' ),
 			'colors'                           => esc_html__( 'Colors', 'bricks' ),
-			'colorStop'                        => esc_html__( 'Color stop in %', 'bricks' ),
+			'colorStop'                        => esc_html__( 'Color stop', 'bricks' ),
 			'colorPalette'                     => esc_html__( 'Color palette', 'bricks' ),
 			'column'                           => esc_html__( 'Column', 'bricks' ),
 			'commentCount'                     => esc_html__( 'Comment count', 'bricks' ),
 			'community'                        => esc_html__( 'Community', 'bricks' ),
 			'communityTemplates'               => esc_html__( 'Community templates', 'bricks' ),
 			'compare'                          => esc_html__( 'Compare', 'bricks' ),
+			'condition'                        => esc_html__( 'Condition', 'bricks' ),
+			'conditions'                       => esc_html__( 'Conditions', 'bricks' ),
+			'conditionSelect'                  => esc_html__( 'Select condition', 'bricks' ),
+			'configure'                        => esc_html__( 'Configure', 'bricks' ),
 			'confirm'                          => esc_html__( 'Confirm', 'bricks' ),
+			'conic'                            => esc_html__( 'Conic', 'bricks' ),
 			'contactUs'                        => esc_html__( 'Contact us', 'bricks' ),
 			'contain'                          => esc_html__( 'Contain', 'bricks' ),
 			'container'                        => esc_html__( 'Container', 'bricks' ),
 			'content'                          => esc_html__( 'Content', 'bricks' ),
 			'contrast'                         => esc_html__( 'Contrast', 'bricks' ),
 			'copied'                           => esc_html__( 'Copied', 'bricks' ),
+			'copiedToClipboard'                => esc_html__( 'Copied to clipboard', 'bricks' ),
 			'copy'                             => esc_html__( 'Copy', 'bricks' ),
 			'copyStyles'                       => esc_html__( 'Copy styles', 'bricks' ),
 			'copyToClipboard'                  => esc_html__( 'Copy to clipboard', 'bricks' ),
+			'copyElementSelector'              => esc_html__( 'Copy CSS selector', 'bricks' ),
 			'contenteditablePlaceholder'       => esc_html__( 'Here goes my text ...', 'bricks' ),
 			'convert'                          => esc_html__( 'Convert', 'bricks' ),
 			'cover'                            => esc_html__( 'Cover', 'bricks' ),
+			'currentPostAuthor'                => esc_html__( 'Current post author', 'bricks' ),
+			'currentPostTerm'                  => esc_html__( 'Current post term', 'bricks' ),
 			'create'                           => esc_html__( 'Create', 'bricks' ),
+			'created'                          => esc_html__( 'Created', 'bricks' ),
 			'createTemplate'                   => esc_html__( 'Create template', 'bricks' ),
 			'createTemplateTitlePlaceholder'   => esc_html__( 'Template title', 'bricks' ),
 			'createTemplateTitle'              => esc_html__( 'Create new template:', 'bricks' ),
 			'createYourOwnElements'            => esc_html__( 'Create your own elements', 'bricks' ),
-			'css'                              => esc_html__( 'CSS', 'bricks' ),
+			'cssClass'                         => esc_html__( 'CSS class', 'bricks' ),
 			'cssClassName'                     => esc_html__( 'Class name', 'bricks' ),
 			'cssClassesTooltip'                => esc_html__( 'Separated by space. No leading dot "."', 'bricks' ),
 			'cssIdTooltip'                     => esc_html__( 'No leading pound sign "#"', 'bricks' ),
 			'cssFilter'                        => esc_html__( 'CSS filter', 'bricks' ),
-			'cssFilterDescription'             => sprintf( '<a target="_blank" href="https://developer.mozilla.org/en/docs/Web/CSS/filter?v=example">%s</a>', esc_html__( 'Enter CSS filters + value (learn more)', 'bricks' ) ),
+			'cssFilterDescription'             => '<a target="_blank" href="https://developer.mozilla.org/en/docs/Web/CSS/filter?v=example">' . esc_html__( 'Enter CSS filters + value (learn more)', 'bricks' ) . '</a>',
 			'cssSelector'                      => esc_html__( 'CSS selector', 'bricks' ),
 			'currentLayout'                    => esc_html__( 'Current layout', 'bricks' ),
 			'currentVersionBy'                 => esc_html__( 'Current version by', 'bricks' ),
 			'currentWidth'                     => esc_html__( 'Current width', 'bricks' ),
+			'custom'                           => esc_html__( 'Custom', 'bricks' ),
 			'customCss'                        => esc_html__( 'Custom CSS', 'bricks' ),
 			'customFields'                     => esc_html__( 'Custom fields', 'bricks' ),
 			'customFont'                       => esc_html__( 'Custom font', 'bricks' ),
 
 			'dashboard'                        => esc_html__( 'Dashboard', 'bricks' ),
 			'default'                          => esc_html__( 'Default', 'bricks' ),
+			// translators: %s: Default templates are enabled.
 			'defaultTemplatesEnabled'          => sprintf( esc_html__( '%s. Template conditions precede default templates.', 'bricks' ), '<a href="' . admin_url( 'admin.php?page=bricks-settings#tab-templates' ) . '" target="_blank">' . esc_html__( 'Default templates are enabled', 'bricks' ) . '</a>' ),
+			// translators: %s: Default templates are disabled.
 			'defaultTemplatesDisabled'         => sprintf( esc_html__( '%s. Set template conditions or enable default templates.', 'bricks' ), '<a href="' . admin_url( 'admin.php?page=bricks-settings#tab-templates' ) . '" target="_blank">' . esc_html__( 'Default templates are disabled', 'bricks' ) . '</a>' ),
 			'dashed'                           => esc_html__( 'dashed', 'bricks' ),
 			'date'                             => esc_html__( 'Date', 'bricks' ),
@@ -845,6 +1040,7 @@ class Builder {
 			'desktop'                          => esc_html__( 'Desktop', 'bricks' ),
 			'direction'                        => esc_html__( 'Direction', 'bricks' ),
 			'disabled'                         => esc_html__( 'Disabled', 'bricks' ),
+			'disableQueryMerge'                => esc_html__( 'Disable query merge', 'bricks' ),
 			'discard'                          => esc_html__( 'Discard', 'bricks' ),
 			'div'                              => 'Div',
 			'documentation'                    => esc_html__( 'Documentation', 'bricks' ),
@@ -865,12 +1061,12 @@ class Builder {
 			'editColorPalette'                 => esc_html__( 'Edit palette', 'bricks' ),
 			'editing'                          => esc_html__( 'Editing', 'bricks' ),
 			'editInWordPress'                  => esc_html__( 'Edit in WordPress', 'bricks' ),
-			'editorAnchorPlaceholder'          => esc_html__( 'http://', 'bricks' ),
 			'effect'                           => esc_html__( 'Effect', 'bricks' ),
 			'element'                          => esc_html__( 'Element', 'bricks' ),
 			'elements'                         => esc_html__( 'Elements', 'bricks' ),
 			'elementClasses'                   => esc_html__( 'Element classes', 'bricks' ),
 			'elementId'                        => esc_html__( 'Element ID', 'bricks' ),
+			'ellipse'                          => esc_html__( 'Ellipse', 'bricks' ),
 			'equal'                            => esc_html__( 'Equal', 'bricks' ),
 
 			// x-template element placeholder text
@@ -887,8 +1083,9 @@ class Builder {
 				'icon'                  => esc_html__( 'No icon selected.', 'bricks' ),
 				'list'                  => esc_html__( 'No list items defined.', 'bricks' ),
 				'map'                   => sprintf(
+					// translators: %s: Link to Bricks Academy
 					esc_html__( 'Google Maps API key required! Add key in dashboard under: %s', 'bricks' ),
-					'<a href="' . Helpers::settings_url( '#tab-api-keys' ) . '" target="_blank">' . esc_html__( 'Bricks > Settings > API Keys', 'bricks' ) . '</a>'
+					'<a href="' . Helpers::settings_url( '#tab-api-keys' ) . '" target="_blank">Bricks > ' . esc_html__( 'Settings', 'bricks' ) . ' > API keys</a>'
 				),
 				'pricing-table'         => esc_html__( 'No pricing table defined.', 'bricks' ),
 				'progress-bar'          => esc_html__( 'No progress bar created.', 'bricks' ),
@@ -910,6 +1107,7 @@ class Builder {
 
 			'emailAddress'                     => esc_html__( 'Email address', 'bricks' ),
 			'end'                              => esc_html__( 'End', 'bricks' ),
+			'endTime'                          => esc_html__( 'End time', 'bricks' ),
 			'error'                            => esc_html__( 'Error', 'bricks' ),
 			'errorBricksAcademy404'            => esc_html__( 'Articles could not be loaded. Please visit the official knowledge base:', 'bricks' ),
 			'errorPage'                        => esc_html__( '404 Error Page', 'bricks' ),
@@ -918,31 +1116,38 @@ class Builder {
 			'excludeCurrent'                   => esc_html__( 'Exclude current post', 'bricks' ),
 			'expand'                           => esc_html__( 'Expand', 'bricks' ),
 			'expandAll'                        => esc_html__( 'Expand all', 'bricks' ),
+			'experimental'                     => esc_html__( 'experimental', 'bricks' ),
 			'export'                           => esc_html__( 'Export', 'bricks' ),
+			'exportSelected'                   => esc_html__( 'Export selected', 'bricks' ),
 			'external'                         => esc_html__( 'External URL', 'bricks' ),
-			'externalLinkInfo'                 => '<a href="https://web.dev/external-anchors-use-rel-noopener" target="_blank" rel="noopener">' . esc_html__( 'Add rel attribute "noopener" or "noreferrer" to any external link.', 'bricks' ) . '</a>',
 			'extraLarge'                       => esc_html__( 'Extra large', 'bricks' ),
 			'extraSmall'                       => esc_html__( 'Extra small', 'bricks' ),
 
 			'fade'                             => esc_html__( 'Fade', 'bricks' ),
+			'farthestSide'                     => esc_html__( 'Farthest side', 'bricks' ),
+			'farthestCorner'                   => esc_html__( 'Farthest corner', 'bricks' ),
+			'fallbackFont'                     => esc_html__( 'Fallback fonts', 'bricks' ),
+			'false'                            => esc_html__( 'False', 'bricks' ),
 			'field'                            => esc_html__( 'Field', 'bricks' ),
 			'file'                             => esc_html__( 'File', 'bricks' ),
-			'fileImported'                     => esc_html__( '"%s" imported.', 'bricks' ),
-			'fileNotImportedAlreadyExists'     => esc_html__( 'Import of "%s" failed: Name already exists.', 'bricks' ),
-			'fileNotImportedWrongFormat'       => esc_html__( 'Import of "%s" failed: Wrong format.', 'bricks' ),
+			'fileImported'                     => esc_html__( '"%s" imported.', 'bricks' ), // phpcs:ignore WordPress.WP.I18n.MissingTranslatorsComment
+			'fileNotImportedAlreadyExists'     => esc_html__( 'Import of "%s" failed: Name already exists.', 'bricks' ), // phpcs:ignore WordPress.WP.I18n.MissingTranslatorsComment
+			'fileNotImportedWrongFormat'       => esc_html__( 'Import of "%s" failed: Wrong format.', 'bricks' ), // phpcs:ignore WordPress.WP.I18n.MissingTranslatorsComment
 			'files'                            => esc_html__( 'Files', 'bricks' ),
 			'fill'                             => esc_html__( 'Fill', 'bricks' ),
+			'filter'                           => esc_html__( 'Filter', 'bricks' ),
 			'noFilesChosen'                    => esc_html__( 'No files chosen', 'bricks' ),
 			'fillDark'                         => esc_html__( 'Fill - Dark', 'bricks' ),
 			'fillLight'                        => esc_html__( 'Fill - Light', 'bricks' ),
 			'fillPrimary'                      => esc_html__( 'Fill - Primary', 'bricks' ),
+			'find'                             => esc_html__( 'Find', 'bricks' ),
 			'finish'                           => esc_html__( 'Finish', 'bricks' ),
 			'fixed'                            => esc_html__( 'Fixed', 'bricks' ),
 			'fontFamily'                       => esc_html__( 'Font family', 'bricks' ),
-			'fontFamilySearchablePlaceholder'  => esc_html__( 'Search fonts', 'bricks' ),
 			'fontSize'                         => esc_html__( 'Font size', 'bricks' ),
 			'fontStyle'                        => esc_html__( 'Font style', 'bricks' ),
 			'fontWeight'                       => esc_html__( 'Font weight', 'bricks' ),
+			'fontVariants'                     => esc_html__( 'Font variants', 'bricks' ),
 			'footer'                           => esc_html__( 'Footer', 'bricks' ),
 			'fullSize'                         => esc_html__( 'Full size', 'bricks' ),
 
@@ -952,14 +1157,25 @@ class Builder {
 			'ghostLight'                       => esc_html__( 'Outline - Light', 'bricks' ),
 			'ghostPrimary'                     => esc_html__( 'Outline - Primary', 'bricks' ),
 			'globalElement'                    => esc_html__( 'Global element', 'bricks' ),
+			'globalClassManager'               => esc_html__( 'Global class manager', 'bricks' ),
+			'globalClassManagerSearchInfo'     => esc_html__( 'Prefix with a dot to search for classes starting with the string, or suffix with a dot to search for classes ending with the string.', 'bricks' ),
+			'globalClassManagerInfoTitle'      => esc_html__( 'How to use the global class manager', 'bricks' ),
+			'globalClassManagerInfoCategory'   => esc_html__( 'Select one or multiple categories to filter your classes by them.', 'bricks' ),
+			'globalClassManagerInfoClass'      => esc_html__( 'Select one or multiple classes to edit them.', 'bricks' ),
+			'globalClassManagerInfoBulk'       => esc_html__( 'Press CMD/CTRL or SHIFT to select and edit multiple categories or classes.', 'bricks' ),
+			'globalClassManagerInfoOrder'      => esc_html__( 'Drag any category or class up/down to order it.', 'bricks' ),
+			'globalClassManagerInfoCategorize' => esc_html__( 'Categorize classes by dragging them into a specific category or into "Uncategorize" to uncategorize them.', 'bricks' ),
 			'globalClassesActive'              => esc_html__( 'Active classes', 'bricks' ),
-			'globalClassCreated'               => esc_html__( 'Global class created', 'bricks' ),
-			'globalClassDeleted'               => esc_html__( 'Global class deleted', 'bricks' ),
-			'globalClassRenamed'               => esc_html__( 'Global class renamed', 'bricks' ),
 			'globalClassesImported'            => esc_html__( 'Global classes imported', 'bricks' ),
 			'globalClassesEmptyDescription'    => esc_html__( 'Enter the name of your first global CSS class in the field above. Then hit enter to create it.', 'bricks' ) . ' (' . Helpers::article_link( 'global-css-classes', esc_html__( 'Learn more', 'bricks' ) ) . ')',
 			'globalElements'                   => esc_html__( 'Global elements', 'bricks' ),
 			'gradient'                         => esc_html__( 'Gradient', 'bricks' ),
+			// translators: %s: Color stop, %s: Colors
+			'gradientRepeatInfo'               => sprintf(
+				esc_html__( 'Make sure to set "%1$s" in your "%2$s" definitions below.', 'bricks' ),
+				esc_html__( 'Color stop', 'bricks' ),
+				esc_html__( 'Colors', 'bricks' )
+			),
 			'gardientColorsDescription'        => esc_html__( 'Add at least two colors to create a gradient.', 'bricks' ),
 			'goToSettingsPanel'                => esc_html__( 'Back to settings', 'bricks' ),
 			'gotIt'                            => esc_html__( 'Got it', 'bricks' ),
@@ -967,6 +1183,8 @@ class Builder {
 			'grid'                             => esc_html__( 'Grid', 'bricks' ),
 			'gutter'                           => esc_html__( 'Spacing', 'bricks' ),
 
+			'hasStyles'                        => esc_html__( 'Has styles', 'bricks' ),
+			'hasNoStyles'                      => esc_html__( 'Has no styles', 'bricks' ),
 			'hasUnexecutedCode'                => esc_html__( 'Has unexecuted PHP code', 'bricks' ),
 			'header'                           => esc_html__( 'Header', 'bricks' ),
 			'height'                           => esc_html__( 'Height', 'bricks' ),
@@ -984,6 +1202,7 @@ class Builder {
 			'html5VideoNoBrowserSupport'       => esc_html__( 'Your browser does not support the video tag.', 'bricks' ),
 			'hue'                              => esc_html__( 'Hue', 'bricks' ),
 
+			'icon'                             => esc_html__( 'Icon', 'bricks' ),
 			'id'                               => esc_html__( 'ID', 'bricks' ),
 			'ignoreStickyPosts'                => esc_html__( 'Ignore sticky posts', 'bricks' ),
 			'image'                            => esc_html__( 'Image', 'bricks' ),
@@ -1007,6 +1226,7 @@ class Builder {
 			'infiniteScroll'                   => esc_html__( 'Infinite scroll', 'bricks' ),
 			'info'                             => esc_html__( 'Info', 'bricks' ),
 			'infoLightbox'                     => esc_html__( 'Customize lightbox: Settings > Theme Styles > General', 'bricks' ),
+			'infoFullAccessRequired'           => esc_html__( 'Your builder access level doesn\'t allow you modify these settings.', 'bricks' ),
 			'innerContainer'                   => esc_html__( 'Inner container', 'bricks' ),
 			'insert'                           => esc_html__( 'Insert', 'bricks' ),
 			'insertAfter'                      => esc_html__( 'Insert after', 'bricks' ),
@@ -1014,10 +1234,13 @@ class Builder {
 			'insertLayout'                     => esc_html__( 'Insert layout', 'bricks' ),
 			'insertSection'                    => esc_html__( 'Insert section', 'bricks' ),
 			'insertTemplate'                   => esc_html__( 'Insert template', 'bricks' ),
-			'insertTemplateBelow'              => esc_html__( 'Insert template below', 'bricks' ),
 			'inset'                            => esc_html__( 'Inset', 'bricks' ),
+			'interactionId'                    => esc_html__( 'Interaction ID', 'bricks' ),
+			'interactions'                     => esc_html__( 'Interactions', 'bricks' ),
 			'internal'                         => esc_html__( 'Internal post/page', 'bricks' ),
 			'invert'                           => esc_html__( 'Invert', 'bricks' ),
+			'isArchiveMainQuery'               => esc_html__( 'Is main query', 'bricks' ) . ' (' . esc_html__( 'Archive', 'bricks' ) . ', ' . esc_html__( 'Search', 'bricks' ) . ')',
+			'isArchiveMainQueryDescription'    => esc_html__( 'Enable if your archive pagination is not working.', 'bricks' ),
 			'italic'                           => esc_html__( 'Italic', 'bricks' ),
 			'item'                             => esc_html__( 'Item', 'bricks' ),
 
@@ -1025,8 +1248,10 @@ class Builder {
 			'justify'                          => esc_html__( 'Justify', 'bricks' ),
 			'justifyContent'                   => esc_html__( 'Justify content', 'bricks' ),
 
+			'key'                              => esc_html__( 'Key', 'bricks' ),
 			'keyboardShortcuts'                => esc_html__( 'Keyboard shortcuts', 'bricks' ),
 
+			'label'                            => esc_html__( 'Label', 'bricks' ),
 			'language'                         => esc_html__( 'Language', 'bricks' ),
 			'large'                            => esc_html__( 'Large', 'bricks' ),
 			'laptop'                           => esc_html__( 'Laptop', 'bricks' ),
@@ -1036,33 +1261,42 @@ class Builder {
 			'learnMore'                        => esc_html__( 'Learn more', 'bricks' ),
 			'left'                             => esc_html__( 'Left', 'bricks' ),
 			'letterSpacing'                    => esc_html__( 'Letter spacing', 'bricks' ),
+			'lightboxId'                       => esc_html__( 'Lightbox ID', 'bricks' ),
 			'lightboxImage'                    => esc_html__( 'Lightbox Image', 'bricks' ),
 			'lightboxVideo'                    => esc_html__( 'Lightbox Video', 'bricks' ),
 			'lightness'                        => esc_html__( 'Lightness', 'bricks' ),
 			'lineHeight'                       => esc_html__( 'Line height', 'bricks' ),
 			'link'                             => esc_html__( 'Link', 'bricks' ),
+			'linear'                           => esc_html__( 'Linear', 'bricks' ),
 			'linked'                           => esc_html__( 'Linked', 'bricks' ),
 			'list'                             => esc_html__( 'List', 'bricks' ),
+			'liveSearch'                       => esc_html__( 'Live search', 'bricks' ),
+			'liveSearchDescription'            => esc_html__( 'When enabled, this query only runs when a live search is performed.', 'bricks' ),
+			'liveSearchInfo'                   => esc_html__( 'Provide the element ID that holds the live search results below.', 'bricks' ),
+			'liveSearchWrapperSelector'        => esc_html__( 'Live search results', 'bricks' ),
+			'liveSearchWrapperSelectorDesc'    => esc_html__( 'Element ID that holds the live search results. Only visible when the live search is performed.', 'bricks' ),
 			'loadingTemplates'                 => esc_html__( 'Loading templates', 'bricks' ),
 			'loadMore'                         => esc_html__( 'Load more', 'bricks' ),
+			'lock'                             => esc_html__( 'Lock', 'bricks' ),
+			'lockSelected'                     => esc_html__( 'Lock selected', 'bricks' ),
 			'locked'                           => esc_html__( 'Locked', 'bricks' ),
 			'lockedUserGoBack'                 => esc_html__( 'Go back', 'bricks' ),
 			'lockedUserTakeOver'               => esc_html__( 'Take over', 'bricks' ),
 			'lockedUserTitle'                  => esc_html__( 'This post is already being edited.', 'bricks' ),
-			'lockedUserText'                   => esc_html__( '%s is currently working on this post, which means you cannot make changes, unless you take over.', 'bricks' ),
+			'lockedUserText'                   => esc_html__( '%s is currently working on this post, which means you cannot make changes, unless you take over.', 'bricks' ), // phpcs:ignore WordPress.WP.I18n.MissingTranslatorsComment
 			'login'                            => esc_html__( 'Login', 'bricks' ),
 			'loop'                             => esc_html__( 'Loop', 'bricks' ),
-			'lowercase'                        => esc_html__( 'Lowercase', 'bricks' ),
 
 			'linkStates'                       => [
-				'unlinked' => esc_html__( 'Unlinked', 'bricks' ),
-				'link'     => esc_html__( 'Opposites linked', 'bricks' ),
-				'all'      => esc_html__( 'All sides linked', 'bricks' ),
+				'unlinked'  => esc_html__( 'Unlinked', 'bricks' ),
+				'opposites' => esc_html__( 'Opposites linked', 'bricks' ),
+				'all'       => esc_html__( 'All sides linked', 'bricks' ),
 			],
 
 			'mainQuery'                        => esc_html__( 'Main query', 'bricks' ),
 			'margin'                           => esc_html__( 'Margin', 'bricks' ),
 			'masonry'                          => esc_html__( 'Masonry', 'bricks' ),
+			// translators: %s: Max upload size
 			'maxUploadSizeInfo'                => sprintf( esc_html__( 'Max upload size: %s', 'bricks' ), size_format( wp_max_upload_size() ) ),
 			'media'                            => esc_html__( 'Media', 'bricks' ),
 			'metaKey'                          => esc_html__( 'Meta key', 'bricks' ),
@@ -1075,6 +1309,7 @@ class Builder {
 			'mimeType'                         => esc_html__( 'Mime type', 'bricks' ),
 			'mimeTypeDesc'                     => Helpers::article_link( 'query-loop/#media-query', esc_html__( 'Filter media by mime type', 'bricks' ) ),
 			'mobile'                           => esc_html__( 'Mobile', 'bricks' ),
+			'mobileFirst'                      => esc_html__( 'Mobile first', 'bricks' ),
 			'mode'                             => esc_html__( 'Mode', 'bricks' ),
 			'modified'                         => esc_html__( 'modified', 'bricks' ),
 			'modifiedDate'                     => esc_html__( 'Modified date', 'bricks' ),
@@ -1105,16 +1340,18 @@ class Builder {
 			'newColorPaletteCreateFirstColor'  => esc_html__( 'Add your first color to this palette by selecting a color value above and then click "Save".', 'bricks' ),
 			'newImageName'                     => esc_html__( 'Type name, hit enter', 'bricks' ),
 			'next'                             => esc_html__( 'Next', 'bricks' ),
+			'noConditionsSet'                  => esc_html__( 'No conditions set. Click the "+" icon to add your render condition.', 'bricks' ),
+			'noInteractionsSet'                => esc_html__( 'No interactions set. Click the "+" icon to add an interaction.', 'bricks' ),
 			'noContent'                        => esc_html__( 'No content', 'bricks' ),
 			'noSearchControlsFound'            => esc_html__( 'No matching settings found.', 'bricks' ),
 			'noFileSelected'                   => esc_html__( 'No file selected.', 'bricks' ),
-			'noFullAccessInfoSettings'         => esc_html__( 'You don\'t have sufficient permission (full access) to customize these settings. Please get in touch with the site admin.', 'bricks' ),
 			'no'                               => esc_html__( 'No', 'bricks' ),
 			'none'                             => esc_html__( 'None', 'bricks' ),
 			'noRepeat'                         => esc_html__( 'No-repeat', 'bricks' ),
 			'noResults'                        => esc_html__( 'Nothing found. Please try again with a different keyword!', 'bricks' ),
 			'noResultsQuery'                   => esc_html__( 'No results', 'bricks' ),
 			'noRevisions'                      => esc_html__( 'No revisions.', 'bricks' ),
+			'normal'                           => esc_html__( 'Normal', 'bricks' ),
 			'noDynamicDataFound'               => esc_html__( 'No dynamic data found.', 'bricks' ),
 			'noTemplatesFound'                 => esc_html__( 'No templates found.', 'bricks' ),
 			'notFound'                         => esc_html__( 'Not found', 'bricks' ),
@@ -1131,11 +1368,11 @@ class Builder {
 				],
 				'templateBundle'  => [
 					'button'      => esc_html__( 'Set template style', 'bricks' ),
-					'description' => esc_html__( 'Inserted template uses theme style "%s"', 'bricks' ),
+					'description' => esc_html__( 'Inserted template uses theme style "%s"', 'bricks' ), // phpcs:ignore WordPress.WP.I18n.MissingTranslatorsComment
 				],
 				'populateContent' => [
 					'button'      => esc_html__( 'Change content', 'bricks' ),
-					'description' => esc_html__( 'Currently previewing content from "%s".', 'bricks' ),
+					'description' => esc_html__( 'Currently previewing content from "%s".', 'bricks' ), // phpcs:ignore WordPress.WP.I18n.MissingTranslatorsComment
 				]
 			],
 			'number'                           => esc_html__( 'Number', 'bricks' ),
@@ -1145,6 +1382,7 @@ class Builder {
 			'oldest'                           => esc_html__( 'Oldest', 'bricks' ),
 			'opacity'                          => esc_html__( 'Opacity', 'bricks' ),
 			'openInNewTab'                     => esc_html__( 'Open in new tab', 'bricks' ),
+			'or'                               => esc_html__( 'Or', 'bricks' ),
 			'order'                            => esc_html__( 'Order', 'bricks' ),
 			'orderBy'                          => esc_html__( 'Order by', 'bricks' ),
 			'otherClasses'                     => esc_html__( 'Other classes', 'bricks' ),
@@ -1161,9 +1399,11 @@ class Builder {
 			'paste'                            => esc_html__( 'Paste', 'bricks' ),
 			'pasted'                           => esc_html__( 'Pasted', 'bricks' ),
 			'pasteStyles'                      => esc_html__( 'Paste styles', 'bricks' ),
+			'paused'                           => esc_html__( 'Paused', 'bricks' ),
 			'pin'                              => esc_html__( 'Pin', 'bricks' ),
 			'pinnedElements'                   => esc_html__( 'Pinned elements', 'bricks' ),
 			'placeholderEmptyCanvas'           => esc_html__( 'Click on any element to add it to your canvas.', 'bricks' ),
+			'placeholderEmptyPopup'            => esc_html__( 'Click on any element to add it to your popup.', 'bricks' ),
 			'placeholderFormMessage'           => esc_html__( 'Your message goes here. The more details, the better ;)', 'bricks' ),
 			'placeholderImageInfo'             => esc_html__( 'Placeholder image shown.', 'bricks' ),
 			'placeholderTitle'                 => esc_html__( 'Type title and hit enter', 'bricks' ),
@@ -1172,6 +1412,8 @@ class Builder {
 			'placeholderSelectPost'            => esc_html__( 'Select post/page', 'bricks' ),
 			'placeholderSelectLinkType'        => esc_html__( 'Select link type', 'bricks' ),
 			'placeholderYourName'              => esc_html__( 'Your name (optional)', 'bricks' ),
+			'playInteraction'                  => esc_html__( 'Play interaction', 'bricks' ),
+			'playOnce'                         => esc_html__( 'Play once', 'bricks' ),
 			'popular'                          => esc_html__( 'Popular', 'bricks' ),
 			'popup'                            => esc_html__( 'Popup', 'bricks' ),
 			'position'                         => esc_html__( 'Position', 'bricks' ),
@@ -1180,9 +1422,11 @@ class Builder {
 			'postsOffsetDescription'           => esc_html__( 'Ignored when posts per page set to "-1".', 'bricks' ),
 			'postsPerPage'                     => esc_html__( 'Posts per page', 'bricks' ),
 			'postType'                         => esc_html__( 'Post type', 'bricks' ),
+			// translators: %s: Link to Unsplash
 			'poweredByUnsplash'                => sprintf( esc_html__( 'Powered by %s', 'bricks' ), '<a href="https://unsplash.com/?ref=bricksbuilderio" target="_blank">Unsplash</a>' ),
 			'prev'                             => esc_html__( 'Prev', 'bricks' ),
 			'preview'                          => esc_html__( 'Preview', 'bricks' ),
+			'prefix'                           => esc_html__( 'Prefix', 'bricks' ),
 			'previewMode'                      => esc_html__( 'Preview mode', 'bricks' ),
 			'previewTemplate'                  => esc_html__( 'Preview template', 'bricks' ),
 			'pseudoClassActive'                => esc_html__( 'Active pseudo-class', 'bricks' ),
@@ -1196,31 +1440,47 @@ class Builder {
 			'published'                        => esc_html__( 'Published', 'bricks' ),
 			'publishedDate'                    => esc_html__( 'Published date', 'bricks' ),
 
+			'queryEditor'                      => esc_html__( 'Query editor', 'bricks' ) . ' (PHP)',
+			'queryEditorInfo'                  => sprintf(
+				// translators: %s: Posts query link, %s: Terms query link, %s: Users query link
+				esc_html__( 'Return query parameters in PHP array. Learn more about the query parameters for %1$s, %2$s, %3$s', 'bricks' ),
+				sprintf( '<a href="https://developer.wordpress.org/reference/classes/wp_query/#post-type-parameters" target="_blank">%s</a>', esc_html__( 'Posts', 'bricks' ) ),
+				sprintf( '<a href="https://developer.wordpress.org/reference/classes/wp_term_query/#source" target="_blank">%s</a>', esc_html__( 'Terms', 'bricks' ) ),
+				sprintf( '<a href="https://developer.wordpress.org/reference/classes/wp_user_query/#parameters" target="_blank">%s</a>', esc_html__( 'Users', 'bricks' ) )
+			),
+			'queryEditorNoCodeExecutionInfo'   => esc_html__( 'Query editor in use. But not accessible due to lack of code execution rights.', 'bricks' ),
+			'queryLoop'                        => esc_html__( 'Query loop', 'bricks' ),
 			'quickNav'                         => esc_html__( 'Quick nav', 'bricks' ),
 
 			'radius'                           => esc_html__( 'Radius', 'bricks' ),
+			'radial'                           => esc_html__( 'Radial', 'bricks' ),
 			'random'                           => esc_html__( 'Random', 'bricks' ),
+			'randomSeedTtl'                    => esc_html__( 'Random seed TTL', 'bricks' ),
+			'randomSeedTtlDescription'         => esc_html__( 'Time in minutes that the random seed will last. Avoid duplicate posts when using random order.', 'bricks' ),
 			'raw'                              => esc_html__( 'Raw', 'bricks' ),
 			'redo'                             => esc_html__( 'Redo', 'bricks' ),
-			'relAttribute'                     => esc_html__( 'Rel attribute', 'bricks' ),
+			'reload'                           => esc_html__( 'Reload', 'bricks' ),
 			'reloadCanvas'                     => esc_html__( 'Reload canvas', 'bricks' ),
 			'remote'                           => esc_html__( 'Remote', 'bricks' ),
 			'remoteTemplates'                  => esc_html__( 'Remote templates', 'bricks' ),
 			'remove'                           => esc_html__( 'Remove', 'bricks' ),
-			'removeAll'                        => esc_html__( 'Remove all', 'bricks' ),
 			'removeFile'                       => esc_html__( 'Remove file', 'bricks' ),
 			'rename'                           => esc_html__( 'Rename', 'bricks' ),
 			'renameImages'                     => esc_html__( 'Rename images', 'bricks' ),
 			'renameImagesDisabled'             => esc_html__( 'Disabled: Keep original image filename.', 'bricks' ),
 			'renameImagesEnabled'              => esc_html__( 'Enabled: Rename image before download.', 'bricks' ),
-			'renderedLink'                     => esc_html__( 'Link rendered as', 'bricks' ),
+			'linkRenderedAs'                   => esc_html__( 'Link rendered as', 'bricks' ),
 			'repeat'                           => esc_html__( 'Repeat', 'bricks' ),
 			'relation'                         => esc_html__( 'Relation', 'bricks' ),
+			'replace'                          => esc_html__( 'Replace', 'bricks' ),
 			'replaceContent'                   => esc_html__( 'Replace content', 'bricks' ),
 			'replaceContentDisabled'           => esc_html__( 'Disabled: Insert below existing content.', 'bricks' ),
 			'replaceContentEnabled'            => esc_html__( 'Enabled: Replace existing content with template data.', 'bricks' ),
+			'replaceWith'                      => esc_html__( 'Replace with', 'bricks' ),
+			'replaceWithThisString'            => esc_html__( 'Replace with this string', 'bricks' ),
 			'responsiveBreakpoints'            => esc_html__( 'Responsive breakpoints', 'bricks' ),
 			'reset'                            => esc_html__( 'Reset', 'bricks' ),
+			'resetBreakpointsDescription'      => esc_html__( 'Resetting all breakpoints deletes all custom breakpoints and resets all default breakpoints.', 'bricks' ),
 			'resetStyles'                      => esc_html__( 'Reset styles', 'bricks' ),
 			'resetDynamicData'                 => esc_html__( 'Clear non-existing dynamic data', 'bricks' ),
 			'results'                          => esc_html__( 'Results', 'bricks' ),
@@ -1249,7 +1509,6 @@ class Builder {
 			'scroll'                           => esc_html__( 'Scroll', 'bricks' ),
 			'searchElements'                   => esc_html__( 'Search elements ..', 'bricks' ),
 			'searchFor'                        => esc_html__( 'Search for ..', 'bricks' ),
-			'searchIcons'                      => esc_html__( 'Search icons', 'bricks' ),
 			'searchSettings'                   => esc_html__( 'Search settings', 'bricks' ),
 			'search'                           => esc_html__( 'Search', 'bricks' ),
 			'searchByTitle'                    => esc_html__( 'Search by title', 'bricks' ),
@@ -1258,7 +1517,9 @@ class Builder {
 			'searchTag'                        => esc_html__( 'Search tag', 'bricks' ),
 			'section'                          => esc_html__( 'Section', 'bricks' ),
 			'select'                           => esc_html__( 'Select', 'bricks' ),
+			'selection'                        => esc_html__( 'Selection', 'bricks' ),
 			'selectColorPalette'               => esc_html__( 'Select color palette', 'bricks' ),
+			'selectedClasses'                  => esc_html__( 'Selected classes', 'bricks' ),
 			'setTemplateConditions'            => esc_html__( 'Set conditions', 'bricks' ),
 			'selectFile'                       => esc_html__( 'Select file', 'bricks' ),
 			'selectFilesToImport'              => esc_html__( 'Select file(s) to import', 'bricks' ),
@@ -1267,7 +1528,6 @@ class Builder {
 			'selectLibrary'                    => esc_html__( 'Select library', 'bricks' ),
 			'selectPostType'                   => esc_html__( 'Select post type', 'bricks' ),
 			'selectPosts'                      => esc_html__( 'Select posts', 'bricks' ),
-			'selectShortcode'                  => esc_html__( 'Select shortcode', 'bricks' ),
 			'selectTaxonomies'                 => esc_html__( 'Select taxonomies', 'bricks' ),
 			'selectTemplate'                   => esc_html__( 'Select template', 'bricks' ),
 			'selectTemplateTags'               => esc_html__( 'Select template tags', 'bricks' ),
@@ -1280,11 +1540,13 @@ class Builder {
 			'settingsImported'                 => esc_html__( 'Settings imported', 'bricks' ),
 			'settingsResetted'                 => esc_html__( 'Settings resetted', 'bricks' ),
 			'solid'                            => esc_html__( 'Solid', 'bricks' ),
+			'sort'                             => esc_html__( 'Sort', 'bricks' ),
 			'settings'                         => esc_html__( 'Settings', 'bricks' ),
+			'shape'                            => esc_html__( 'Shape', 'bricks' ),
 			'showAuthor'                       => esc_html__( 'Show author', 'bricks' ),
 			'showDate'                         => esc_html__( 'Show date', 'bricks' ),
 			'showEmpty'                        => esc_html__( 'Show empty', 'bricks' ),
-			'showExcerpt'                      => sprintf( '<a href="https://codex.wordpress.org/Excerpt" target="_blank">%s</a>', esc_html__( 'Show excerpt', 'bricks' ) ),
+			'showExcerpt'                      => '<a href="https://codex.wordpress.org/Excerpt" target="_blank">' . esc_html__( 'Show excerpt', 'bricks' ) . '</a>',
 			'showInfo'                         => esc_html__( 'Show info', 'bricks' ),
 			'showFullscreen'                   => esc_html__( 'Show fullscreen', 'bricks' ),
 			'showTitle'                        => esc_html__( 'Show title', 'bricks' ),
@@ -1295,12 +1557,16 @@ class Builder {
 			'slide'                            => esc_html__( 'Slide', 'bricks' ),
 			'slider-nested'                    => esc_html__( 'Slide', 'bricks' ), // ActionAdd.vue tooltip
 			'small'                            => esc_html__( 'Small', 'bricks' ),
+			'source'                           => esc_html__( 'Source', 'bricks' ),
 			'spaceBetween'                     => esc_html__( 'Space between', 'bricks' ),
 			'spaceAround'                      => esc_html__( 'Space around', 'bricks' ),
 			'spaceEvenly'                      => esc_html__( 'Space evenly', 'bricks' ),
 			'spread'                           => esc_html__( 'Spread', 'bricks' ),
 			'square'                           => esc_html__( 'Square', 'bricks' ),
 			'start'                            => esc_html__( 'Start', 'bricks' ),
+			'startingAngle'                    => esc_html__( 'Starting angle in º', 'bricks' ),
+			'startPlayAt'                      => esc_html__( 'Start play at', 'bricks' ),
+			'startTime'                        => esc_html__( 'Start time', 'bricks' ),
 			'stretch'                          => esc_html__( 'Stretch', 'bricks' ),
 			'strike'                           => esc_html__( 'Strike', 'bricks' ),
 			'strokeColor'                      => esc_html__( 'Stroke color', 'bricks' ),
@@ -1309,6 +1575,7 @@ class Builder {
 			'style'                            => esc_html__( 'Style', 'bricks' ),
 			'styles'                           => esc_html__( 'Styles', 'bricks' ),
 			'subject'                          => esc_html__( 'Subject', 'bricks' ),
+			'suffix'                           => esc_html__( 'Suffix', 'bricks' ),
 			'sure'                             => esc_html__( 'Sure?', 'bricks' ),
 			'switchTo'                         => esc_html__( 'Switch to', 'bricks' ),
 			'svgUploadNotAllowed'              => esc_html__( 'You are not allowed to uploads SVG files.', 'bricks' ),
@@ -1346,6 +1613,7 @@ class Builder {
 			'themeStyleActive'                 => esc_html__( 'Active style', 'bricks' ),
 			'themeStyleActiveInfo'             => esc_html__( 'Set condition(s) to apply selected theme style to your entire website or certain areas.', 'bricks' ),
 			'themeStyleNameExists'             => esc_html__( 'The style name entered already exists. Please choose a different name.', 'bricks' ),
+			// translators: %s: Theme Styles link
 			'themeStyleSelectInfo'             => sprintf( esc_html__( 'Select a theme style or create a new one to style your website (%s).', 'bricks' ), Helpers::article_link( 'theme-styles', esc_html__( 'learn more', 'bricks' ) ) ),
 			'themeStyleCreated'                => esc_html__( 'Theme style created', 'bricks' ),
 			'themeStyleDeleted'                => esc_html__( 'Theme style deleted', 'bricks' ),
@@ -1357,6 +1625,7 @@ class Builder {
 			'topCenter'                        => esc_html__( 'Top center', 'bricks' ),
 			'topRight'                         => esc_html__( 'Top right', 'bricks' ),
 			'thumbnail'                        => esc_html__( 'Thumbnail', 'bricks' ),
+			'true'                             => esc_html__( 'True', 'bricks' ),
 			'type'                             => esc_html__( 'Type', 'bricks' ),
 			'typography'                       => esc_html__( 'Typography', 'bricks' ),
 			'transform'                        => [
@@ -1378,11 +1647,13 @@ class Builder {
 			'undo'                             => esc_html__( 'Undo', 'bricks' ),
 			'unlink'                           => esc_html__( 'Unlink', 'bricks' ),
 			'unlinked'                         => esc_html__( 'Unlinked', 'bricks' ),
+			'unlock'                           => esc_html__( 'Unlock', 'bricks' ),
 			'unlocked'                         => esc_html__( 'Unlocked', 'bricks' ),
 			'unsplashErrorInvalidApiKey'       => esc_html__( 'Your Unsplash API key is not valid.', 'bricks' ),
 			'unsplashErrorNoApiKey'            => sprintf(
+				// translators: %s: API keys link
 				esc_html__( 'Unsplash API key required! Add key in dashboard under: %s', 'bricks' ),
-				'<a href="' . Helpers::settings_url( '#tab-api-keys' ) . '" target="_blank">' . esc_html__( 'Bricks > Settings > API Keys', 'bricks' ) . '</a>'
+				'<a href="' . Helpers::settings_url( '#tab-api-keys' ) . '" target="_blank">Bricks > ' . esc_html__( 'Settings', 'bricks' ) . ' > API keys</a>'
 			),
 			'unsplashErrorRateLimitReached'    => esc_html__( 'Rate limit for this hour reached. Please wait until the next full hour for it to be resetted.', 'bricks' ),
 			'unsplashSearchPlaceholder'        => esc_html__( 'Type keyword, hit enter.', 'bricks' ),
@@ -1392,9 +1663,12 @@ class Builder {
 			'unitTooltip'                      => esc_html__( 'Select/enter unit', 'bricks' ),
 			'unpin'                            => esc_html__( 'Unpin', 'bricks' ),
 			'unsplashSetApiKey'                => '<a href="' . Helpers::settings_url( '#tab-api-keys' ) . '" class="button" target="_blank">' . esc_html__( 'Set Unsplash API Key', 'bricks' ) . '</a>',
+			'unusedOnThisPage'                 => esc_html__( 'Unused on this page', 'bricks' ),
 			'update'                           => esc_html__( 'Update', 'bricks' ),
+			'updated'                          => esc_html__( 'Updated', 'bricks' ),
 			'uppercase'                        => esc_html__( 'Uppercase', 'bricks' ),
 			'url'                              => esc_html__( 'URL', 'bricks' ),
+			'usedOnThisPage'                   => esc_html__( 'Used on this page', 'bricks' ),
 			'userProfile'                      => esc_html__( 'User profile', 'bricks' ),
 
 			'vertical'                         => esc_html__( 'Vertical', 'bricks' ),
@@ -1409,6 +1683,8 @@ class Builder {
 			'woocommerce_product'              => esc_html__( 'Product', 'bricks' ),
 			'wordpress'                        => esc_html__( 'WordPress', 'bricks' ),
 			'wrap'                             => esc_html__( 'Wrap', 'bricks' ),
+			'nowrap'                           => esc_html__( 'No wrap', 'bricks' ),
+			'wrap-reverse'                     => esc_html__( 'Wrap reverse', 'bricks' ),
 
 			'xAxis'                            => esc_html__( 'X axis', 'bricks' ),
 			'yAxis'                            => esc_html__( 'Y axis', 'bricks' ),
@@ -1429,7 +1705,7 @@ class Builder {
 	 *
 	 * @return array
 	 */
-	function save_messages() {
+	public function save_messages() {
 		$messages = [
 			esc_html__( 'All right', 'bricks' ),
 			esc_html__( 'Amazing', 'bricks' ),
@@ -1552,8 +1828,6 @@ class Builder {
 
 	/**
 	 * Based on post_type or template type select the first elements category to show up on builder.
-	 *
-	 * @return void
 	 */
 	public function get_first_elements_category( $post_id = 0 ) {
 		$post_type = get_post_type( $post_id );
@@ -1573,14 +1847,68 @@ class Builder {
 	}
 
 	/**
+	 * Default color palette (https://www.materialui.co/colors)
+	 *
+	 * Only used if no custom colorPalette is saved in db.
+	 *
+	 * @since 1.0
+	 *
+	 * @return array
+	 */
+	public static function default_color_palette() {
+		$colors = [
+			// Grey
+			[ 'hex' => '#f5f5f5' ],
+			[ 'hex' => '#e0e0e0' ],
+			[ 'hex' => '#9e9e9e' ],
+			[ 'hex' => '#616161' ],
+			[ 'hex' => '#424242' ],
+			[ 'hex' => '#212121' ],
+
+			// A200
+			[ 'hex' => '#ffeb3b' ],
+			[ 'hex' => '#ffc107' ],
+			[ 'hex' => '#ff9800' ],
+			[ 'hex' => '#ff5722' ],
+			[ 'hex' => '#f44336' ],
+			[ 'hex' => '#9c27b0' ],
+
+			[ 'hex' => '#2196f3' ],
+			[ 'hex' => '#03a9f4' ],
+			[ 'hex' => '#81D4FA' ],
+			[ 'hex' => '#4caf50' ],
+			[ 'hex' => '#8bc34a' ],
+			[ 'hex' => '#cddc39' ],
+		];
+
+		$colors = apply_filters( 'bricks/builder/color_palette', $colors );
+
+		foreach ( $colors as $key => $color ) {
+			$colors[ $key ]['id'] = Helpers::generate_random_id( false );
+			// translators: %s: Color #
+			$colors[ $key ]['name'] = sprintf( esc_html__( 'Color #%s', 'bricks' ), $key + 1 );
+		}
+
+		$palettes[] = [
+			'id'     => Helpers::generate_random_id( false ),
+			'name'   => esc_html__( 'Default', 'bricks' ),
+			'colors' => $colors,
+		];
+
+		return $palettes;
+	}
+
+	/**
 	 * Check permissions for a certain user to access the Bricks builder
 	 *
 	 * @since 1.0
 	 */
 	public function template_redirect() {
-		// Redirect non-logged-in visitors to login page
+		// Redirect non-logged-in visitors to home page
 		if ( ! is_user_logged_in() ) {
-			auth_redirect();
+			wp_redirect( home_url() ); // @since 1.8.4
+			// auth_redirect(); // redirect to login page (@pre 1.8.4)
+			die;
 		}
 
 		// 1/3: Check for valid license
@@ -1627,23 +1955,28 @@ class Builder {
 	 *
 	 * @return array
 	 */
-	public static function builder_data() {
-		// NOTE: Undocumented
-		$post_id = apply_filters( 'bricks/builder/data_post_id', get_the_ID() );
-
-		$global_data        = Database::$global_data;
-		$page_data          = Database::$page_data;
-		$theme_styles       = Theme_Styles::$styles;
-		$theme_style_active = Theme_Styles::$active_id;
-		$template_settings  = Helpers::get_template_settings( $post_id );
+	public static function builder_data( $post_id ) {
+		$global_data              = Database::$global_data;
+		$page_data                = Database::$page_data;
+		$theme_styles             = Theme_Styles::$styles;
+		$theme_style_active       = Theme_Styles::$active_id;
+		$template_settings        = Helpers::get_template_settings( $post_id );
+		$template_preview_post_id = ! empty( $template_settings['templatePreviewPostId'] ) ? $template_settings['templatePreviewPostId'] : 0;
 
 		$load_data = [
-			'fullAccess'       => Capabilities::current_user_has_full_access(),
-			'breakpoints'      => Setup::$breakpoints,
+			'breakpoints'      => Breakpoints::$breakpoints,
+			'breakpointActive' => Breakpoints::$base_key,
 			'themeStyles'      => $theme_styles,
 			'themeStyleActive' => $theme_style_active,
-			'fonts'            => self::get_fonts(),
 			'pinnedElements'   => get_option( BRICKS_DB_PINNED_ELEMENTS, [] ),
+
+			'fullAccess'       => Capabilities::current_user_has_full_access(),
+			'userCan'          => [
+				'executeCode'  => Capabilities::current_user_can_execute_code(),
+				'uploadSvg'    => Capabilities::current_user_can_upload_svg(),
+				'publishPosts' => current_user_can( 'publish_posts' ),
+				'publishPages' => current_user_can( 'publish_pages' ),
+			],
 		];
 
 		// Add color palettes to load_data
@@ -1663,11 +1996,20 @@ class Builder {
 			$load_data['globalClassesLocked'] = $global_data['globalClassesLocked'];
 		}
 
+		// Add global classes categories
+		if ( ! empty( $global_data['globalClassesCategories'] ) ) {
+			$load_data['globalClassesCategories'] = $global_data['globalClassesCategories'];
+		}
+
 		// Add pseudo classes
 		if ( ! empty( $global_data['pseudoClasses'] ) ) {
 			$load_data['pseudoClasses'] = $global_data['pseudoClasses'];
 		} else {
-			$load_data['pseudoClasses'] = self::default_pseudo_classes();
+			$load_data['pseudoClasses'] = [
+				':hover',
+				':active',
+				':focus',
+			];
 		}
 
 		// Add elements & global settings
@@ -1703,19 +2045,19 @@ class Builder {
 		}
 
 		// If content still not populated, check if populated content was set to preview it
-		if ( empty( $load_data['content'] ) && isset( $template_settings['templatePreviewPostId'] ) ) {
+		if ( empty( $load_data['content'] ) && $template_preview_post_id ) {
 			// Template preview
-			$content              = get_post_meta( $template_settings['templatePreviewPostId'], BRICKS_DB_PAGE_CONTENT, true );
+			$content              = get_post_meta( $template_preview_post_id, BRICKS_DB_PAGE_CONTENT, true );
 			$load_data['content'] = empty( $content ) ? [] : $content;
 		}
 
 		// Last resort for getting content: WP blocks
 		if ( empty( $load_data['content'] ) && Database::get_setting( 'wp_to_bricks' ) ) {
-			$preview_id = isset( $template_settings['templatePreviewPostId'] ) ? $template_settings['templatePreviewPostId'] : $post_id;
+			$template_preview_post_id = $template_preview_post_id ? $template_preview_post_id : $post_id;
 
 			// Convert Gutenberg blocks to Bricks element
 			$converter           = new Blocks();
-			$content_from_blocks = $converter->convert_blocks_to_bricks( $preview_id );
+			$content_from_blocks = $converter->convert_blocks_to_bricks( $template_preview_post_id );
 
 			if ( is_array( $content_from_blocks ) ) {
 				$load_data['content'] = $content_from_blocks;
@@ -1749,9 +2091,8 @@ class Builder {
 		// Template type
 		$template_type = Templates::get_template_type( $post_id );
 
-		if ( ! empty( $template_type ) ) {
-			$load_data['templateType'] = $template_type;
-		}
+		// @since 1.7.1 - Default template type is 'content' (so listenHistory in builder can work properly)
+		$load_data['templateType'] = ! empty( $template_type ) ? $template_type : 'content';
 
 		// Template settings
 		if ( $template_settings ) {
@@ -1759,50 +2100,91 @@ class Builder {
 		}
 
 		// Parse elements to replace dynamic data (needed for background image)
-		$preview_post_id = isset( $template_settings['templatePreviewPostId'] ) ? $template_settings['templatePreviewPostId'] : $post_id;
-		if ( isset( $load_data['header'] ) && is_array( $load_data['header'] ) ) {
-			$load_data['header'] = self::render_dynamic_data_on_elements( $load_data['header'], $preview_post_id );
+		$template_preview_post_id = $template_preview_post_id ? $template_preview_post_id : $post_id;
+
+		if ( $template_type !== 'header' && ! empty( $load_data['header'] ) && is_array( $load_data['header'] ) ) {
+			$load_data['header'] = self::render_dynamic_data_on_elements( $load_data['header'], $template_preview_post_id );
 		}
 
-		if ( isset( $load_data['content'] ) && is_array( $load_data['content'] ) ) {
-			$load_data['content'] = self::render_dynamic_data_on_elements( $load_data['content'], $preview_post_id );
+		if ( ! empty( $load_data['content'] ) && is_array( $load_data['content'] ) ) {
+			$load_data['content'] = self::render_dynamic_data_on_elements( $load_data['content'], $template_preview_post_id );
 		}
 
-		if ( isset( $load_data['footer'] ) && is_array( $load_data['footer'] ) ) {
-			$load_data['footer'] = self::render_dynamic_data_on_elements( $load_data['footer'], $preview_post_id );
+		if ( $template_type !== 'footer' && ! empty( $load_data['footer'] ) && is_array( $load_data['footer'] ) ) {
+			$load_data['footer'] = self::render_dynamic_data_on_elements( $load_data['footer'], $template_preview_post_id );
 		}
 
 		// Generate element HTML strings in PHP for fast initial render (individual element HTML AJAX calls in builder are too slow)
 		// Only load for dynamic data (not static areas)
 		$load_data['elementsHtml'] = [];
 
+		// Remove setting in builder to get 'elementsHtml' with element ID for all PHP elements (@since 1.7)
+		unset( Database::$global_settings['elementAttsAsNeeded'] );
+
 		if ( $template_type === 'header' && isset( $load_data['header'] ) && is_array( $load_data['header'] ) ) {
-			$load_data['elementsHtml'] = array_merge( $load_data['elementsHtml'], self::query_content_type_for_elements_html( $load_data['header'] ) );
+			$load_data['elementsHtml'] = array_merge( $load_data['elementsHtml'], self::query_content_type_for_elements_html( $load_data['header'], $template_preview_post_id ) );
 		}
 
 		if ( ! in_array( $template_type, [ 'header', 'footer' ] ) && isset( $load_data['content'] ) && is_array( $load_data['content'] ) ) {
-			$load_data['elementsHtml'] = array_merge( $load_data['elementsHtml'], self::query_content_type_for_elements_html( $load_data['content'] ) );
+			$load_data['elementsHtml'] = array_merge( $load_data['elementsHtml'], self::query_content_type_for_elements_html( $load_data['content'], $template_preview_post_id ) );
 		}
 
 		if ( $template_type === 'footer' && isset( $load_data['footer'] ) && is_array( $load_data['footer'] ) ) {
-			$load_data['elementsHtml'] = array_merge( $load_data['elementsHtml'], self::query_content_type_for_elements_html( $load_data['footer'] ) );
+			$load_data['elementsHtml'] = array_merge( $load_data['elementsHtml'], self::query_content_type_for_elements_html( $load_data['footer'], $template_preview_post_id ) );
+		}
+
+		/**
+		 * STEP: Pre-populate dynamic data to minimize AJAX requests on builder load
+		 *
+		 * Only if Bricks builder setting 'enableDynamicDataPreview' is enabled, we pre-populate.
+		 *
+		 * @see render_dynamic_data_on_elements
+		 *
+		 * @since 1.7.1
+		 */
+		if ( Database::get_setting( 'enableDynamicDataPreview', false ) && is_array( self::$dynamic_data ) && count( self::$dynamic_data ) ) {
+			$load_data['dynamicData'] = self::$dynamic_data;
 		}
 
 		return $load_data;
 	}
 
 	/**
-	 * Return array with elements HTML string for initial fast builder render
+	 * Return array with HTML string of every single element for initial fast builder render
 	 *
 	 * @since 1.0
 	 */
-	public static function query_content_type_for_elements_html( $elements ) {
+	public static function query_content_type_for_elements_html( $elements, $post_id ) {
 		$elements_html = [];
 
 		foreach ( $elements as $element ) {
+			$element_name = ! empty( $element['name'] ) ? $element['name'] : '';
 
-			// Skip nesatable elements
-			$element_name       = ! empty( $element['name'] ) ? $element['name'] : '';
+			// Skip generating HTML for certain elements
+			if (
+				$element_name === 'code' || // To prevent critical errors with code execution enabled when loading the builder
+				$element_name === 'template' // To render template inline CSS in builder
+			) {
+				continue;
+			}
+
+			// STEP: Pre-populate dynamic data for all elements (@since 1.7.1)
+			if ( Database::get_setting( 'enableDynamicDataPreview', false ) && ! empty( $element['settings'] ) ) {
+				$settings_string = wp_json_encode( $element['settings'] );
+
+				// Get all dynamic data tags inside element settings
+				preg_match_all( '/\{([^{}"]+)\}/', $settings_string, $matches );
+				$dynamic_data_tags = $matches[1];
+
+				foreach ( $dynamic_data_tags as $dynamic_data_tag ) {
+					$dynamic_data_value = \Bricks\Integrations\Dynamic_Data\Providers::render_tag( $dynamic_data_tag, $post_id );
+
+					if ( $dynamic_data_value ) {
+						self::$dynamic_data[ "{$dynamic_data_tag}" ] = $dynamic_data_value;
+					}
+				}
+			}
+
 			$element_class_name = isset( Elements::$elements[ $element_name ]['class'] ) ? Elements::$elements[ $element_name ]['class'] : false;
 
 			if ( ! $element_class_name || ! class_exists( $element_class_name ) ) {
@@ -1811,6 +2193,7 @@ class Builder {
 
 			$element_instance = new $element_class_name( $element );
 
+			// Skip nestable elements
 			if ( $element_instance->nestable ) {
 				unset( $element_instance );
 				continue;
@@ -1837,7 +2220,7 @@ class Builder {
 				}
 			}
 
-			$elements_html[ $element['id'] ] = Ajax::render_element( $element );
+			$elements_html[ $element['id'] ] = Ajax::render_element( ['element' => $element] );
 		}
 
 		return $elements_html;
@@ -1848,9 +2231,12 @@ class Builder {
 	 *
 	 * @param array $elements
 	 * @param int   $post_id
-	 * @return void
 	 */
 	public static function render_dynamic_data_on_elements( $elements, $post_id ) {
+		if ( strpos( wp_json_encode( $elements ), 'useDynamicData' ) === false ) {
+			return $elements;
+		}
+
 		foreach ( $elements as $index => $element ) {
 			$elements[ $index ]['settings'] = self::render_dynamic_data_on_settings( $element['settings'], $post_id );
 		}
@@ -1859,34 +2245,40 @@ class Builder {
 	}
 
 	/**
-	 * On the settings array, if _background exists and is set to image, get the image url
+	 * On the settings array, if _background exists and is set to image, get the image URL
 	 * Needed when setting element background image
 	 *
 	 * @param array $settings
 	 * @param int   $post_id
-	 * @return void
 	 */
 	public static function render_dynamic_data_on_settings( $settings, $post_id ) {
-		// Do not render dynamic data for elements inside of a loop
-		if ( ! isset( $settings['_background']['image']['useDynamicData'] ) || isset( $settings['hasLoop'] ) ) {
+		// Return: Do not render dynamic data for elements inside a loop
+		if ( isset( $settings['hasLoop'] ) ) {
 			return $settings;
 		}
 
-		$size = isset( $settings['_background']['image']['size'] ) ? $settings['_background']['image']['size'] : BRICKS_DEFAULT_IMAGE_SIZE;
+		$background_image_dd_tag = ! empty( $settings['_background']['image']['useDynamicData'] ) ? $settings['_background']['image']['useDynamicData'] : false;
 
-		$images = Integrations\Dynamic_Data\Providers::render_tag( $settings['_background']['image']['useDynamicData'], $post_id, 'image', [ 'size' => $size ] );
+		if ( ! $background_image_dd_tag ) {
+			return $settings;
+		}
 
-		if ( empty( $images[0] ) ) {
+		$size     = ! empty( $settings['_background']['image']['size'] ) ? $settings['_background']['image']['size'] : BRICKS_DEFAULT_IMAGE_SIZE;
+		$images   = Integrations\Dynamic_Data\Providers::render_tag( $background_image_dd_tag, $post_id, 'image', [ 'size' => $size ] );
+		$image_id = ! empty( $images[0] ) ? $images[0] : false;
+
+		if ( ! $image_id ) {
 			unset( $settings['_background']['image']['id'], $settings['_background']['image']['url'] );
+
 			return $settings;
 		}
 
-		if ( is_numeric( $images[0] ) ) {
-			$settings['_background']['image']['id']   = $images[0];
+		if ( is_numeric( $image_id ) ) {
+			$settings['_background']['image']['id']   = $image_id;
 			$settings['_background']['image']['size'] = $size;
-			$settings['_background']['image']['url']  = wp_get_attachment_image_url( $images[0], $size );
+			$settings['_background']['image']['url']  = wp_get_attachment_image_url( $image_id, $size );
 		} else {
-			$settings['_background']['image']['url'] = $images[0];
+			$settings['_background']['image']['url'] = $image_id;
 		}
 
 		return $settings;
@@ -1902,5 +2294,66 @@ class Builder {
 		}
 
 		return $template;
+	}
+
+	/**
+	 * Helper function to check if a AJAX or REST API call comes from inside the builder
+	 *
+	 * NOTE: Use bricks_is_builder_call() to check if AJAX/REST API call inside the builder
+	 *
+	 * @since 1.5.5
+	 *
+	 * @return boolean
+	 */
+	public static function is_builder_call() {
+		/**
+		 * STEP: Builder AJAX call: Check data for 'bricks-is-builder'
+		 *
+		 * @since 1.5.5
+		 */
+		if ( bricks_is_ajax_call() ) {
+			$action     = isset( $_REQUEST['action'] ) ? $_REQUEST['action'] : '';
+			$is_builder = isset( $_REQUEST['bricks-is-builder'] );
+
+			if ( $is_builder ) {
+				return true;
+			}
+
+			// Check if call action starts with 'bricks_'
+			if ( strpos( $action, 'bricks_' ) === 0 ) {
+				return true;
+			}
+		}
+
+		/**
+		 * STEP: REST API call
+		 *
+		 * Is default builder render.
+		 */
+		if ( bricks_is_rest_call() ) {
+			return ! empty( $_SERVER['HTTP_X_BRICKS_IS_BUILDER'] );
+		}
+
+		/**
+		 * STEP: Builder frontend preview (window opened via builder toolbar preview icon)
+		 *
+		 * Check needed as referrer check below is the builder.
+		 *
+		 * @since 1.6.2
+		 */
+		if ( isset( $_GET['bricks_preview'] ) ) {
+			return false;
+		}
+
+		// STEP: Check query string of referer URL (@since 1.5.5)
+		$referer          = ! empty( $_SERVER['HTTP_REFERER'] ) ? $_SERVER['HTTP_REFERER'] : wp_get_referer();
+		$url_parsed       = $referer ? wp_parse_url( $referer ) : '';
+		$url_query_string = isset( $url_parsed['query'] ) ? $url_parsed['query'] : '';
+
+		if ( $url_query_string && strpos( $url_query_string, 'bricks=run' ) !== false ) {
+			return true;
+		}
+
+		return false;
 	}
 }

@@ -29,14 +29,13 @@ $controls['verticalAlign'] = [
 	],
 	'inline'       => true,
 	'isHorizontal' => false,
-	'flexParent'   => 'direction',
 ];
 
 // Icon
 
 $controls['iconMargin'] = [
 	'label' => esc_html__( 'Icon margin', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'margin',
@@ -47,7 +46,7 @@ $controls['iconMargin'] = [
 
 $controls['iconPadding'] = [
 	'label' => esc_html__( 'Icon padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',
@@ -119,6 +118,10 @@ $controls['iconColor'] = [
 		[
 			'property' => 'color',
 			'selector' => '.icon',
+		],
+		[
+			'property' => 'color',
+			'selector' => '.icon a',
 		],
 	],
 ];
@@ -241,7 +244,7 @@ $controls['contentBoxShadow'] = [
 ];
 
 $controls['contentMargin'] = [
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'label' => esc_html__( 'Content margin', 'bricks' ),
 	'css'   => [
 		[
@@ -252,7 +255,7 @@ $controls['contentMargin'] = [
 ];
 
 $controls['contentPadding'] = [
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'label' => esc_html__( 'Content padding', 'bricks' ),
 	'css'   => [
 		[

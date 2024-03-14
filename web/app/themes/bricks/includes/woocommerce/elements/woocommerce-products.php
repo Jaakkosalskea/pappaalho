@@ -81,10 +81,22 @@ class Woocommerce_Products extends Element {
 		unset( $fields['fields']['fields']['dynamicBackground'] );
 		unset( $fields['fields']['fields']['dynamicBorder'] );
 
-		// Set fields defaults
+		// Set fields defaults (including default {do_action} hooks for standard WooCommerce actions @since 1.7)
 		$fields['fields']['default'] = [
 			[
+				'dynamicData' => '{do_action:woocommerce_before_shop_loop_item}',
+				'id'          => Helpers::generate_random_id( false ),
+			],
+			[
+				'dynamicData' => '{do_action:woocommerce_before_shop_loop_item_title}',
+				'id'          => Helpers::generate_random_id( false ),
+			],
+			[
 				'dynamicData' => '{featured_image:large:link}',
+				'id'          => Helpers::generate_random_id( false ),
+			],
+			[
+				'dynamicData' => '{do_action:woocommerce_shop_loop_item_title}',
 				'id'          => Helpers::generate_random_id( false ),
 			],
 			[
@@ -97,11 +109,19 @@ class Woocommerce_Products extends Element {
 				'id'            => Helpers::generate_random_id( false ),
 			],
 			[
+				'dynamicData' => '{do_action:woocommerce_after_shop_loop_item_title}',
+				'id'          => Helpers::generate_random_id( false ),
+			],
+			[
 				'dynamicData' => '{woo_product_price}',
 				'id'          => Helpers::generate_random_id( false ),
 			],
 			[
 				'dynamicData' => '{woo_add_to_cart}',
+				'id'          => Helpers::generate_random_id( false ),
+			],
+			[
+				'dynamicData' => '{do_action:woocommerce_after_shop_loop_item}',
 				'id'          => Helpers::generate_random_id( false ),
 			],
 		];
@@ -115,6 +135,19 @@ class Woocommerce_Products extends Element {
 			'type'        => 'checkbox',
 			'inline'      => true,
 			'description' => esc_html__( 'Only added if none of your product fields contains any links.', 'bricks' ),
+		];
+
+		// Link to woocommerce-template-hooks dynamic data article
+		$this->controls['infoWooCommerceHooks'] = [
+			'tab'     => 'content',
+			'group'   => 'fields',
+			'type'    => 'info',
+			'content' => sprintf(
+				// translators: %1$s: article link, %2$s: dynamic data tag
+				esc_html__( 'Learn which %1$s you should to add to the fields above via the %2$s dynamic data tag.', 'bricks' ),
+				Helpers::article_link( 'woocommerce-template-hooks', esc_html__( 'WooCommerce template hooks', 'bricks' ) ),
+				Helpers::article_link( 'dynamic-data/#advanced', 'do_action' )
+			),
 		];
 
 		// WIDGETS (before and after grid)
@@ -199,7 +232,12 @@ class Woocommerce_Products extends Element {
 
 		// Query: Force the post type and feed the Bricks Query class
 		$settings['query']['post_type']           = [ 'product' ];
-		$settings['query']['ignore_sticky_posts'] = 1;
+		$settings['query']['ignore_sticky_posts'] = true;
+
+		// @since 1.9.1 - Set is_archive_main_query inside query key so the Query class understands
+		if ( isset( $settings['is_archive_main_query'] ) ) {
+			$settings['query']['is_archive_main_query'] = true;
+		}
 
 		$query_object = new Query(
 			[
@@ -215,6 +253,8 @@ class Woocommerce_Products extends Element {
 
 		// No products: Show placeholder or default template
 		if ( ! $query->have_posts() ) {
+			$query_object->destroy();
+
 			do_action( 'woocommerce_no_products_found' );
 
 			return;
@@ -271,7 +311,10 @@ class Woocommerce_Products extends Element {
 
 				$post = get_post();
 
-				$item_classes = [ 'product', 'repeater-item' ];
+				$item_classes = [ 'repeater-item' ];
+
+				// Populate standard WooCommerce product loop item classes
+				$item_classes = array_merge( $item_classes, wc_get_product_class( '', $post ) );
 
 				$this->set_attribute( "item-$post_index", 'class', $item_classes );
 
@@ -284,6 +327,10 @@ class Woocommerce_Products extends Element {
 			}
 
 			wp_reset_postdata();
+		}
+
+		if ( $query_object ) {
+			$query_object->destroy();
 		}
 
 		// @see: woocommerce_product_loop_end();
@@ -322,4 +369,5 @@ class Woocommerce_Products extends Element {
 
 		echo '</li>';
 	}
+
 }

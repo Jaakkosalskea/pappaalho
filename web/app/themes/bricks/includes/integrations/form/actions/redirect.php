@@ -4,18 +4,15 @@ namespace Bricks\Integrations\Form\Actions;
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class Redirect extends Base {
-
 	/**
 	 * Redirect action
 	 *
 	 * @since 1.0
 	 */
 	public function run( $form ) {
+		$redirect_to = false;
 
 		$form_settings = $form->get_settings();
-		// $form_fields = $form->get_fields();
-
-		$redirect_to = false;
 
 		if ( isset( $form_settings['redirect'] ) ) {
 			$redirect_to = $form_settings['redirect'];
@@ -47,7 +44,5 @@ class Redirect extends Base {
 				]
 			);
 		}
-
 	}
-
 }

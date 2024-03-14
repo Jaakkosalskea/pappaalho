@@ -54,12 +54,44 @@ class Element_Text_Basic extends Element {
 			'label' => esc_html__( 'Link to', 'bricks' ),
 			'type'  => 'link',
 		];
+
+		$this->controls['wordsLimit'] = [
+			'tab'   => 'content',
+			'label' => esc_html__( 'Words limit', 'bricks' ),
+			'type'  => 'number',
+			'min'   => 1,
+		];
+
+		$this->controls['readMore'] = [
+			'tab'            => 'content',
+			'label'          => esc_html__( 'Read more', 'bricks' ),
+			'type'           => 'text',
+			'inline'         => true,
+			'hasDynamicData' => false,
+			'required'       => [ 'wordsLimit', '!=', '' ],
+		];
 	}
 
 	public function render() {
 		$settings = $this->settings;
 
-		$text = isset( $settings['text'] ) ? $settings['text'] : '';
+		if ( ! isset( $settings['text'] ) ) {
+			return;
+		}
+
+		$content = $settings['text'];
+
+		// Set $no_root to true if content contains {do_action:...} (@since 1.9.1, @see #2yddfub)
+		$no_root = preg_match( '/{do_action:/', $content );
+
+		// Resolve some {do_action} not fully working in certain cases (@see #862je3dz8)
+		$content = $this->render_dynamic_data( $content );
+
+		// Enforce words limit (@since 1.9.3)
+		if ( ! empty( $settings['wordsLimit'] ) && is_numeric( $settings['wordsLimit'] ) ) {
+			$more    = $settings['readMore'] ?? '';
+			$content = Helpers::trim_words( $content, $settings['wordsLimit'], $more, true );
+		}
 
 		// Link
 		if ( ! empty( $settings['link'] ) ) {
@@ -67,7 +99,11 @@ class Element_Text_Basic extends Element {
 			$this->tag = 'a';
 		}
 
-		echo "<{$this->tag} {$this->render_attributes( '_root' )}>{$text}</{$this->tag}>";
+		if ( $no_root && ! bricks_is_builder() && ! bricks_is_builder_call() ) {
+			echo $content;
+		} else {
+			echo "<{$this->tag} {$this->render_attributes( '_root' )}>{$content}</{$this->tag}>";
+		}
 	}
 
 	public static function render_builder() { ?>
@@ -84,7 +120,7 @@ class Element_Text_Basic extends Element {
 	}
 
 	public function convert_element_settings_to_block( $settings ) {
-		if ( empty( $settings['text'] ) ) {
+		if ( ! isset( $settings['text'] ) ) {
 			return;
 		}
 

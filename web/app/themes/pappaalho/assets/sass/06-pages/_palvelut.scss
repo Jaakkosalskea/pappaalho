@@ -1,0 +1,149 @@
+.service-navigation {
+    display: flex;
+    align-items: center;
+    position: relative;
+    background-color: #f5f5f5 !important;
+    border-radius: 10px;
+    margin: 20px;
+    padding: 5px;
+
+    &__item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        text-align: center;
+        transition: text-shadow .3s ease;
+        font-size: 2.2rem;
+        cursor: pointer;
+
+        &:hover,
+        &:focus {
+            text-shadow: 0 0 .65px #333, 0 0 .65px #333;
+            text-decoration: underline;
+            text-decoration-thickness: 3px;
+            text-underline-offset: 5px;
+            text-decoration-color: var(--color-highlight);
+        }
+    }
+}
+
+.service-content {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px; // Add some space between grid items
+
+        @include breakpoint(ipad) {
+            grid-template-columns: 1fr;
+        }
+
+    &__item {
+        max-width: 100%;
+    }
+
+    &__reverse {
+        max-width: 100%;
+        order: 1;
+
+            @include breakpoint(ipad) {
+                order: unset;
+            }
+    }
+
+    &__image {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        
+
+            img {
+                height: 100%;
+                object-fit: contain;
+                width: 100%;
+            }
+    }
+}
+
+.service-darkbg {
+    
+    h3 {
+        color: #fff;
+        margin-top: 0px;
+        
+    }
+
+    p {
+        color: #fff;
+    }
+
+    .list-item .title {
+        color: #fff;
+    
+    }
+}
+
+.service-highlight {
+
+    p {
+        color: var(--color-highlight) !important;
+        font-size: 1.4rem;
+        font-weight: 400;
+        letter-spacing: 0.4rem;
+        margin-bottom: 0px;
+
+            @include breakpoint(ipad) {
+                font-size: 1.6rem;
+            }
+        }   
+}
+
+.service-accordion {
+    
+    h4 {
+        color: #fff;
+        font-weight: 400;
+    }
+}
+
+.contact-info {
+
+    h3 {
+        color: var(--color-black);
+        margin-bottom: 0px;
+        font-weight: 800;
+
+            @include breakpoint(ipad) {
+                font-size: 4rem;
+            }
+    }
+
+    h4 {
+        color: var(--color-black);
+        margin-top: 0px;
+    }
+
+    img {
+        width: 100%;
+        max-width: 350px;
+        height: auto;
+    }
+    
+    .brxe-image {
+        width: 100%;
+        max-width: 350px;
+        height: auto;
+        border-bottom: 2px solid var(--color-highlight);
+    }
+
+    p {
+        color: var(--color-black);
+    }
+}
+
+.content-heading {
+
+    &__center {
+    text-align: center;
+    }
+}

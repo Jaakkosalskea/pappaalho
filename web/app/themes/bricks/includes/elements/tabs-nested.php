@@ -14,6 +14,10 @@ class Element_Tabs_Nested extends Element {
 		return esc_html__( 'Tabs', 'bricks' ) . ' (' . esc_html__( 'Nestable', 'bricks' ) . ')';
 	}
 
+	public function get_keywords() {
+		return [ 'nestable' ];
+	}
+
 	public function set_control_groups() {
 		$this->control_groups['title'] = [
 			'title' => esc_html__( 'Title', 'bricks' ),
@@ -26,19 +30,20 @@ class Element_Tabs_Nested extends Element {
 
 	public function set_controls() {
 		$this->controls['direction'] = [
-			'label'    => esc_html__( 'Direction', 'bricks' ),
-			'tooltip'  => [
+			'label'       => esc_html__( 'Direction', 'bricks' ),
+			'tooltip'     => [
 				'content'  => 'flex-direction',
 				'position' => 'top-left',
 			],
-			'type'     => 'direction',
-			'css'      => [
+			'type'        => 'direction',
+			'css'         => [
 				[
 					'property' => 'flex-direction',
 				],
 			],
-			'inline'   => true,
-			'rerender' => true,
+			'inline'      => true,
+			'rerender'    => true,
+			'description' => esc_html__( 'Set "ID" on tab menu "Div" to open a tab via anchor link.', 'bricks' ) . ' ' . esc_html__( 'No spaces. No pound (#) sign.', 'bricks' ),
 		];
 
 		// TITLE
@@ -50,7 +55,7 @@ class Element_Tabs_Nested extends Element {
 			'units'       => true,
 			'css'         => [
 				[
-					'selector' => '.tab-title',
+					'selector' => '> .tab-menu .tab-title',
 					'property' => 'width',
 				],
 			],
@@ -60,11 +65,11 @@ class Element_Tabs_Nested extends Element {
 		$this->controls['titleMargin'] = [
 			'group' => 'title',
 			'label' => esc_html__( 'Margin', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'margin',
-					'selector' => '.tab-title',
+					'selector' => '> .tab-menu .tab-title',
 				],
 			],
 		];
@@ -72,11 +77,11 @@ class Element_Tabs_Nested extends Element {
 		$this->controls['titlePadding'] = [
 			'group'   => 'title',
 			'label'   => esc_html__( 'Padding', 'bricks' ),
-			'type'    => 'dimensions',
+			'type'    => 'spacing',
 			'css'     => [
 				[
 					'property' => 'padding',
-					'selector' => '.tab-title',
+					'selector' => '> .tab-menu .tab-title',
 				],
 			],
 			'default' => [
@@ -94,7 +99,7 @@ class Element_Tabs_Nested extends Element {
 			'css'   => [
 				[
 					'property' => 'background-color',
-					'selector' => '.tab-title',
+					'selector' => '> .tab-menu .tab-title',
 				],
 			],
 		];
@@ -106,7 +111,7 @@ class Element_Tabs_Nested extends Element {
 			'css'   => [
 				[
 					'property' => 'border',
-					'selector' => '.tab-title',
+					'selector' => '> .tab-menu .tab-title',
 				],
 			],
 		];
@@ -118,7 +123,7 @@ class Element_Tabs_Nested extends Element {
 			'css'   => [
 				[
 					'property' => 'font',
-					'selector' => '.tab-title',
+					'selector' => '> .tab-menu .tab-title',
 				],
 			],
 		];
@@ -126,9 +131,10 @@ class Element_Tabs_Nested extends Element {
 		// ACTIVE TITLE
 
 		$this->controls['titleActiveSeparator'] = [
-			'group' => 'title',
-			'label' => esc_html__( 'Active', 'bricks' ),
-			'type'  => 'separator',
+			'group'      => 'title',
+			'label'      => esc_html__( 'Active', 'bricks' ),
+			'type'       => 'separator',
+			'fullAccess' => true,
 		];
 
 		$this->controls['titleActiveBackgroundColor'] = [
@@ -138,7 +144,7 @@ class Element_Tabs_Nested extends Element {
 			'css'     => [
 				[
 					'property' => 'background-color',
-					'selector' => '.tab-title.brx-open',
+					'selector' => '> .tab-menu .tab-title.brx-open',
 				],
 			],
 			'default' => [
@@ -153,7 +159,7 @@ class Element_Tabs_Nested extends Element {
 			'css'   => [
 				[
 					'property' => 'border',
-					'selector' => '.tab-title.brx-open',
+					'selector' => '> .tab-menu .tab-title.brx-open',
 				],
 			],
 		];
@@ -165,7 +171,7 @@ class Element_Tabs_Nested extends Element {
 			'css'   => [
 				[
 					'property' => 'font',
-					'selector' => '.tab-title.brx-open',
+					'selector' => '> .tab-menu .tab-title.brx-open',
 				],
 			],
 		];
@@ -175,11 +181,11 @@ class Element_Tabs_Nested extends Element {
 		$this->controls['contentMargin'] = [
 			'group' => 'content',
 			'label' => esc_html__( 'Margin', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'margin',
-					'selector' => '.tab-content',
+					'selector' => '> .tab-content',
 				],
 			],
 		];
@@ -187,11 +193,11 @@ class Element_Tabs_Nested extends Element {
 		$this->controls['contentPadding'] = [
 			'group'   => 'content',
 			'label'   => esc_html__( 'Padding', 'bricks' ),
-			'type'    => 'dimensions',
+			'type'    => 'spacing',
 			'css'     => [
 				[
 					'property' => 'padding',
-					'selector' => '.tab-content',
+					'selector' => '> .tab-content',
 				],
 			],
 			'default' => [
@@ -209,7 +215,7 @@ class Element_Tabs_Nested extends Element {
 			'css'   => [
 				[
 					'property' => 'color',
-					'selector' => '.tab-content',
+					'selector' => '> .tab-content',
 				],
 			],
 		];
@@ -221,7 +227,7 @@ class Element_Tabs_Nested extends Element {
 			'css'   => [
 				[
 					'property' => 'background-color',
-					'selector' => '.tab-content',
+					'selector' => '> .tab-content',
 				],
 			],
 		];
@@ -233,7 +239,7 @@ class Element_Tabs_Nested extends Element {
 			'css'     => [
 				[
 					'property' => 'border',
-					'selector' => '.tab-content',
+					'selector' => '> .tab-content',
 				],
 			],
 			'default' => [
@@ -278,6 +284,7 @@ class Element_Tabs_Nested extends Element {
 				'children' => [
 					[
 						'name'     => 'div',
+						'label'    => esc_html__( 'Title', 'bricks' ),
 						'settings' => [
 							'_hidden' => [
 								'_cssClasses' => 'tab-title',
@@ -295,8 +302,11 @@ class Element_Tabs_Nested extends Element {
 
 					[
 						'name'     => 'div',
+						'label'    => esc_html__( 'Title', 'bricks' ),
 						'settings' => [
-							'_cssClasses' => 'tab-title',
+							'_hidden' => [
+								'_cssClasses' => 'tab-title',
+							],
 						],
 						'children' => [
 							[
@@ -313,25 +323,10 @@ class Element_Tabs_Nested extends Element {
 			// Content
 			[
 				'name'     => 'block',
-				'label'    => esc_html__( 'Content', 'bricks' ),
+				'label'    => esc_html__( 'Tab content', 'bricks' ),
 				'settings' => [
-					'_hidden'  => [
+					'_hidden' => [
 						'_cssClasses' => 'tab-content',
-					],
-					'_padding' => [
-						'top'    => 20,
-						'right'  => 20,
-						'bottom' => 20,
-						'left'   => 20,
-					],
-					'_border'  => [
-						'style' => 'solid',
-						'width' => [
-							'top'    => 1,
-							'right'  => 1,
-							'bottom' => 1,
-							'left'   => 1,
-						],
 					],
 				],
 				'children' => [
@@ -376,6 +371,8 @@ class Element_Tabs_Nested extends Element {
 	}
 
 	public function render() {
+		$settings = $this->settings;
+
 		$output = "<div {$this->render_attributes( '_root' )}>";
 
 		// Render children elements (= individual items)

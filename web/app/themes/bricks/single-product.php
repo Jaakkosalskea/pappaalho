@@ -14,9 +14,29 @@ if ( have_posts() ) {
 
 		// Bricks data
 		if ( $bricks_data ) {
-			$attributes['class'] = [ 'product' ];
 
-			$html_after_begin = '<div class="woocommerce-notices-wrapper brxe-container">' . wc_print_notices( true ) . '</div>';
+			global $product;
+			// @since 1.8.1 - Add standard WooCommerce product classes to the container
+			$attributes['class'] = (array) wc_get_product_class( '', $product );
+			$html_after_begin    = '';
+
+			/**
+			 * Auto render woo notice if not using Bricks WooCommerce "Notice" element
+			 *
+			 * @since 1.8.1
+			 */
+			if ( ! Bricks\Woocommerce::use_bricks_woo_notice_element() ) {
+				$bricks_has_woo_notice_do_action = strpos( wp_json_encode( $bricks_data ), '{do_action:woocommerce_before_single_product}' ) !== false;
+
+				/**
+				 * Render woo notice if not added via Bricks {do_action:woocommerce_before_single_product} in single product template
+				 *
+				 * @since 1.7
+				 */
+				if ( ! $bricks_has_woo_notice_do_action ) {
+					$html_after_begin = '<div class="woocommerce-notices-wrapper brxe-container">' . wc_print_notices( true ) . '</div>';
+				}
+			}
 
 			Bricks\Frontend::render_content( $bricks_data, $attributes, $html_after_begin );
 		}

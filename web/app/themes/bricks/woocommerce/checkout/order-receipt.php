@@ -23,7 +23,9 @@ $template_data = Bricks\Woocommerce::get_template_data_by_type( 'wc_order_receip
 
 // Render Bricks template
 if ( $template_data ) {
-	echo $template_data;
+	echo $template_data; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+
+	do_action( 'woocommerce_receipt_' . $order->get_payment_method(), $order->get_id() );
 }
 
 // Render WooCommerce template

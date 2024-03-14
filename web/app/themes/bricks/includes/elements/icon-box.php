@@ -41,15 +41,16 @@ class Element_Icon_Box extends Element {
 		];
 
 		$this->controls['gap'] = [
-			'tab'   => 'content',
-			'label' => esc_html__( 'Spacing', 'bricks' ),
-			'type'  => 'number',
-			'units' => true,
-			'css'   => [
+			'tab'         => 'content',
+			'label'       => esc_html__( 'Spacing', 'bricks' ),
+			'type'        => 'number',
+			'units'       => true,
+			'css'         => [
 				[
 					'property' => 'gap',
 				],
 			],
+			'placeholder' => '', // 'normal' via computed styles
 		];
 
 		// Group: Icon
@@ -67,19 +68,18 @@ class Element_Icon_Box extends Element {
 		];
 
 		$this->controls['verticalAlign'] = [
-			'tab'        => 'content',
-			'group'      => 'icon',
-			'label'      => esc_html__( 'Align', 'bricks' ),
-			'type'       => 'align-items',
-			'exclude'    => 'stretch',
-			'css'        => [
+			'tab'     => 'content',
+			'group'   => 'icon',
+			'label'   => esc_html__( 'Align', 'bricks' ),
+			'type'    => 'align-items',
+			'exclude' => 'stretch',
+			'css'     => [
 				[
 					'property' => 'align-self',
 					'selector' => '.icon',
 				],
 			],
-			'inline'     => true,
-			'flexParent' => 'direction',
+			'inline'  => true,
 		];
 
 		$this->controls['link'] = [
@@ -93,7 +93,7 @@ class Element_Icon_Box extends Element {
 			'tab'   => 'content',
 			'group' => 'icon',
 			'label' => esc_html__( 'Margin', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'margin',
@@ -106,7 +106,7 @@ class Element_Icon_Box extends Element {
 			'tab'   => 'content',
 			'group' => 'icon',
 			'label' => esc_html__( 'Padding', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'padding',
@@ -206,6 +206,10 @@ class Element_Icon_Box extends Element {
 					'property' => 'color',
 					'selector' => '.icon',
 				],
+				[
+					'property' => 'color',
+					'selector' => '.icon a',
+				],
 			],
 			'required' => [ 'icon.icon', '!=', '' ],
 		];
@@ -261,20 +265,45 @@ class Element_Icon_Box extends Element {
 
 		unset( $this->controls['_typography'] );
 
+		$this->controls['contentMargin'] = [
+			'tab'   => 'style',
+			'group' => 'content',
+			'type'  => 'spacing',
+			'label' => esc_html__( 'Margin', 'bricks' ),
+			'css'   => [
+				[
+					'property' => 'margin',
+					'selector' => '.content',
+				],
+			],
+		];
+
+		$this->controls['contentPadding'] = [
+			'tab'   => 'style',
+			'group' => 'content',
+			'type'  => 'spacing',
+			'label' => esc_html__( 'Padding', 'bricks' ),
+			'css'   => [
+				[
+					'property' => 'padding',
+					'selector' => '.content',
+				],
+			],
+		];
+
 		$this->controls['contentAlign'] = [
-			'tab'        => 'content',
-			'group'      => 'content',
-			'label'      => esc_html__( 'Align', 'bricks' ),
-			'type'       => 'align-items',
-			'exclude'    => 'stretch',
-			'css'        => [
+			'tab'     => 'content',
+			'group'   => 'content',
+			'label'   => esc_html__( 'Align', 'bricks' ),
+			'type'    => 'align-items',
+			'exclude' => 'stretch',
+			'css'     => [
 				[
 					'property' => 'align-self',
 					'selector' => '.content',
 				],
 			],
-			'inline'     => true,
-			'flexParent' => 'direction',
+			'inline'  => true,
 		];
 
 		$this->controls['typographyHeading'] = [
@@ -327,7 +356,7 @@ class Element_Icon_Box extends Element {
 			'tab'   => 'style',
 			'group' => 'content',
 			'type'  => 'color',
-			'label' => esc_html__( 'Content background', 'bricks' ),
+			'label' => esc_html__( 'Background', 'bricks' ),
 			'css'   => [
 				[
 					'property' => 'background-color',
@@ -340,7 +369,7 @@ class Element_Icon_Box extends Element {
 			'tab'   => 'style',
 			'group' => 'content',
 			'type'  => 'border',
-			'label' => esc_html__( 'Content border', 'bricks' ),
+			'label' => esc_html__( 'Border', 'bricks' ),
 			'css'   => [
 				[
 					'property' => 'border',
@@ -353,36 +382,10 @@ class Element_Icon_Box extends Element {
 			'tab'   => 'style',
 			'group' => 'content',
 			'type'  => 'box-shadow',
-			'label' => esc_html__( 'Content box shadow', 'bricks' ),
+			'label' => esc_html__( 'Box shadow', 'bricks' ),
 			'css'   => [
 				[
 					'property' => 'box-shadow',
-					'selector' => '.content',
-				],
-			],
-		];
-
-		$this->controls['contentMargin'] = [
-			'tab'   => 'style',
-			'group' => 'content',
-			'type'  => 'dimensions',
-			'label' => esc_html__( 'Content margin', 'bricks' ),
-			'css'   => [
-				[
-					'property' => 'margin',
-					'selector' => '.content',
-				],
-			],
-		];
-
-		$this->controls['contentPadding'] = [
-			'tab'   => 'style',
-			'group' => 'content',
-			'type'  => 'dimensions',
-			'label' => esc_html__( 'Content padding', 'bricks' ),
-			'css'   => [
-				[
-					'property' => 'padding',
 					'selector' => '.content',
 				],
 			],
@@ -419,11 +422,12 @@ class Element_Icon_Box extends Element {
 			$output .= '</div>';
 		}
 
-		// Content
-		$content = empty( $settings['content'] ) ? false : $this->render_dynamic_data( $settings['content'] );
+		$content = ! empty( $settings['content'] ) ? $settings['content'] : false;
 
 		if ( $content ) {
-			$output .= "<div {$this->render_attributes( 'content' )}>" . apply_filters( 'the_content', $content ) . '</div>';
+			$content = $this->render_dynamic_data( $content );
+
+			$output .= "<div {$this->render_attributes( 'content' )}>" . Helpers::parse_editor_content( $content ) . '</div>';
 		}
 
 		$output .= '</div>';
@@ -434,7 +438,7 @@ class Element_Icon_Box extends Element {
 	public static function render_builder() { ?>
 		<script type="text/x-template" id="tmpl-bricks-element-icon-box">
 			<component :is="tag" :class="[settings.iconPosition ? settings.iconPosition : null]">
-				<div v-if="settings.icon" class="icon">
+				<div v-if="settings?.icon?.icon || settings?.icon?.svg" class="icon">
 					<a v-if="settings.link"><icon-svg :iconSettings="settings.icon"/></a>
 					<icon-svg v-else :iconSettings="settings.icon"/>
 				</div>

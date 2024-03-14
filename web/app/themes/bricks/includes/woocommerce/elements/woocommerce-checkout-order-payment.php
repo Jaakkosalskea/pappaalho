@@ -31,7 +31,7 @@ class Woocommerce_Checkout_Order_Payment extends Element {
 		$this->controls['paymentMargin'] = [
 			'tab'   => 'content',
 			'group' => 'payment',
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'label' => esc_html__( 'Margin', 'bricks' ),
 			'css'   => [
 				[
@@ -44,7 +44,7 @@ class Woocommerce_Checkout_Order_Payment extends Element {
 		$this->controls['paymentPadding'] = [
 			'tab'   => 'content',
 			'group' => 'payment',
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'label' => esc_html__( 'Padding', 'bricks' ),
 			'css'   => [
 				[
@@ -105,7 +105,7 @@ class Woocommerce_Checkout_Order_Payment extends Element {
 		$this->controls['paymentDescriptionMargin'] = [
 			'tab'         => 'content',
 			'group'       => 'payment',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
 			'css'         => [
 				[
@@ -124,7 +124,7 @@ class Woocommerce_Checkout_Order_Payment extends Element {
 		$this->controls['paymentDescriptionPadding'] = [
 			'tab'         => 'content',
 			'group'       => 'payment',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
 			'css'         => [
 				[
@@ -178,7 +178,7 @@ class Woocommerce_Checkout_Order_Payment extends Element {
 		$this->controls['privacyMargin'] = [
 			'tab'         => 'content',
 			'group'       => 'terms',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
 			'css'         => [
 				[
@@ -251,7 +251,7 @@ class Woocommerce_Checkout_Order_Payment extends Element {
 		$this->controls['buttonMargin'] = [
 			'tab'         => 'content',
 			'group'       => 'terms',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
 			'css'         => [
 				[
@@ -270,7 +270,7 @@ class Woocommerce_Checkout_Order_Payment extends Element {
 		$this->controls['buttonPadding'] = [
 			'tab'         => 'content',
 			'group'       => 'terms',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
 			'css'         => [
 				[
@@ -370,7 +370,9 @@ class Woocommerce_Checkout_Order_Payment extends Element {
 								wc_get_template( 'checkout/payment-method.php', [ 'gateway' => $gateway ] );
 							}
 						} else {
-							echo '<li class="woocommerce-notice woocommerce-notice--info woocommerce-info">' . apply_filters( 'woocommerce_no_available_payment_methods_message', esc_html__( 'Sorry, it seems that there are no available payment methods for your location. Please contact us if you require assistance or wish to make alternate arrangements.', 'woocommerce' ) ) . '</li>'; // @codingStandardsIgnoreLine
+							echo '<li>';
+							wc_print_notice( apply_filters( 'woocommerce_no_available_payment_methods_message', esc_html__( 'Sorry, it seems that there are no available payment methods for your location. Please contact us if you require assistance or wish to make alternate arrangements.', 'woocommerce' ) ), 'notice' );
+							echo '</li>';
 						}
 						?>
 					</ul>

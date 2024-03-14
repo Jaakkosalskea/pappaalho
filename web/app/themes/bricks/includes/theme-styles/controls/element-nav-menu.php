@@ -5,12 +5,12 @@ $controls = [];
 
 $controls['menuSeparator'] = [
 	'type'  => 'separator',
-	'label' => esc_html__( 'Top level menu', 'bricks' ),
+	'label' => esc_html__( 'Top level', 'bricks' ),
 ];
 
 $controls['menuMargin'] = [
 	'label' => esc_html__( 'Margin', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'margin',
@@ -21,26 +21,30 @@ $controls['menuMargin'] = [
 
 $controls['menuPadding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',
-			'selector' => '.bricks-nav-menu > li',
-		]
+			'selector' => '.bricks-nav-menu > li > a',
+		],
+		[
+			'property' => 'padding',
+			'selector' => '.bricks-nav-menu > li > .brx-submenu-toggle > *',
+		],
 	],
 ];
 
 $controls['menuAlignment'] = [
-	'label'     => esc_html__( 'Alignment', 'bricks' ),
-	'type'      => 'direction',
-	'direction' => 'row',
-	'css'       => [
+	'label'       => esc_html__( 'Alignment', 'bricks' ),
+	'type'        => 'direction',
+	'css'         => [
 		[
 			'property' => 'flex-direction',
 			'selector' => '.bricks-nav-menu',
 		],
 	],
-	'inline'    => true,
+	'inline'      => true,
+	'placeholder' => 'row',
 ];
 
 $controls['menuTypography'] = [
@@ -49,7 +53,11 @@ $controls['menuTypography'] = [
 	'css'   => [
 		[
 			'property' => 'font',
-			'selector' => '.bricks-nav-menu > li a',
+			'selector' => '.bricks-nav-menu > li > a',
+		],
+		[
+			'property' => 'font',
+			'selector' => '.bricks-nav-menu > li > .brx-submenu-toggle',
 		],
 	],
 ];
@@ -60,7 +68,11 @@ $controls['menuActiveTypography'] = [
 	'css'   => [
 		[
 			'property' => 'font',
-			'selector' => '.bricks-nav-menu > .current-menu-item > a',
+			'selector' => '.bricks-nav-menu .current-menu-item > a',
+		],
+		[
+			'property' => 'font',
+			'selector' => '.bricks-nav-menu .current-menu-item > .brx-submenu-toggle',
 		],
 	],
 ];
@@ -71,7 +83,11 @@ $controls['menuActiveBorder'] = [
 	'css'   => [
 		[
 			'property' => 'border',
-			'selector' => '.bricks-nav-menu > .current-menu-item',
+			'selector' => '.bricks-nav-menu .current-menu-item > a',
+		],
+		[
+			'property' => 'border',
+			'selector' => '.bricks-nav-menu .current-menu-item > .brx-submenu-toggle',
 		],
 	],
 ];
@@ -80,16 +96,20 @@ $controls['menuActiveBorder'] = [
 
 $controls['subMenuSeparator'] = [
 	'type'  => 'separator',
-	'label' => esc_html__( 'Sub Menu', 'bricks' ),
+	'label' => esc_html__( 'Sub menu', 'bricks' ),
 ];
 
 $controls['subMenuPadding'] = [
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'label' => esc_html__( 'Padding', 'bricks' ),
 	'css'   => [
 		[
 			'property' => 'padding',
-			'selector' => '.bricks-nav-menu .sub-menu > li > a',
+			'selector' => '.bricks-nav-menu .sub-menu a',
+		],
+		[
+			'property' => 'padding',
+			'selector' => '.bricks-nav-menu .sub-menu button',
 		],
 	],
 ];
@@ -100,7 +120,7 @@ $controls['subMenuTypography'] = [
 	'css'   => [
 		[
 			'property' => 'font',
-			'selector' => '.bricks-nav-menu .sub-menu > li > a',
+			'selector' => '.bricks-nav-menu .sub-menu > li',
 		],
 	],
 ];
@@ -111,7 +131,11 @@ $controls['subMenuActiveTypography'] = [
 	'css'   => [
 		[
 			'property' => 'font',
-			'selector' => '.bricks-nav-menu .current-menu-item .sub-menu a',
+			'selector' => '.bricks-nav-menu .sub-menu > .current-menu-item > a',
+		],
+		[
+			'property' => 'font',
+			'selector' => '.bricks-nav-menu .sub-menu > .current-menu-item > .brx-submenu-toggle',
 		],
 	],
 ];
@@ -122,7 +146,7 @@ $controls['subMenuBackground'] = [
 	'css'   => [
 		[
 			'property' => 'background',
-			'selector' => '.bricks-nav-menu .sub-menu li.menu-item',
+			'selector' => '.bricks-nav-menu .sub-menu .menu-item',
 		]
 	],
 ];

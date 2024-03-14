@@ -1,22 +1,25 @@
 <?php
 $controls = [];
 
+// Use :where pseudo-class so it does not unchained global classes (@since 1.7.1)
 $link_css_selectors = [
-	'.brxe-accordion .accordion-content-wrapper a',
-	'.brxe-icon-box .content-wrapper a',
-	'.brxe-list a',
-	'.brxe-post-content a:not(.bricks-button)', // @since 1.5 (see: #2hjn8md)
-	'.brxe-posts .dynamic p a',
-	'.brxe-shortcode a',
-	'.brxe-tabs .tab-content a',
-	'.brxe-team-members .description a',
-	'.brxe-testimonials .testimonial-content-wrapper a',
+	':where(.brxe-accordion .accordion-content-wrapper) a',
+	':where(.brxe-icon-box .content) a',
+	':where(.brxe-list) a',
+	':where(.brxe-post-content) a:not(.bricks-button)', // @since 1.5 (see: #2hjn8md)
+	':where(.brxe-posts .dynamic p) a',
+	':where(.brxe-shortcode) a',
+	':where(.brxe-tabs .tab-content) a',
+	':where(.brxe-team-members) .description a',
+	':where(.brxe-testimonials) .testimonial-content-wrapper a',
 
-	'.brxe-text a',
-	'a.brxe-text',
+	':where(.brxe-text) a',
+	':where(a.brxe-text)',
 
-	'.brxe-text-basic a',
-	'a.brxe-text-basic',
+	':where(.brxe-text-basic) a',
+	':where(a.brxe-text-basic)',
+
+	':where(.brxe-post-comments) .comment-content a',
 ];
 
 // https://academy.bricksbuilder.io/article/filter-bricks-link_css_selectors/
@@ -48,10 +51,7 @@ $controls['background'] = [
 			'selector' => $link_css_selectors,
 		],
 	],
-	'exclude' => [
-		'videoUrl',
-		'videoScale',
-	],
+	'exclude' => 'video',
 ];
 
 $controls['border'] = [
@@ -67,7 +67,7 @@ $controls['border'] = [
 
 $controls['padding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',
@@ -77,9 +77,10 @@ $controls['padding'] = [
 ];
 
 $controls['textDecoration'] = [
-	'label' => esc_html__( 'Text decoration', 'bricks' ),
-	'type'  => 'text-decoration',
-	'css'   => [
+	'deprecated' => '1.8',
+	'label'      => esc_html__( 'Text decoration', 'bricks' ),
+	'type'       => 'text-decoration',
+	'css'        => [
 		[
 			'property' => 'text-decoration',
 			'selector' => $link_css_selectors,
@@ -96,7 +97,6 @@ $controls['transition'] = [
 		],
 	],
 	'type'        => 'text',
-	'placeholder' => 'all 0.2s ease-in',
 	'description' => sprintf( '<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Transitions/Using_CSS_transitions" target="_blank">%s</a>', esc_html__( 'Learn more about CSS transitions', 'bricks' ) ),
 ];
 

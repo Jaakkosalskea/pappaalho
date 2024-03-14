@@ -7,7 +7,7 @@ class Woocommerce_Cart_Collaterals extends Element {
 	public $category        = 'woocommerce';
 	public $name            = 'woocommerce-cart-collaterals';
 	public $icon            = 'ti-money';
-	public $panel_condition = [ 'templateType', '=', 'wc_cart' ];
+	public $panel_condition = [ 'templateType', '=', [ 'wc_cart', 'wc_cart_empty' ] ];
 
 	public function get_label() {
 		return esc_html__( 'Cart totals', 'bricks' );
@@ -84,7 +84,7 @@ class Woocommerce_Cart_Collaterals extends Element {
 
 		$this->controls['tableMargin'] = [
 			'tab'         => 'content',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
 			'css'         => [
 				[
@@ -106,7 +106,7 @@ class Woocommerce_Cart_Collaterals extends Element {
 
 		$this->controls['tablePadding'] = [
 			'tab'         => 'content',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
 			'css'         => [
 				[

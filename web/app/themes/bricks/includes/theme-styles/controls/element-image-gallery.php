@@ -32,17 +32,18 @@ $controls['columns'] = [
 ];
 
 $controls['imageHeight'] = [
-	'label'    => esc_html__( 'Image height', 'bricks' ),
-	'type'     => 'number',
-	'units'    => true,
-	'css'      => [
+	'label'       => esc_html__( 'Image height', 'bricks' ),
+	'type'        => 'number',
+	'units'       => true,
+	'css'         => [
 		[
 			'property'  => 'padding-top',
 			'selector'  => '.image',
 			'important' => true,
 		],
 	],
-	'required' => [ 'layout', '!=', [ 'masonry', 'metro' ] ],
+	'placeholder' => '',
+	'required'    => [ 'layout', '!=', [ 'masonry', 'metro' ] ],
 ];
 
 $controls['gutter'] = [
@@ -51,21 +52,8 @@ $controls['gutter'] = [
 	'units'       => true,
 	'css'         => [
 		[
-			'property' => 'padding-right',
-			'selector' => '.bricks-layout-item',
-		],
-		[
-			'property' => 'padding-bottom',
-			'selector' => '.bricks-layout-item',
-		],
-
-		[
-			'property' => 'margin-right',
-			'invert'   => true, // NOTE: Undocumented
-		],
-		[
-			'property' => 'margin-bottom',
-			'invert'   => true,
+			'property' => '--gutter',
+			'selector' => '',
 		],
 	],
 	'placeholder' => 0,

@@ -7,7 +7,7 @@ class Admin {
 	const EDITING_CAP = 'edit_posts';
 
 	public function __construct() {
-		// add_action( 'wp_dashboard_setup', [$this, 'wp_dashboard_setup'] );
+		// add_action( 'wp_dashboard_setup', [ $this, 'wp_dashboard_setup' ] );
 
 		add_action( 'after_switch_theme', [ $this, 'set_default_settings' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_enqueue_scripts' ] );
@@ -16,9 +16,7 @@ class Admin {
 		add_action( 'admin_menu', [ $this, 'admin_menu' ] );
 		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
 		add_action( 'admin_notices', [ $this, 'admin_notice_regenerate_css_files' ] );
-		add_action( 'wp_ajax_bricks_dismiss_admin_notice_regenerate_css_files', [ $this, 'dismiss_admin_notice_regenerate_css_files' ] );
 
-		add_filter( 'admin_footer_text', [ $this, 'admin_footer_text' ], 10, 1 );
 		add_filter( 'display_post_states', [ $this, 'add_post_state' ], 10, 2 );
 
 		add_filter( 'admin_body_class', [ $this, 'admin_body_class' ] );
@@ -49,6 +47,50 @@ class Admin {
 		// Add template type meta box
 		add_action( 'add_meta_boxes', [ $this, 'add_meta_boxes' ] );
 		add_action( 'save_post', [ $this, 'meta_box_save_post' ] );
+
+		// Filter by template type
+		add_action( 'restrict_manage_posts', [ $this, 'template_type_filter_dropdown' ] );
+		add_filter( 'parse_query', [ $this, 'template_type_filter_query' ] );
+
+		// Dismissable HTTPS notice
+		add_action( 'wp_ajax_bricks_dismiss_https_notice', [ $this, 'dismiss_https_notice' ] );
+
+		// Drop form submissions table (@since 1.9.2)
+		add_action( 'wp_ajax_bricks_form_submissions_drop_table', [ $this, 'form_submissions_drop_table' ] );
+
+		// Reset form submissions table (@since 1.9.2)
+		add_action( 'wp_ajax_bricks_form_submissions_reset_table', [ $this, 'form_submissions_reset_table' ] );
+
+		// Delete form submissions of form ID (@since 1.9.2)
+		add_action( 'wp_ajax_bricks_form_submissions_delete_form_id', [ $this, 'form_submissions_delete_form_id' ] );
+
+		// Set custom screen options (@since 1.9.2)
+		add_filter( 'set-screen-option', [ 'Bricks\Integrations\Form\Submission_Table', 'set_screen_option' ], 10, 3 );
+
+		// Instagram access token
+		add_action( 'wp_ajax_bricks_dismiss_instagram_access_token_notice', [ $this, 'dismiss_instagram_access_token_notice' ] );
+		add_action( 'admin_init', [ $this, 'schedule_instagram_access_token_refresh' ] );
+		add_action( 'bricks_refresh_instagram_access_token', [ $this, 'refresh_instagram_access_token' ] );
+		add_filter( 'cron_schedules', [ $this, 'monthly_cron_schedule' ] );
+
+		// Reindex query filters records (@since 1.9.6)
+		add_action( 'wp_ajax_bricks_reindex_query_filters', [ $this, 'reindex_query_filters' ] );
+	}
+
+	/**
+	 * Set monthly cron schedule
+	 *
+	 * For Instagram Access Token.
+	 *
+	 * @since 1.9.1
+	 */
+	public function monthly_cron_schedule( $schedules ) {
+		$schedules['monthly'] = [
+			'interval' => 30 * DAY_IN_SECONDS,
+			'display'  => __( 'Once Monthly' ),
+		];
+
+		return $schedules;
 	}
 
 	/**
@@ -59,7 +101,7 @@ class Admin {
 	public function add_meta_boxes() {
 		add_meta_box(
 			'meta-box-template-type',
-			esc_html__( 'Template Type', 'bricks' ),
+			esc_html__( 'Template type', 'bricks' ),
 			[ $this, 'meta_box_template_type' ],
 			BRICKS_DB_TEMPLATE_SLUG,
 			'side',
@@ -95,12 +137,31 @@ class Admin {
 	 * @since 1.0
 	 */
 	public function meta_box_save_post( $post_id ) {
-		if ( isset( $_POST['bricks_template_type'] ) && ! empty( $_POST['bricks_template_type'] ) ) {
-			update_post_meta(
-				$post_id,
-				BRICKS_DB_TEMPLATE_TYPE,
-				$_POST['bricks_template_type']
-			);
+		$template_type = ! empty( $_POST['bricks_template_type'] ) ? $_POST['bricks_template_type'] : false;
+
+		if ( $template_type ) {
+			// Get previous template type
+			$previous_type = get_post_meta( $post_id, BRICKS_DB_TEMPLATE_TYPE, true );
+
+			// Update new template type
+			update_post_meta( $post_id, BRICKS_DB_TEMPLATE_TYPE, $template_type );
+
+			// Convert template types into content area (header, content, footer)
+			$previous_type = $previous_type ? Database::get_bricks_data_key( $previous_type ) : false;
+
+			$new_type = Database::get_bricks_data_key( $template_type );
+
+			// If content areas exist and are different, them migrate data
+			if ( $previous_type && $new_type && $previous_type !== $new_type ) {
+				// Get the data from the previous content area
+				$previous_data = get_post_meta( $post_id, $previous_type, true );
+
+				// Save data using the new content area
+				update_post_meta( $post_id, $new_type, $previous_data );
+
+				// Delete data from previous content area
+				delete_post_meta( $post_id, $previous_type );
+			}
 		}
 	}
 
@@ -122,8 +183,9 @@ class Admin {
 		// https://codex.wordpress.org/Dashboard_Widgets_API#Advanced:_Forcing_your_widget_to_the_top
 		global $wp_meta_boxes;
 
-		$normal_dashboard                             = $wp_meta_boxes['dashboard']['normal']['core'];
-		$sorted_dashboard                             = array_merge( [ 'bricks_dashboard_widget' => $normal_dashboard['bricks_dashboard_widget'] ], $normal_dashboard );
+		$normal_dashboard = $wp_meta_boxes['dashboard']['normal']['core'];
+		$sorted_dashboard = array_merge( [ 'bricks_dashboard_widget' => $normal_dashboard['bricks_dashboard_widget'] ], $normal_dashboard );
+
 		$wp_meta_boxes['dashboard']['normal']['core'] = $sorted_dashboard;
 	}
 
@@ -198,7 +260,7 @@ class Admin {
 	/**
 	 * Export templates
 	 *
-	 * @param array $items Items to export.
+	 * @param array $template_ids IDs of templates to export.
 	 *
 	 * @since 1.0
 	 */
@@ -213,7 +275,7 @@ class Admin {
 		wp_mkdir_p( $temp_path );
 
 		foreach ( $template_ids as $template_id ) {
-			$file_data         = Templates::export_template( false, $template_id );
+			$file_data         = Templates::export_template( $template_id );
 			$file_path         = trailingslashit( $temp_path ) . $file_data['name'];
 			$file_put_contents = file_put_contents( $file_path, $file_data['content'] );
 
@@ -247,8 +309,8 @@ class Admin {
 
 		header( 'Content-Type: application/octet-stream' );
 		header( 'Content-Disposition: attachment; filename=' . $zip_filename );
-		header( 'Expires: 0' );
 		header( 'Cache-Control: must-revalidate' );
+		header( 'Expires: 0' );
 		header( 'Pragma: public' );
 		header( 'Content-Length: ' . filesize( $zip_path ) );
 
@@ -289,6 +351,8 @@ class Admin {
 					<button class="button button-large bricks-admin-import-toggle"><?php esc_html_e( 'Cancel', 'bricks' ); ?></button>
 
 					<input type="hidden" name="action" value="bricks_import_template">
+
+					<?php wp_nonce_field( 'bricks-nonce', 'nonce' ); // @since 1.5.4 ?>
 				</form>
 
 				<i class="close bricks-admin-import-toggle dashicons dashicons-no-alt"></i>
@@ -299,12 +363,65 @@ class Admin {
 	}
 
 	/**
+	 * Template type filter dropdown
+	 *
+	 * @since 1.9.3
+	 */
+	public function template_type_filter_dropdown() {
+		global $typenow; // Get the current post type
+
+		if ( $typenow == BRICKS_DB_TEMPLATE_SLUG ) {
+			// Get template types
+			$template_types = Setup::$control_options['templateTypes'];
+
+			// Check if template type is selected in filter dropdown
+			$selected = $_GET['template_type'] ?? '';
+
+			echo '<select name="template_type" id="template_type" class="postform">';
+
+			echo '<option value="">' . esc_html__( 'All template types', 'bricks' ) . '</option>';
+
+			foreach ( $template_types as $key => $label ) {
+				echo '<option value="' . $key . '"' . selected( $key, $selected ) . '>' . $label . '</option>';
+			}
+
+			echo '</select>';
+		}
+	}
+
+	/**
+	 * Template type filter query
+	 *
+	 * @since 1.9.3
+	 */
+	public function template_type_filter_query( $query ) {
+		global $pagenow;
+
+		$post_type     = $_GET['post_type'] ?? 'post';
+		$template_type = $_GET['template_type'] ?? '';
+
+		// Perform filter action only for Bricks template post type
+		if ( is_admin() && $template_type && $post_type === BRICKS_DB_TEMPLATE_SLUG && $pagenow == 'edit.php' ) {
+			$query->query_vars['meta_key']   = BRICKS_DB_TEMPLATE_TYPE;
+			$query->query_vars['meta_value'] = $template_type;
+		}
+	}
+
+	/**
 	 * Import global settings
 	 *
 	 * @since 1.0
 	 */
 	public function import_global_settings() {
-		Ajax::verify_request();
+		// @since 1.5.4
+		if ( ! check_ajax_referer( 'bricks-nonce', 'nonce', false ) ) {
+			wp_send_json_error( 'verify_nonce: "bricks-nonce" is invalid.' );
+		}
+
+		// @since 1.5.4
+		if ( ! Capabilities::current_user_has_full_access() ) {
+			wp_send_json_error( 'verify_request: Sorry, you are not allowed to perform this action.' );
+		}
 
 		// Load WP_WP_Filesystem for temp file URL access
 		global $wp_filesystem;
@@ -315,7 +432,7 @@ class Admin {
 		}
 
 		// Import single JSON file
-		$files    = $_FILES['files']['tmp_name'];
+		$files    = $_FILES['files']['tmp_name'] ?? [];
 		$settings = [];
 		$updated  = false;
 
@@ -346,9 +463,14 @@ class Admin {
 			wp_send_json_error( 'verify_nonce: "bricks-nonce" is invalid.' );
 		}
 
+		// @since 1.5.4
+		if ( ! Capabilities::current_user_has_full_access() ) {
+			wp_send_json_error( 'verify_request: Sorry, you are not allowed to perform this action.' );
+		}
+
 		// Get latest settings
 		$settings    = get_option( BRICKS_DB_GLOBAL_SETTINGS, [] );
-		$export_json = json_encode( $settings );
+		$export_json = wp_json_encode( $settings );
 
 		header( 'Content-Description: File Transfer' );
 		header( 'Content-type: application/txt' );
@@ -368,11 +490,15 @@ class Admin {
 	 * @since 1.0
 	 */
 	public function save_settings() {
-		parse_str( $_POST['formData'], $settings );
+		if ( ! check_ajax_referer( 'bricks-nonce', 'nonce', false ) ) {
+			wp_send_json_error( 'verify_nonce: "bricks-nonce" is invalid.' );
+		}
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( [ 'message' => esc_html__( 'You don\'t have sufficient permission to save settings.', 'bricks' ) ] );
 		}
+
+		parse_str( $_POST['formData'] ?? [], $settings );
 
 		$old_settings = Database::$global_settings;
 		$new_settings = [];
@@ -421,10 +547,43 @@ class Admin {
 				continue;
 			}
 
-			// Enciphered API keys: Save old value
-			if ( is_string( $value ) && strpos( $value, 'xxxx' ) !== false ) {
+			// Maintenance mode (@since 1.9.4)
+			if ( $key === 'bypassMaintenanceCapabilities' ) {
+				Capabilities::save_capabilities( Capabilities::BYPASS_MAINTENANCE, $value );
+
+				// Don't save selected capabilities in Global Settings, but as user role capabilities
+				continue;
+			}
+
+			// Enciphered API keys: Use existing value
+			if ( is_string( $value ) && strpos( $value, 'xxxxxxxx' ) !== false ) {
 				$new_settings[ $key ] = $old_settings[ $key ];
 			} else {
+				// Preserve backslashes in custom code
+				$run_wp_slash = in_array( $key, [ 'customCss', 'customScriptsHeader', 'customScriptsBodyHeader', 'customScriptsBodyFooter' ] );
+
+				if ( $run_wp_slash ) {
+					// jQuery.serialize() adds the slash to single quote
+					$value = str_replace( "\'", "'", $value );
+					$value = wp_slash( $value );
+				}
+
+				// Unlimited remote template URLs (@since 1.9.4)
+				if ( $key === 'remoteTemplates' ) {
+					if ( is_array( $value ) ) {
+						// Filter out any entries where either the URL is empty
+						$value = array_filter(
+							$value,
+							function( $item ) {
+								return ! empty( $item['url'] );
+							}
+						);
+					} else {
+						// If $value is not an array, empty it out for consistency
+						$value = [];
+					}
+				}
+
 				$new_settings[ $key ] = $value;
 			}
 		}
@@ -437,14 +596,29 @@ class Admin {
 			Capabilities::save_capabilities( Capabilities::EXECUTE_CODE );
 		}
 
+		// Remove bypass maintenance mode capabilitie for all roles (@since 1.9.4)
+		if ( empty( $settings['bypassMaintenanceCapabilities'] ) ) {
+			Capabilities::save_capabilities( Capabilities::BYPASS_MAINTENANCE, [] );
+		}
+
 		update_option( BRICKS_DB_GLOBAL_SETTINGS, $new_settings );
 
 		// Sync Mailchimp and Sendgrid lists (@since 1.0)
 		$mailchimp_lists = \Bricks\Integrations\Form\Actions\Mailchimp::sync_lists();
 		$sendgrid_lists  = \Bricks\Integrations\Form\Actions\Sendgrid::sync_lists();
 
+		// Maybe create form submission table (@since 1.9.2)
+		if ( isset( $settings['saveFormSubmissions'] ) ) {
+			\Bricks\Integrations\Form\Submission_Database::maybe_create_table();
+		}
+
 		// Download remote templates from server and store as db option
 		Templates::get_remote_templates_data();
+
+		// Maybe create query filters table (@since 1.9.6)
+		if ( isset( $settings['enableQueryFilters'] ) ) {
+			\Bricks\Query_Filters::get_instance()->maybe_create_tables();
+		}
 
 		wp_send_json_success(
 			[
@@ -461,6 +635,10 @@ class Admin {
 	 * @since 1.0
 	 */
 	public function reset_settings() {
+		if ( ! check_ajax_referer( 'bricks-nonce', 'nonce', false ) ) {
+			wp_send_json_error( 'verify_nonce: "bricks-nonce" is invalid.' );
+		}
+
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( [ 'message' => esc_html__( 'You don\'t have sufficient permission to reset settings.', 'bricks' ) ] );
 		}
@@ -568,6 +746,51 @@ class Admin {
 						case 'wc_order_receipt':
 							$default_condition = esc_html__( 'Order receipt', 'bricks' );
 							break;
+
+						// Woo Phase 3
+						case 'wc_account_dashboard':
+							$default_condition = esc_html__( 'Account', 'bricks' ) . ' - ' . esc_html__( 'Dashboard', 'bricks' );
+							break;
+
+						case 'wc_account_orders':
+							$default_condition = esc_html__( 'Account', 'bricks' ) . ' - ' . esc_html__( 'Orders', 'bricks' );
+							break;
+
+						case 'wc_account_view_order':
+							$default_condition = esc_html__( 'Account', 'bricks' ) . ' - ' . esc_html__( 'View order', 'bricks' );
+							break;
+
+						case 'wc_account_downloads':
+							$default_condition = esc_html__( 'Account', 'bricks' ) . ' - ' . esc_html__( 'Downloads', 'bricks' );
+							break;
+
+						case 'wc_account_addresses':
+							$default_condition = esc_html__( 'Account', 'bricks' ) . ' - ' . esc_html__( 'Addresses', 'bricks' );
+							break;
+
+						case 'wc_account_form_edit_address':
+							$default_condition = esc_html__( 'Account', 'bricks' ) . ' - ' . esc_html__( 'Edit address', 'bricks' );
+							break;
+
+						case 'wc_account_form_edit_account':
+							$default_condition = esc_html__( 'Account', 'bricks' ) . ' - ' . esc_html__( 'Edit account', 'bricks' );
+							break;
+
+						case 'wc_account_form_login':
+							$default_condition = esc_html__( 'Account', 'bricks' ) . ' - ' . esc_html__( 'Login', 'bricks' );
+							break;
+
+						case 'wc_account_form_lost_password':
+							$default_condition = esc_html__( 'Account', 'bricks' ) . ' - ' . esc_html__( 'Lost password', 'bricks' );
+							break;
+
+						case 'wc_account_form_lost_password_confirmation':
+							$default_condition = esc_html__( 'Account', 'bricks' ) . ' - ' . esc_html__( 'Lost password', 'bricks' ) . ' (' . esc_html__( 'Confirmation', 'bricks' ) . ')';
+							break;
+
+						case 'wc_account_reset_password':
+							$default_condition = esc_html__( 'Account', 'bricks' ) . ' - ' . esc_html__( 'Reset password', 'bricks' );
+							break;
 					}
 
 					if ( $default_condition ) {
@@ -584,11 +807,20 @@ class Admin {
 				foreach ( $template_conditions as $template_condition ) {
 					$sub_conditions = [];
 					$main_condition = '';
+					$hooks          = [];
 
 					if ( isset( $template_condition['main'] ) ) {
-						$main_condition = $settings_template_controls['templateConditions']['fields']['main']['options'][ $template_condition['main'] ];
+						if ( $template_condition['main'] === 'hook' ) {
+							// Backwards compatibility // @since 1.9.2
+							$main_condition = esc_html__( 'Entire website', 'bricks' );
+						} else {
+							$main_condition = $settings_template_controls['templateConditions']['fields']['main']['options'][ $template_condition['main'] ];
+						}
 
 						switch ( $template_condition['main'] ) {
+							case 'hook':
+								break;
+
 							case 'ids':
 								if ( isset( $template_condition['ids'] ) && is_array( $template_condition['ids'] ) ) {
 									foreach ( $template_condition['ids'] as $id ) {
@@ -635,6 +867,14 @@ class Admin {
 								}
 								break;
 						}
+
+						// Section templates: Has hook settings (@since 1.9.2)
+						$hook_name     = $template_condition['hookName'] ?? false;
+						$hook_priority = $template_condition['hookPriority'] ?? 10;
+
+						if ( $hook_name ) {
+							$hooks[] = $hook_name . ' (' . $hook_priority . ')';
+						}
 					} else {
 						echo '-';
 					}
@@ -645,6 +885,17 @@ class Admin {
 						$conditions[] = $main_condition . ' (' . join( ', ', $sub_conditions ) . ')';
 					} else {
 						$conditions[] = $main_condition;
+					}
+
+					// Show hooks
+					if ( count( $hooks ) ) {
+						$conditions[] = '<ul>';
+
+						foreach ( $hooks as $hook ) {
+							$conditions[] = "<li><span>Hook</span>: <code>$hook</code></li>";
+						}
+
+						$conditions[] = '</ul>';
 					}
 				}
 			} else {
@@ -666,7 +917,9 @@ class Admin {
 		elseif ( $column === 'template_type' ) {
 			$template_types = Setup::$control_options['templateTypes'];
 
-			echo array_key_exists( $template_type, $template_types ) ? $template_types[ $template_type ] : '-';
+			$output_template_type = array_key_exists( $template_type, $template_types ) ? $template_types[ $template_type ] : '-';
+
+			echo $output_template_type;
 		}
 
 		// Template bundle
@@ -711,7 +964,7 @@ class Admin {
 
 		// Template shortcode
 		elseif ( $column === 'shortcode' ) {
-			$shortcode = '[bricks_template id="' . $post_id . '"]';
+			$shortcode = "[bricks_template id=\"$post_id\"]";
 
 			echo '<input type="text" size="' . strlen( $shortcode ) . '" class="bricks-copy-to-clipboard" readonly data-success="' . esc_html__( 'Copied to clipboard', 'bricks' ) . '" value="' . esc_attr( $shortcode ) . '">';
 		}
@@ -759,13 +1012,22 @@ class Admin {
 			'bricks-admin',
 			'bricksData',
 			[
-				'title'               => BRICKS_NAME,
-				'ajaxUrl'             => admin_url( 'admin-ajax.php' ),
-				'postId'              => get_the_ID(),
-				'nonce'               => wp_create_nonce( 'bricks-nonce' ),
-				'currentScreen'       => get_current_screen(),
-				'cofirmResetSettings' => esc_html__( 'You are about to reset all Bricks global settings. Do you wish to proceed?', 'bricks' ),
-				'deleteBricksDataUrl' => Helpers::delete_bricks_data_by_post_id(),
+				'title'                             => BRICKS_NAME,
+				'ajaxUrl'                           => admin_url( 'admin-ajax.php' ),
+				'postId'                            => get_the_ID(),
+				'nonce'                             => wp_create_nonce( 'bricks-nonce' ),
+				'currentScreen'                     => get_current_screen(),
+				'cofirmResetSettings'               => esc_html__( 'You are about to reset all Bricks global settings. Do you wish to proceed?', 'bricks' ),
+				'confirmDropFormSubmissionsTable'   => esc_html__( 'You are about to delete all form submissions (including the database table). Do you wish to proceed?', 'bricks' ),
+				'confirmResetFormSubmissionsTable'  => esc_html__( 'You are about to delete all form submissions. Do you wish to proceed?', 'bricks' ),
+				'confirmResetFormSubmissionsFormId' => sprintf( esc_html__( 'You are about to delete all form submissions of form ID %s. Do you wish to proceed?', 'bricks' ), '[form_id]' ),
+				'confirmReindexFilters'             => esc_html__( 'You are about to regenerate indexes for all query filters. Do you wish to proceed?', 'bricks' ),
+				'formSubmissionsSearchPlaceholder'  => esc_html__( 'Form data', 'bricks' ),
+				'deleteBricksDataUrl'               => Helpers::delete_bricks_data_by_post_id(),
+				'builderEditLink'                   => Helpers::get_builder_edit_link(),
+				'i18n'                              => [
+					'editWithBricks' => esc_html__( 'Edit with Bricks', 'bricks' ),
+				],
 			]
 		);
 	}
@@ -829,6 +1091,28 @@ class Admin {
 			'edit.php?post_type=' . BRICKS_DB_CUSTOM_FONTS
 		);
 
+		// Form submissions (@since 1.9.2)
+		if ( isset( Database::$global_settings['saveFormSubmissions'] ) ) {
+			// Handle bulk actions (failed to hook on handle-bulk_actions)
+			Integrations\Form\Submission_Table::handle_custom_actions();
+
+			$submissions_page = add_submenu_page(
+				'bricks',
+				esc_html__( 'Form Submissions', 'bricks' ),
+				esc_html__( 'Form Submissions', 'bricks' ),
+				'manage_options',
+				'bricks-form-submissions',
+				[ $this, 'admin_screen_form_submissions' ]
+			);
+			// Add screen options
+			add_action( 'load-' . $submissions_page, [ 'Bricks\Integrations\Form\Submission_Table', 'add_screen_options' ] );
+
+			// Add columns to indivual form submissions page (check URL param: form_id)
+			if ( isset( $_GET['form_id'] ) ) {
+				add_filter( "manage_{$submissions_page}_columns", [ 'Bricks\Integrations\Form\Submission_Table', 'screen_columns' ] );
+			}
+		}
+
 		add_submenu_page(
 			'bricks',
 			esc_html__( 'Sidebars', 'bricks' ),
@@ -878,21 +1162,12 @@ class Admin {
 	}
 
 	/**
-	 * Dismiss admin notice about regenerating CSS files after theme update
+	 * Form submissions admin screen
 	 *
-	 * Opdate option entry to current theme version when dismissing notification to hide it until after next theme update.
-	 *
-	 * @since 1.3.7
+	 * @since 1.9.2
 	 */
-	public function dismiss_admin_notice_regenerate_css_files() {
-		$updated = update_option( BRICKS_CSS_FILES_LAST_GENERATED, BRICKS_VERSION );
-
-		wp_send_json_success(
-			[
-				'updated'                   => $updated,
-				'last_generated_in_version' => get_option( BRICKS_CSS_FILES_LAST_GENERATED ),
-			]
-		);
+	public function admin_screen_form_submissions() {
+		require_once 'admin/admin-screen-form-submissions.php';
 	}
 
 	/**
@@ -900,25 +1175,27 @@ class Admin {
 	 *
 	 * @since 1.3.7
 	 */
-	public function admin_notice_regenerate_css_files() {
-		// STEP: Return if CSS loading method is not set to "External files"
-		$css_loading_method = ! empty( Database::$global_settings['cssLoading'] ) ? Database::$global_settings['cssLoading'] : 'inline';
+	public static function admin_notice_regenerate_css_files() {
+		// Show update & CSS files regeneration admin notice ONCE after theme update
+		if ( get_option( BRICKS_CSS_FILES_ADMIN_NOTICE ) ) {
+			$text  = '<p>' . esc_html__( 'You are now running the latest version of Bricks', 'bricks' ) . ': ' . BRICKS_VERSION . ' 🥳</p>';
+			$text .= '<p>' . esc_html__( 'Your Bricks CSS files were automatically generated in the background.', 'bricks' ) . '</p>';
+			$text .= '<a class="button button-primary" href="' . admin_url( 'admin.php?page=bricks-settings#tab-performance' ) . '">' . esc_html__( 'Manually regenerate CSS files', 'bricks' ) . '</a>';
+			$text .= '<a class="button" href="https://bricksbuilder.io/changelog/#v' . BRICKS_VERSION . '" target="_blank" style="margin: 4px">' . esc_html__( 'View changelog', 'bricks' ) . '</a>';
 
-		if ( $css_loading_method !== 'file' ) {
-			return;
+			echo wp_kses_post( sprintf( '<div class="notice notice-info is-dismissible">%s</div>', wpautop( $text ) ) );
+
+			// Remove admin notice option entry to not show it again
+			delete_option( BRICKS_CSS_FILES_ADMIN_NOTICE );
+
+			// Fallback: Regenerate CSS files now (@since 1.8.1)
+			if ( Database::get_setting( 'cssLoading' ) === 'file' ) {
+				Assets_Files::regenerate_css_files();
+
+				// NOTE: Not in use. Requires WP cron & not needed here anymore as we already run the updated theme version code
+				// Assets_Files::schedule_css_file_regeneration();
+			}
 		}
-
-		// STEP: Return if CSS files have been generated for this version (meaning options entry matches installed version of Bricks)
-		$css_files_last_generated_in_version = get_option( BRICKS_CSS_FILES_LAST_GENERATED );
-
-		if ( version_compare( BRICKS_VERSION, $css_files_last_generated_in_version, '==' ) ) {
-			return;
-		}
-
-		$text  = '<p>' . esc_html__( 'You are now running the latest version of Bricks. Please regenerate your external CSS files too!', 'bricks' ) . '</p>';
-		$text .= '<a class="button" href="' . admin_url( 'admin.php?page=bricks-settings#tab-performance' ) . '">' . esc_html__( 'Go to: Bricks Settings', 'bricks' ) . '</a>';
-
-		echo wp_kses_post( sprintf( '<div id="bricks-dismiss-regenerate-css-files" class="notice notice-info is-dismissible">%s</div>', wpautop( $text ) ) );
 	}
 
 	/**
@@ -927,6 +1204,23 @@ class Admin {
 	 * @since 1.0
 	 */
 	public function admin_notices() {
+		/**
+		 * STEP: site URL is HTTP instead of HTTPS (and notice has not been dismiss before): Show admin notice
+		 *
+		 * @since 1.8.4
+		 */
+		if ( current_user_can( 'manage_options' ) ) {
+			$site_url = get_option( 'siteurl' );
+
+			if ( $site_url && strpos( $site_url, 'http://' ) !== false ) {
+				if ( ! get_option( 'bricks_https_notice_dismissed', false ) ) {
+					$text = 'Bricks: ' . esc_html__( 'Please update your WordPress URLs under Settings > General to use https:// instead of http:// for optimal performance & functionality. Valid SSL certificate required.', 'bricks' );
+
+					echo self::admin_notice_html( 'warning', $text, true, 'brxe-https-notice' );
+				}
+			}
+		}
+
 		if ( empty( $_GET['bricks_notice'] ) ) {
 			return;
 		}
@@ -951,16 +1245,19 @@ class Admin {
 				// User role not allowed to use builder
 				$user = wp_get_current_user();
 				$role = isset( $user->roles[0] ) ? $user->roles[0] : '';
+				// translators: %s: user role
 				$text = sprintf( esc_html__( 'Your user role "%s" is not allowed to edit with Bricks. Please get in touch with the site admin to change it.', 'bricks' ), $role );
 				break;
 
 			case 'error_post_type':
 				// Post type is not enabled for Bricks
 				$post_type = isset( $_GET['post_type'] ) ? $_GET['post_type'] : '';
-				$text      = sprintf( esc_html__( 'Bricks is not enabled for post type "%s". Go to "Bricks > Settings" to enable this post type.', 'bricks' ), $post_type );
+				// translators: %s: post type
+				$text = sprintf( esc_html__( 'Bricks is not enabled for post type "%s". Go to "Bricks > Settings" to enable this post type.', 'bricks' ), $post_type );
 				break;
 
 			case 'post_meta_deleted':
+				// translators: %s: post title
 				$text = sprintf( esc_html__( 'Bricks data for "%s" deleted.', 'bricks' ), get_the_title() );
 				$type = 'success';
 				break;
@@ -972,27 +1269,18 @@ class Admin {
 		echo self::admin_notice_html( $type, $text );
 	}
 
-	public static function admin_notice_html( $type, $text, $dismissible = true ) {
+	public static function admin_notice_html( $type, $text, $dismissible = true, $extra_classes = '' ) {
 		$classes = [ 'notice', "notice-$type" ];
 
 		if ( $dismissible ) {
 			$classes[] = 'is-dismissible';
 		}
 
+		if ( $extra_classes ) {
+			$classes[] = $extra_classes;
+		}
+
 		return wp_kses_post( sprintf( '<div class="' . implode( ' ', $classes ) . '">%s</div>', wpautop( $text ) ) );
-	}
-
-	/**
-	 * Admin footer text
-	 *
-	 * @return string
-	 *
-	 * @since 1.0
-	 */
-	public function admin_footer_text( $text ) {
-		$text = sprintf( __( 'Thank you for creating with <a href="%1$s" target="_blank">WordPress</a> and <a href="%2$s" target="_blank">Bricks</a>.' ), 'https://wordpress.org/', BRICKS_REMOTE_URL );
-
-		return $text;
 	}
 
 	/**
@@ -1167,10 +1455,15 @@ class Admin {
 				<?php } ?>
 
 				<div class="wp-editor-container">
-					<p><a href="<?php echo Helpers::get_builder_edit_link( get_the_ID() ); ?>" class="button button-primary button-hero"><?php esc_html_e( 'Edit with Bricks', 'bricks' ); ?></a></p>
+					<p><a href="<?php echo Helpers::get_builder_edit_link( get_the_ID() ); ?>" class="button button-primary button-hero">
+						<?php esc_html_e( 'Edit with Bricks', 'bricks' ); ?>
+					</a></p>
 
 					<?php if ( Database::get_setting( 'deleteBricksData', false ) ) { ?>
-					<p><a href="<?php echo esc_url( Helpers::delete_bricks_data_by_post_id() ); ?>" class="bricks-delete-post-meta button" onclick="return confirm('<?php echo sprintf( esc_html__( 'Are you sure you want to delete the Bricks-generated data for this %s?', 'bricks' ), get_post_type() ); ?>')"><?php esc_html_e( 'Delete Bricks data', 'bricks' ); ?></a></p>
+						<?php // translators: %s: post type ?>
+					<p><a href="<?php echo esc_url( Helpers::delete_bricks_data_by_post_id() ); ?>" class="bricks-delete-post-meta button" onclick="return confirm('<?php echo sprintf( esc_html__( 'Are you sure you want to delete the Bricks-generated data for this %s?', 'bricks' ), get_post_type() ); ?>')">
+						<?php esc_html_e( 'Delete Bricks data', 'bricks' ); ?>
+					</a></p>
 					<?php } ?>
 				</div>
 			</div>
@@ -1184,7 +1477,7 @@ class Admin {
 	 * @since 1.0
 	 */
 	public function row_actions( $actions, $post ) {
-		if ( Helpers::is_post_type_supported() && Capabilities::current_user_can_use_builder() ) {
+		if ( Helpers::is_post_type_supported() && Capabilities::current_user_can_use_builder( $post->ID ) ) {
 			// Export template
 			if ( get_post_type() === BRICKS_DB_TEMPLATE_SLUG ) {
 				$export_template_url = admin_url( 'admin-ajax.php' );
@@ -1213,5 +1506,217 @@ class Admin {
 		}
 
 		return $actions;
+	}
+
+	/**
+	 * Dismiss HTTPS notice
+	 *
+	 * @since 1.8.4
+	 */
+	public function dismiss_https_notice() {
+		Ajax::verify_nonce();
+
+		// Dismiss admin notice
+		if ( current_user_can( 'manage_options' ) ) {
+			update_option( 'bricks_https_notice_dismissed', BRICKS_VERSION );
+		}
+
+		wp_die();
+	}
+
+	/**
+	 * Delete form submissions table
+	 *
+	 * @since 1.9.2
+	 */
+	public function form_submissions_drop_table() {
+		Ajax::verify_nonce();
+
+		// Reset bricks_form_submissions table
+		$result = \Bricks\Integrations\Form\Submission_Database::drop_table();
+
+		if ( $result ) {
+			// Remove 'saveFormSubmissions' Bricks setting
+			$global_settings = get_option( BRICKS_DB_GLOBAL_SETTINGS );
+			unset( $global_settings['saveFormSubmissions'] );
+			update_option( BRICKS_DB_GLOBAL_SETTINGS, $global_settings );
+
+			wp_send_json_success( [ 'message' => esc_html__( 'Form submission table deleted successfully.', 'bricks' ) ] );
+		} else {
+			wp_send_json_error( [ 'message' => esc_html__( 'Form submission table could not be deleted.', 'bricks' ) ] );
+		}
+	}
+
+	/**
+	 * Reset/clear all form submissions table entries (rows)
+	 *
+	 * @since 1.9.2
+	 */
+	public function form_submissions_reset_table() {
+		Ajax::verify_nonce();
+
+		// Reset bricks_form_submissions table
+		$result = \Bricks\Integrations\Form\Submission_Database::reset_table();
+
+		if ( $result ) {
+			wp_send_json_success( [ 'message' => esc_html__( 'Form submissions table resetted successfully.', 'bricks' ) ] );
+		} else {
+			wp_send_json_error( [ 'message' => esc_html__( 'Form submissions table could not be resetted.', 'bricks' ) ] );
+		}
+	}
+
+	/**
+	 * Delete form submissions of form ID
+	 *
+	 * @since 1.9.2
+	 */
+	public function form_submissions_delete_form_id() {
+		Ajax::verify_nonce();
+
+		// Remove all rows with form_id in bricks_form_submissions table
+		$result = \Bricks\Integrations\Form\Submission_Database::remove_form_id( $_POST['formId'] );
+
+		if ( $result ) {
+			wp_send_json_success( [ 'message' => esc_html__( 'Form submissions deleted.', 'bricks' ) ] );
+		} else {
+			wp_send_json_error( [ 'message' => esc_html__( 'Form submissions could not be deleted.', 'bricks' ) ] );
+		}
+	}
+
+	/**
+	 * Maybe schedule monthly cron job to refresh Instagram access token
+	 *
+	 * @since 1.9.1
+	 */
+	public function schedule_instagram_access_token_refresh() {
+		if ( Database::get_setting( 'instagramAccessToken', false ) && ! wp_next_scheduled( 'bricks_refresh_instagram_access_token' ) ) {
+			wp_schedule_event( time(), 'monthly', 'bricks_refresh_instagram_access_token' );
+		}
+	}
+
+	/**
+	 * Refresh Instagram access token
+	 *
+	 * @since 1.9.1
+	 */
+	public static function refresh_instagram_access_token() {
+		// Get the existing access token from the database
+		$instagram_access_token = Database::get_setting( 'instagramAccessToken', false );
+
+		if ( ! $instagram_access_token ) {
+			return;
+		}
+
+		// The URL to refresh the access token
+		$refresh_url = "https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token={$instagram_access_token}";
+
+		// Make a request to the Instagram API to refresh the token
+		$response = wp_remote_get( $refresh_url );
+
+		if ( is_wp_error( $response ) ) {
+			// Check if the notice has been dismissed
+			if ( ! get_option( 'bricks_instagram_access_token_notice_dismissed', false ) ) {
+				// Log the WP error
+				self::show_admin_notice( 'Instagram access token refresh failed: ' . $response->get_error_message(), 'error', 'brxe-instagram-token-notice' );
+			}
+
+			return;
+		}
+
+		if ( wp_remote_retrieve_response_code( $response ) != 200 ) {
+			// Check if the notice has been dismissed
+			if ( ! get_option( 'bricks_instagram_access_token_notice_dismissed', false ) ) {
+				// Log the non-200 response code
+				self::show_admin_notice( 'Instagram access token refresh failed: Unexpected response from Instagram API.', 'error', 'brxe-instagram-token-notice' );
+			}
+
+			return;
+		}
+
+		/**
+		 * Decode the response body & save the new access token in the database
+		 *
+		 * Might get the same token back if you refresh a token way before its expiry.
+		 */
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( isset( $body['access_token'] ) ) {
+			// Get global settings
+			$global_settings = get_option( BRICKS_DB_GLOBAL_SETTINGS );
+
+			// Update the instagramAccessToken in the settings array
+			$global_settings['instagramAccessToken'] = $body['access_token'];
+
+			// Save updated global settings in database
+			update_option( BRICKS_DB_GLOBAL_SETTINGS, $global_settings );
+		} else {
+			// Check if the notice has been dismissed
+			if ( ! get_option( 'bricks_instagram_access_token_notice_dismissed', false ) ) {
+				// Log the error (failed to get new access token)
+				self::show_admin_notice( 'Instagram access token refresh failed: Unable to retrieve new access token from API response.', 'error', 'brxe-instagram-token-notice' );
+			}
+		}
+	}
+
+	/**
+	 * Show admin notice
+	 *
+	 * @param string $message Notice message
+	 * @param string $type    success|error|warning|info
+	 * @param string $class   Additional CSS class
+	 *
+	 * @since 1.9.1
+	 */
+	public static function show_admin_notice( $message, $type = 'success', $class = '' ) {
+		add_action(
+			'admin_notices',
+			function() use ( $message, $type, $class ) {
+				echo "<div class='notice notice-{$type} is-dismissible {$class}'><p>{$message}</p></div>";
+			}
+		);
+	}
+
+	/**
+	 * Dismiss Instagram access token notice
+	 *
+	 * @since 1.9.1
+	 */
+	public function dismiss_instagram_access_token_notice() {
+		Ajax::verify_nonce();
+
+		// Dismiss admin notice
+		if ( current_user_can( 'manage_options' ) ) {
+			update_option( 'bricks_instagram_access_token_notice_dismissed', true );
+		}
+
+		wp_die();
+	}
+
+	/**
+	 * Reindex query filters
+	 *
+	 * @since 1.9.6
+	 */
+	public function reindex_query_filters() {
+		Ajax::verify_nonce();
+
+		// Reindex query filters
+		$result = Query_Filters::get_instance()->reindex();
+
+		if ( $result && empty( $result['error'] ) ) {
+			wp_send_json_success(
+				[
+					'message' => esc_html__( 'Query filters reindexed successfully.', 'bricks' ),
+					'result'  => $result,
+				],
+			);
+		} else {
+			wp_send_json_error(
+				[
+					'message' => esc_html__( 'Something went wrong.', 'bricks' ),
+					'result'  => $result,
+				]
+			);
+		}
 	}
 }

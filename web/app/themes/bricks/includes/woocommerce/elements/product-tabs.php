@@ -50,19 +50,18 @@ class Product_Tabs extends Element {
 		// TABS
 
 		$this->controls['tabsDirection'] = [
-			'tab'       => 'content',
-			'group'     => 'tabs',
-			'label'     => esc_html__( 'Direction', 'bricks' ),
-			'type'      => 'direction',
-			'direction' => 'row',
-			'css'       => [
+			'tab'      => 'content',
+			'group'    => 'tabs',
+			'label'    => esc_html__( 'Direction', 'bricks' ),
+			'type'     => 'direction',
+			'css'      => [
 				[
 					'selector' => '.wc-tabs',
 					'property' => 'flex-direction',
 				],
 			],
-			'inline'    => true,
-			'rerender'  => false,
+			'inline'   => true,
+			'rerender' => false,
 		];
 
 		$this->controls['tabsJustifyContent'] = [
@@ -83,7 +82,7 @@ class Product_Tabs extends Element {
 			'tab'         => 'content',
 			'group'       => 'tabs',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'css'         => [
 				[
 					'selector' => '.wc-tabs li',
@@ -171,7 +170,7 @@ class Product_Tabs extends Element {
 			'tab'         => 'content',
 			'group'       => 'panel',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'css'         => [
 				[
 					'selector' => '.panel',

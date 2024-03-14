@@ -18,6 +18,7 @@ class Woocommerce_Products_Archive_Description extends Element {
 		$this->controls['info'] = [
 			'tab'     => 'content',
 			'type'    => 'info',
+			// translators: %1$s: link to shop page, %2$s: link to shop page
 			'content' => sprintf( esc_html__( 'Follow this %1$slink%2$s to edit the product archive description or edit the product category/tag descriptions', 'bricks' ), '<a href="' . $shop_page_link . '" target="_blank">', '</a>' ),
 		];
 

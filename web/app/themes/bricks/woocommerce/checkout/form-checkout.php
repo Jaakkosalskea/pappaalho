@@ -10,11 +10,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+echo '<div class="brxe-container before-checkout">';
+
 do_action( 'woocommerce_before_checkout_form', $checkout );
+
+echo '</div>';
 
 // If checkout registration is disabled and not logged in, the user cannot checkout.
 if ( ! $checkout->is_registration_enabled() && $checkout->is_registration_required() && ! is_user_logged_in() ) {
 	echo esc_html( apply_filters( 'woocommerce_checkout_must_be_logged_in_message', __( 'You must be logged in to checkout.', 'woocommerce' ) ) );
+
 	return;
 }
 ?>
@@ -25,7 +30,7 @@ if ( ! $checkout->is_registration_enabled() && $checkout->is_registration_requir
 
 	// Render Bricks template
 	if ( $template_data ) {
-		echo $template_data;
+		echo $template_data; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	// WooCommerce template

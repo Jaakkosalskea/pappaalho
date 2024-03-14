@@ -33,9 +33,14 @@ class Element_Accordion extends Element {
 			'placeholder' => esc_html__( 'Accordion', 'bricks' ),
 			'type'        => 'repeater',
 			'checkLoop'   => true,
+			'description' => esc_html__( 'Set "ID" on items above to open via anchor link.', 'bricks' ) . ' ' . esc_html__( 'No spaces. No pound (#) sign.', 'bricks' ),
 			'fields'      => [
 				'title'    => [
 					'label' => esc_html__( 'Title', 'bricks' ),
+					'type'  => 'text',
+				],
+				'anchorId' => [
+					'label' => esc_html__( 'ID', 'bricks' ),
 					'type'  => 'text',
 				],
 				'subtitle' => [
@@ -49,12 +54,12 @@ class Element_Accordion extends Element {
 			],
 			'default'     => [
 				[
-					'title'    => esc_html__( 'Title', 'bricks' ),
+					'title'    => esc_html__( 'Item', 'bricks' ),
 					'subtitle' => esc_html__( 'I am a so called subtitle.', 'bricks' ),
 					'content'  => esc_html__( 'Content goes here ..', 'bricks' ),
 				],
 				[
-					'title'    => esc_html__( 'Title', 'bricks' ) . ' 2',
+					'title'    => esc_html__( 'Item', 'bricks' ) . ' 2',
 					'subtitle' => esc_html__( 'I am a so called subtitle.', 'bricks' ),
 					'content'  => esc_html__( 'Content goes here ..', 'bricks' ),
 				],
@@ -63,9 +68,15 @@ class Element_Accordion extends Element {
 
 		$this->controls = array_replace_recursive( $this->controls, $this->get_loop_builder_controls() );
 
+		$this->controls['expandFirstItem'] = [
+			'tab'   => 'content',
+			'label' => esc_html__( 'Expand first item', 'bricks' ),
+			'type'  => 'checkbox',
+		];
+
 		$this->controls['independentToggle'] = [
 			'tab'         => 'content',
-			'label'       => esc_html__( 'Behave Like Tabs', 'bricks' ),
+			'label'       => esc_html__( 'Independent toggle', 'bricks' ),
 			'type'        => 'checkbox',
 			'description' => esc_html__( 'Enable to open & close an item without toggling other items.', 'bricks' ),
 		];
@@ -118,16 +129,6 @@ class Element_Accordion extends Element {
 					'property' => 'font',
 					'selector' => '.accordion-title{pseudo} .icon', // NOTE: Undocumented (@since 1.3.5)
 				],
-			],
-			'exclude'  => [
-				'font-family',
-				'font-weight',
-				'font-style',
-				'text-align',
-				'text-decoration',
-				'text-transform',
-				'line-height',
-				'letter-spacing',
 			],
 			'required' => [ 'icon.icon', '!=', '' ],
 		];
@@ -199,7 +200,7 @@ class Element_Accordion extends Element {
 			'tab'   => 'content',
 			'group' => 'title',
 			'label' => esc_html__( 'Margin', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'margin',
@@ -212,7 +213,7 @@ class Element_Accordion extends Element {
 			'tab'   => 'content',
 			'group' => 'title',
 			'label' => esc_html__( 'Padding', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'padding',
@@ -327,18 +328,11 @@ class Element_Accordion extends Element {
 
 		// CONTENT
 
-		$this->controls['expandFirstItem'] = [
-			'tab'   => 'content',
-			'group' => 'content',
-			'label' => esc_html__( 'Expand first item', 'bricks' ),
-			'type'  => 'checkbox',
-		];
-
 		$this->controls['contentMargin'] = [
 			'tab'   => 'content',
 			'group' => 'content',
 			'label' => esc_html__( 'Margin', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'margin',
@@ -351,7 +345,7 @@ class Element_Accordion extends Element {
 			'tab'   => 'content',
 			'group' => 'content',
 			'label' => esc_html__( 'Padding', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'padding',
@@ -422,24 +416,6 @@ class Element_Accordion extends Element {
 			$icon_expanded = self::render_icon( $theme_styles['accordionIconExpanded'], [ 'icon', 'expanded' ] );
 		}
 
-		$item_classes[] = 'accordion-item';
-
-		// Initially expand first item
-		if ( isset( $settings['expandFirstItem'] ) ) {
-			$item_classes[] = 'brx-open';
-		}
-
-		$this->set_attribute( 'accordion-item', 'class', $item_classes );
-
-		$title_wrapper_classes = [ 'accordion-title-wrapper' ];
-
-		// Toggle accordion items indpendent from each other (to open multiple accordions at the same time)
-		if ( isset( $settings['independentToggle'] ) ) {
-			$title_wrapper_classes[] = 'independent-toggle';
-		}
-
-		$this->set_attribute( 'accordion-title-wrapper', 'class', $title_wrapper_classes );
-
 		$title_classes = [ 'accordion-title' ];
 
 		if ( $icon && ! empty( $settings['iconPosition'] ) ) {
@@ -461,9 +437,17 @@ class Element_Accordion extends Element {
 
 		$title_tag = ! empty( $settings['titleTag'] ) ? $settings['titleTag'] : 'h5';
 
-		// data-script-args: Independent toggle
-		if ( isset( $settings['independentToggle'] ) ) {
-			$this->set_attribute( '_root', 'data-script-args', wp_json_encode( [ 'independentToggle' => true ] ) );
+		// Expand first item, Independent toggle
+		$data_script_args = [];
+
+		foreach ( [ 'expandFirstItem', 'independentToggle' ] as $setting_key ) {
+			if ( isset( $settings[ $setting_key ] ) ) {
+				$data_script_args[] = $setting_key;
+			}
+		}
+
+		if ( count( $data_script_args ) ) {
+			$this->set_attribute( '_root', 'data-script-args', join( ',', $data_script_args ) );
 		}
 
 		// data-transition: Transition duration in ms
@@ -486,7 +470,7 @@ class Element_Accordion extends Element {
 
 			$output .= $query->render( [ $this, 'render_repeater_item' ], compact( 'accordion', 'title_tag', 'icon', 'icon_expanded' ) );
 
-			// We need to destroy the Query to explicitly remove it from the global store
+			// Destroy query to explicitly remove it from the global store
 			$query->destroy();
 			unset( $query );
 		} else {
@@ -505,22 +489,26 @@ class Element_Accordion extends Element {
 		$index    = $this->loop_index;
 		$output   = '';
 
-		// Remove class 'brx-open' after first iteration
-		if ( isset( $settings['expandFirstItem'] ) && $index === 1 ) {
-			$this->remove_attribute( 'accordion-item', 'class', 'brx-open' );
+		// Set 'id' to open & scroll to specific tab (@since 1.8.6)
+		if ( ! empty( $accordion['anchorId'] ) ) {
+			$this->set_attribute( "accordion-item-$index", 'id', $accordion['anchorId'] );
 		}
 
-		$output .= "<li {$this->render_attributes( 'accordion-item' )}>";
+		$this->set_attribute( "accordion-item-$index", 'class', [ 'accordion-item' ] );
+
+		$output .= "<li {$this->render_attributes( "accordion-item-$index" )}>";
 
 		if ( ! empty( $accordion['title'] ) || ! empty( $accordion['subtitle'] ) ) {
-			$output .= "<div {$this->render_attributes( 'accordion-title-wrapper' )}>";
+			$this->set_attribute( "accordion-title-wrapper-$index", 'class', [ 'accordion-title-wrapper' ] );
+
+			$output .= '<div class="accordion-title-wrapper">';
 
 			if ( ! empty( $accordion['title'] ) ) {
 				$output .= "<div {$this->render_attributes( 'accordion-title' )}>";
 
 				$this->set_attribute( "accordion-title-$index", 'class', [ 'title' ] );
 
-				$output .= "<$title_tag {$this->render_attributes( "accordion-title-$index" )}>" . esc_html( $accordion['title'] ) . "</$title_tag>";
+				$output .= "<$title_tag {$this->render_attributes( "accordion-title-$index" )}>" . $this->render_dynamic_data( $accordion['title'] ) . "</$title_tag>";
 
 				if ( $icon_expanded ) {
 					$output .= $icon_expanded;
@@ -536,18 +524,22 @@ class Element_Accordion extends Element {
 			if ( ! empty( $accordion['subtitle'] ) ) {
 				$this->set_attribute( "accordion-subtitle-$index", 'class', [ 'accordion-subtitle' ] );
 
-				$output .= "<div {$this->render_attributes( "accordion-subtitle-$index" )}>" . esc_html( $accordion['subtitle'] ) . '</div>';
+				$output .= "<div {$this->render_attributes( "accordion-subtitle-$index" )}>" . $this->render_dynamic_data( $accordion['subtitle'] ) . '</div>';
 			}
 
 			$output .= '</div>';
 		}
 
-		if ( isset( $accordion['content'] ) ) {
+		$content = ! empty( $accordion['content'] ) ? $accordion['content'] : false;
+
+		if ( $content ) {
 			$this->set_attribute( "accordion-content-$index", 'class', [ 'accordion-content-wrapper' ] );
 
-			$content = $this->render_dynamic_data( $accordion['content'] );
+			$content = $this->render_dynamic_data( $content );
 
-			$output .= "<div {$this->render_attributes( "accordion-content-$index" )}>" . apply_filters( 'the_content', $content ) . '</div>';
+			$content = Helpers::parse_editor_content( $content );
+
+			$output .= "<div {$this->render_attributes( "accordion-content-$index" )}>$content</div>";
 		}
 
 		$output .= '</li>';

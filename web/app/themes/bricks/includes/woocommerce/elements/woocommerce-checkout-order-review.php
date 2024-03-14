@@ -113,7 +113,7 @@ class Woocommerce_Checkout_Order_Review extends Element {
 		$this->controls['cartItemsPadding'] = [
 			'tab'         => 'content',
 			'group'       => 'orderReview',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
 			'css'         => [
 				[
@@ -151,7 +151,7 @@ class Woocommerce_Checkout_Order_Review extends Element {
 		$this->controls['paymentMargin'] = [
 			'tab'   => 'content',
 			'group' => 'payment',
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'label' => esc_html__( 'Margin', 'bricks' ),
 			'css'   => [
 				[
@@ -164,7 +164,7 @@ class Woocommerce_Checkout_Order_Review extends Element {
 		$this->controls['paymentPadding'] = [
 			'tab'         => 'content',
 			'group'       => 'payment',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
 			'css'         => [
 				[
@@ -218,7 +218,7 @@ class Woocommerce_Checkout_Order_Review extends Element {
 		$this->controls['paymentDescriptionMargin'] = [
 			'tab'         => 'content',
 			'group'       => 'payment',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
 			'css'         => [
 				[
@@ -237,7 +237,7 @@ class Woocommerce_Checkout_Order_Review extends Element {
 		$this->controls['paymentDescriptionPadding'] = [
 			'tab'         => 'content',
 			'group'       => 'payment',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
 			'css'         => [
 				[
@@ -291,7 +291,7 @@ class Woocommerce_Checkout_Order_Review extends Element {
 		$this->controls['privacyMargin'] = [
 			'tab'         => 'content',
 			'group'       => 'terms',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
 			'css'         => [
 				[
@@ -364,7 +364,7 @@ class Woocommerce_Checkout_Order_Review extends Element {
 		$this->controls['buttonMargin'] = [
 			'tab'         => 'content',
 			'group'       => 'terms',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
 			'css'         => [
 				[
@@ -383,7 +383,7 @@ class Woocommerce_Checkout_Order_Review extends Element {
 		$this->controls['buttonPadding'] = [
 			'tab'         => 'content',
 			'group'       => 'terms',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
 			'css'         => [
 				[

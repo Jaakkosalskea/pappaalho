@@ -23,11 +23,11 @@ local:
      languages: web/app/languages
 
 staging:
-  vhost: https://pappaalho.dev.salskea.fi
-  wordpress_path: /var/www/pappaalho.dev.salskea.fi/web
+  vhost: https://pappa-alho.dev.salskea.fi
+  wordpress_path: /var/www/pappa-alho.dev.salskea.fi/web
 
   database:
-    name: c1pappaalho_wp
+    name: c1palho_wp
     user: <%= ENV['STAG_DB_USER'] %>
     password: "<%= ENV['STAG_DB_PASS'] %>"
     host: localhost

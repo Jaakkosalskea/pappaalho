@@ -23,12 +23,12 @@ class Element_Divider extends Element {
 			'placeholder' => 1,
 			'css'         => [
 				[
-					'property' => 'border-top-width',
-					'selector' => '&.horizontal .line',
+					'selector' => '.line',
+					'property' => 'height',
 				],
 				[
-					'property' => 'height',
-					'selector' => '&.vertical .line',
+					'selector' => '&.horizontal .line',
+					'property' => 'border-top-width',
 				],
 			],
 		];
@@ -40,12 +40,12 @@ class Element_Divider extends Element {
 			'units' => true,
 			'css'   => [
 				[
-					'property' => 'width',
 					'selector' => '&.horizontal .line',
+					'property' => 'width',
 				],
 				[
-					'property' => 'border-left-width',
 					'selector' => '&.vertical .line',
+					'property' => 'border-right-width',
 				],
 			],
 		];
@@ -61,7 +61,7 @@ class Element_Divider extends Element {
 					'selector' => '&.horizontal .line',
 				],
 				[
-					'property' => 'border-left-style',
+					'property' => 'border-right-style',
 					'selector' => '&.vertical .line',
 				],
 			],
@@ -78,25 +78,27 @@ class Element_Divider extends Element {
 				'vertical'   => esc_html__( 'Vertical', 'bricks' ),
 			],
 			'inline'      => true,
+			'rerender'    => true,
 			'placeholder' => esc_html__( 'Horizontal', 'bricks' ),
 		];
 
 		$this->controls['justifyContent'] = [
-			'tab'     => 'content',
-			'label'   => esc_html__( 'Align', 'bricks' ),
-			'type'    => 'justify-content',
-			'css'     => [
+			'tab'       => 'content',
+			'label'     => esc_html__( 'Align', 'bricks' ),
+			'type'      => 'justify-content',
+			'css'       => [
 				[
 					'selector' => '&.horizontal',
 					'property' => 'justify-content',
 				],
 				[
 					'selector' => '&.vertical',
-					'property' => 'align-items',
+					'property' => 'align-self',
 				],
 			],
-			'inline'  => true,
-			'exclude' => 'space',
+			'inline'    => true,
+			'direction' => 'row',
+			'exclude'   => 'space',
 		];
 
 		$this->controls['color'] = [
@@ -109,12 +111,12 @@ class Element_Divider extends Element {
 					'selector' => '&.horizontal .line',
 				],
 				[
-					'property' => 'border-left-color',
+					'property' => 'border-right-color',
 					'selector' => '&.vertical .line',
 				],
 				[
 					'property' => 'color',
-					'selector' => 'i',
+					'selector' => '.icon',
 				],
 			],
 		];
@@ -143,32 +145,22 @@ class Element_Divider extends Element {
 					'selector' => '.icon',
 				],
 			],
-			'exclude'  => [
-				'font-family',
-				'font-weight',
-				'font-style',
-				'text-align',
-				'text-decoration',
-				'text-transform',
-				'line-height',
-				'letter-spacing',
-			],
 			'required' => [ 'icon.icon', '!=', '' ],
 		];
 
 		$this->controls['iconAlignItems'] = [
-			'tab'         => 'content',
-			'label'       => esc_html__( 'Align', 'bricks' ),
-			'type'        => 'align-items',
-			'exclude'     => 'stretch',
-			'inline'      => true,
-			'css'         => [
+			'tab'      => 'content',
+			'label'    => esc_html__( 'Align', 'bricks' ),
+			'type'     => 'align-items',
+			'exclude'  => 'stretch',
+			'inline'   => true,
+			'css'      => [
 				[
+					'selector' => '',
 					'property' => 'align-items',
 				],
 			],
-			'placeholder' => esc_html__( 'Center', 'bricks' ),
-			'required'    => [ 'icon', '!=', '' ],
+			'required' => [ 'icon', '!=', '' ],
 		];
 
 		$this->controls['iconPosition'] = [
@@ -176,9 +168,9 @@ class Element_Divider extends Element {
 			'label'       => esc_html__( 'Position', 'bricks' ),
 			'type'        => 'select',
 			'options'     => [
-				'left'   => esc_html__( 'Left', 'bricks' ),
+				'left'   => esc_html__( 'Start', 'bricks' ),
 				'center' => esc_html__( 'Center', 'bricks' ),
-				'right'  => esc_html__( 'Right', 'bricks' ),
+				'right'  => esc_html__( 'End', 'bricks' ),
 			],
 			'inline'      => true,
 			'placeholder' => esc_html__( 'Center', 'bricks' ),
@@ -217,12 +209,6 @@ class Element_Divider extends Element {
 		// Icon
 		$icon = ! empty( $settings['icon'] ) ? self::render_icon( $settings['icon'], [ 'icon' ] ) : false;
 
-		if ( $icon ) {
-			$icon_position = ! empty( $settings['iconPosition'] ) ? $settings['iconPosition'] : 'center';
-
-			$this->set_attribute( '_root', 'class', "icon-$icon_position" );
-		}
-
 		// Render
 		$output = "<div {$this->render_attributes( '_root' )}>";
 
@@ -251,23 +237,5 @@ class Element_Divider extends Element {
 		$output .= '</div>';
 
 		echo $output;
-	}
-
-	public static function render_builder() { ?>
-		<script type="text/x-template" id="tmpl-bricks-element-divider">
-			<component
-				:is="tag"
-				:class="[
-					settings.direction ? settings.direction : 'horizontal',
-					settings.icon && settings.iconPosition ? `icon-${settings.iconPosition}` : null,
-					!settings.iconPosition && settings.icon ? 'icon-center' : null
-					]"
-				>
-				<div v-if="!settings.icon || settings.icon && settings.iconPosition !== 'left'" class="line"></div>
-				<icon-svg v-if="settings.icon" :iconSettings="settings.icon" class="icon"/>
-				<div v-if="settings.icon && settings.iconPosition !== 'right'" class="line"></div>
-			</component>
-		</script>
-		<?php
 	}
 }

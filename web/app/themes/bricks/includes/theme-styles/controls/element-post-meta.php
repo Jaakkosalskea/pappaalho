@@ -3,7 +3,7 @@ $controls = [];
 
 $controls['padding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',
@@ -13,7 +13,7 @@ $controls['padding'] = [
 ];
 
 $controls['gutter'] = [
-	'label'       => esc_html__( 'Spacing', 'bricks' ),
+	'label'       => esc_html__( 'Gap', 'bricks' ),
 	'type'        => 'number',
 	'units'       => true,
 	'css'         => [

@@ -27,7 +27,19 @@ class Assets_Global_Custom_Css {
 
 	public static function generate_css_file( $global_settings ) {
 		$global_css = ! empty( $global_settings['customCss'] ) ? trim( $global_settings['customCss'] ) : false;
+
+		/**
+		 * When saving the Bricks settings the CSS is parsed through wp_slash before calling update_option so it gets saved properly in the database.
+		 *
+		 * This method runs when add_option or update_option is called, so we get the value with slashes, therefore we need to unslash.
+		 *
+		 * @since 1.5.4 (#2zx3hnc)
+		 */
+		$global_css = wp_unslash( $global_css );
 		$global_css = Assets::minify_css( $global_css );
+
+		// Not is use as global custom CSS ould contain that CSS vars that we don't want to skip.
+		// $global_css = Helpers::parse_css( $global_css );
 
 		$file_name     = 'global-custom-css.min.css';
 		$css_file_path = Assets::$css_dir . "/$file_name";
@@ -36,6 +48,9 @@ class Assets_Global_Custom_Css {
 			$file = fopen( $css_file_path, 'w' );
 			fwrite( $file, $global_css );
 			fclose( $file );
+
+			// https://academy.bricksbuilder.io/article/action-bricks-generate_css_file (@since 1.9.5)
+			do_action( 'bricks/generate_css_file', 'global-custom-css', $file_name );
 
 			return $file_name;
 		} else {

@@ -10,6 +10,7 @@ class Element_Post_Content extends Element {
 
 	public function enqueue_scripts() {
 		wp_enqueue_style( 'wp-block-library' );
+		wp_enqueue_style( 'global-styles' );
 	}
 
 	public function get_label() {
@@ -30,7 +31,7 @@ class Element_Post_Content extends Element {
 		$this->controls['info'] = [
 			'tab'      => 'content',
 			'type'     => 'info',
-			'content'  => sprintf( '<a href="' . $edit_link . '" target="_blank">%s</a>', esc_html__( 'Edit WordPress content (WP admin).', 'bricks' ) ),
+			'content'  => "<a href=\"$edit_link\" target=\"_blank\">" . esc_html__( 'Edit WordPress content (WP admin).', 'bricks' ) . '</a>',
 			'required' => [ 'dataSource', '!=', 'bricks' ],
 		];
 
@@ -63,7 +64,7 @@ class Element_Post_Content extends Element {
 		// STEP: Render Bricks data
 		if ( $data_source === 'bricks' ) {
 			// Previewing a template
-			if ( BRICKS_DB_TEMPLATE_SLUG === get_post_type( $this->post_id ) ) {
+			if ( Helpers::is_bricks_template( $this->post_id ) ) {
 				return $this->render_element_placeholder(
 					[
 						'title'       => esc_html__( 'For better preview select content to show.', 'bricks' ),
@@ -92,21 +93,29 @@ class Element_Post_Content extends Element {
 				// Store the current main render_data self::$elements
 				$store_elements = Frontend::$elements;
 
-				// STEP: Temporary disable lazy load (required in builder when generating frontend data)
-				$disable_lazy_load = isset( Database::$global_settings['disableLazyLoad'] );
+				// STEP: Disable lazy load in builder (required in builder when generating frontend data)
+				$disable_global_lazy_load = isset( Database::$global_settings['disableLazyLoad'] );
+				$disable_page_lazy_load   = isset( Database::$page_settings['disableLazyLoad'] );
 
 				if ( bricks_is_builder_call() ) {
 					Database::$global_settings['disableLazyLoad'] = true;
+					Database::$page_settings['disableLazyLoad']   = true;
 				}
 
 				$output = Frontend::render_data( $bricks_data );
 
 				// STEP: Restore original lazy load setting
 				if ( bricks_is_builder_call() ) {
-					if ( $disable_lazy_load ) {
+					if ( $disable_global_lazy_load ) {
 						Database::$global_settings['disableLazyLoad'] = true;
 					} else {
 						unset( Database::$global_settings['disableLazyLoad'] );
+					}
+
+					if ( $disable_page_lazy_load ) {
+						Database::$page_settings['disableLazyLoad'] = true;
+					} else {
+						unset( Database::$page_settings['disableLazyLoad'] );
 					}
 				}
 
@@ -124,7 +133,7 @@ class Element_Post_Content extends Element {
 					$inline_css = Assets::$inline_css['content'];
 
 					// Add global classes CSS (@since 1.5)
-					$inline_css_global_classes = Assets::generate_inline_css_global_classes();
+					$inline_css_global_classes = Assets::generate_global_classes();
 					$inline_css               .= Assets::$inline_css['global_classes'];
 
 					$output .= "\n <style>{$inline_css}</style>";
@@ -153,7 +162,19 @@ class Element_Post_Content extends Element {
 
 			// Render the content like in the loop (@since 1.5)
 			ob_start();
+
+			// Render attachment for post type 'attachment' template (@since 1.5.5)
+			if ( is_attachment() ) {
+				add_filter( 'the_content', 'prepend_attachment' );
+			}
+
 			the_content();
+
+			// Remove prepending attachment to the_content for avoid showing it in other element that use the_content (@since 1.5.5)
+			if ( is_attachment() ) {
+				remove_filter( 'the_content', 'prepend_attachment' );
+			}
+
 			$output = ob_get_clean();
 
 			if ( bricks_is_builder_call() && ! $output ) {
@@ -164,21 +185,16 @@ class Element_Post_Content extends Element {
 				);
 			}
 
-			$output .= wp_link_pages(
-				[
-					'before'      => '<div class="bricks-pagination"><ul><span class="title">' . esc_html__( 'Pages:', 'bricks' ) . '</span>',
-					'after'       => '</ul></div>',
-					'link_before' => '<span>',
-					'link_after'  => '</span>',
-					'echo'        => false
-				]
-			);
+			$output .= Helpers::page_break_navigation();
 
 			// Restores the global $post / in_the_loop
 			setup_postdata( $current_global_post );
 			$wp_query->in_the_loop = $current_in_the_loop;
 		}
 
-		echo "<div {$this->render_attributes( '_root' )}>$output</div>";
+		// Only render if not empty
+		if ( $output ) {
+			echo "<div {$this->render_attributes( '_root' )}>$output</div>";
+		}
 	}
 }

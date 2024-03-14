@@ -37,6 +37,9 @@ class Assets_Global_Elements {
 			fwrite( $file, $inline_css );
 			fclose( $file );
 
+			// https://academy.bricksbuilder.io/article/action-bricks-generate_css_file (@since 1.9.5)
+			do_action( 'bricks/generate_css_file', 'global-elements', $file_name );
+
 			return $file_name;
 		} else {
 			if ( file_exists( $css_file_path ) ) {

@@ -369,7 +369,7 @@ class Woocommerce_Products_Filters extends Element {
 			'tab'         => 'content',
 			'group'       => 'title',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'css'         => [
 				[
 					'property' => 'margin',
@@ -389,7 +389,7 @@ class Woocommerce_Products_Filters extends Element {
 			'tab'      => 'content',
 			'group'    => 'title',
 			'label'    => esc_html__( 'Padding', 'bricks' ),
-			'type'     => 'dimensions',
+			'type'     => 'spacing',
 			'css'      => [
 				[
 					'property' => 'padding',
@@ -519,7 +519,7 @@ class Woocommerce_Products_Filters extends Element {
 		echo "<ul {$this->render_attributes( '_root' )}>";
 
 		foreach ( $settings['filters'] as $index => $filter ) {
-			$filter_type = ! empty( $filter['type'] ) ? $filter['type'] : '';
+			$filter_type = $filter['type'] ?? '';
 			$filter_by   = ! empty( $filter[ "{$filter_type}Filter" ] ) ? $filter[ "{$filter_type}Filter" ] : '';
 
 			if ( $filter_by === 'price' ) {
@@ -858,7 +858,7 @@ class Woocommerce_Products_Filters extends Element {
 				<input id="<?php echo $key_base . 'lower'; ?>" class="lower" name="<?php echo $min_arg; ?>" type="range" min="<?php echo $min_value; ?>" max="<?php echo $max_value; ?>" step="1" value="<?php echo esc_attr( $value_min ); ?>">
 				<label for="<?php echo $key_base . 'upper'; ?>" class="upper"><?php esc_html_e( 'Max. price', 'bricks' ); ?></label>
 				<input id="<?php echo $key_base . 'upper'; ?>" class="upper" name="<?php echo $max_arg; ?>" type="range" min="<?php echo $min_value; ?>" max="<?php echo $max_value; ?>" step="1" value="<?php echo esc_attr( $value_max ); ?>">
-				<div class="value-wrapper">
+				<div class="value-wrap">
 					<span class="value lower"></span>
 					<span class="value upper"></span>
 				</div>
@@ -887,13 +887,13 @@ class Woocommerce_Products_Filters extends Element {
 	public function render_control_search( $filter, $filter_by ) {
 		$query_arg     = "b_$filter_by";
 		$current_value = isset( $_GET[ $query_arg ] ) ? wp_unslash( $_GET[ $query_arg ] ) : '';
-		$placeholder   = ! empty( $filter['title'] ) ? $filter['title'] : esc_html__( 'Search ...', 'bricks' );
+		$placeholder   = $filter['title'] ?? esc_html__( 'Search ...', 'bricks' );
 		$icon          = isset( $filter['searchIcon'] ) ? self::render_icon( $filter['searchIcon'], [ 'icon' ] ) : false;
 		?>
 		<li class="filter-item search-form">
 			<form role="search" method="get">
 				<label class="screen-reader-text"><span><?php esc_html_e( 'Search ...', 'bricks' ); ?></span></label>
-				<input type="search" value="<?php echo $current_value; ?>" name="<?php echo $query_arg; ?>" placeholder="<?php echo $placeholder; ?>" spellcheck="false" autocomplete="false" />
+				<input type="search" value="<?php echo esc_attr( $current_value ); ?>" name="<?php echo esc_attr( $query_arg ); ?>" placeholder="<?php echo esc_attr( $placeholder ); ?>" spellcheck="false" autocomplete="false" />
 				<?php
 				if ( $icon ) {
 					echo '<button type="submit">' . $icon . '</button>';
@@ -934,6 +934,7 @@ class Woocommerce_Products_Filters extends Element {
 			foreach ( range( 1, 5 ) as $key ) {
 				$options[] = [
 					'id'   => $key,
+					// translators: %s: rating
 					'name' => sprintf( esc_html__( 'Rated %s out of 5', 'bricks' ), $key )
 				];
 			}
@@ -988,7 +989,7 @@ class Woocommerce_Products_Filters extends Element {
 		}
 
 		// STEP: Find the product element (or the query loop)
-		$element = Woocommerce_Helpers::get_products_element( $this->post_id, $element_data['elements'] );
+		$element = Woocommerce_Helpers::get_products_element( $element_data['elements'] );
 
 		if ( ! $element ) {
 			return false;

@@ -10,7 +10,7 @@ $controls['titleSeparator'] = [
 
 $controls['titleMargin'] = [
 	'label' => esc_html__( 'Title margin', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'margin',
@@ -62,7 +62,7 @@ $controls['contentBackgroundColor'] = [
 
 $controls['contentMargin'] = [
 	'label' => esc_html__( 'Content margin', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'margin',
@@ -73,7 +73,7 @@ $controls['contentMargin'] = [
 
 $controls['contentPadding'] = [
 	'label' => esc_html__( 'Content padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',
@@ -311,9 +311,9 @@ $controls['dotsRight']       = $swiper_controls['dotsRight'];
 $controls['dotsBottom']      = $swiper_controls['dotsBottom'];
 $controls['dotsLeft']        = $swiper_controls['dotsLeft'];
 $controls['dotsBorder']      = $swiper_controls['dotsBorder'];
-$controls['dotsSpacing']     = $swiper_controls['dotsSpacing'];
 $controls['dotsColor']       = $swiper_controls['dotsColor'];
 $controls['dotsActiveColor'] = $swiper_controls['dotsActiveColor'];
+$controls['dotsSpacing']     = $swiper_controls['dotsSpacing'];
 
 return [
 	'name'        => 'slider',

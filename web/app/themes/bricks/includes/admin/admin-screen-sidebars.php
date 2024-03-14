@@ -5,30 +5,31 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 $admin_notice    = null;
 $bricks_sidebars = get_option( BRICKS_DB_SIDEBARS, [] );
+$sidebar_name    = $_POST['bricks-sidebar-name'] ?? null;
 
-// Form submit: Save sidebar
-if ( isset( $_POST['bricks-sidebar-name'] ) ) {
-	if ( ! empty( $_POST['bricks-sidebar-name'] ) ) {
-		// Add new sidebar to db
-		array_push(
-			$bricks_sidebars,
-			[
-				'id'          => strtolower( str_replace( ' ', '_', $_POST['bricks-sidebar-name'] ) ),
-				'name'        => $_POST['bricks-sidebar-name'],
-				'description' => $_POST['bricks-sidebar-description'],
-			]
-		);
+// STEP: Create new sidebar
+if ( $sidebar_name ) {
+	// Add new sidebar to db
+	array_push(
+		$bricks_sidebars,
+		[
+			'id'          => strtolower( str_replace( ' ', '_', $sidebar_name ) ),
+			'name'        => $sidebar_name,
+			'description' => $_POST['bricks-sidebar-description'] ?? '',
+		]
+	);
 
-		update_option( BRICKS_DB_SIDEBARS, $bricks_sidebars, false );
+	update_option( BRICKS_DB_SIDEBARS, $bricks_sidebars, false );
 
-		$admin_notice = '<div class="notice notice-success"><p>' . esc_html__( 'New sidebar created.', 'bricks' ) . '</p></div>';
-	} else {
-		$admin_notice = '<div class="notice notice-error"><p>' . esc_html__( 'Missing sidebar name.', 'bricks' ) . '</p></div>';
-	}
+	$admin_notice = '<div class="notice notice-success"><p>' . esc_html__( 'New sidebar created.', 'bricks' ) . '</p></div>';
+} elseif ( ! empty( $_POST ) ) {
+	$admin_notice = '<div class="notice notice-error"><p>' . esc_html__( 'Missing sidebar name.', 'bricks' ) . '</p></div>';
 }
 
-// Form submit: Delete sidebar
-if ( isset( $_POST['bricks-sidebar-index'] ) ) {
+// STEP: Delete sidebar
+$sidebar_index = $_POST['bricks-sidebar-index'] ?? null;
+
+if ( $sidebar_index !== null ) {
 	// 1/2: Remove sidebar from options table 'sidebars_widgets'
 	$sidebars_widgets = get_option( 'sidebars_widgets' );
 	$sidebar_id       = $bricks_sidebars[ $_POST['bricks-sidebar-index'] ]['id'];
@@ -54,7 +55,7 @@ if ( isset( $_POST['bricks-sidebar-index'] ) ) {
 <div class="wrap bricks-admin-wrapper sidebars">
 	<h1 class="admin-notices-placeholder"></h1>
 
-	<?php echo wp_kses_post( $admin_notice ); ?>
+	<?php echo $admin_notice ? wp_kses_post( $admin_notice ) : ''; ?>
 
 	<h1 class="title"><?php esc_html_e( 'Sidebars', 'bricks' ); ?></h1>
 
@@ -70,17 +71,14 @@ if ( isset( $_POST['bricks-sidebar-index'] ) ) {
 				<table class="table-create-sidebar">
 					<tbody>
 						<tr>
-							<!-- <td><label for="bricks-sidebar-name"><?php esc_html_e( 'Name', 'bricks' ); ?></label></td> -->
 							<td><input type="text" name="bricks-sidebar-name" id="bricks-sidebar-name" placeholder="<?php esc_attr_e( 'Sidebar name *', 'bricks' ); ?>"></td>
 						</tr>
 
 						<tr>
-							<!-- <td><label for="bricks-sidebar-description"><?php esc_html_e( 'Description', 'bricks' ); ?></label></td> -->
-							<td><input type="text" name="bricks-sidebar-description" id="bricks-sidebar-description" placeholder="<?php esc_attr_e( 'Description (optional)', 'bricks' ); ?>"></td>
+							<td><input type="text" name="bricks-sidebar-description" id="bricks-sidebar-description" placeholder="<?php esc_attr_e( 'Description', 'bricks' ); ?>"></td>
 						</tr>
 
 						<tr>
-							<!-- <td></td> -->
 							<td><input type="submit" value="<?php esc_html_e( 'Create new sidebar', 'bricks' ); ?>" class="button button-primary button-large"></td>
 						</tr>
 					</tbody>
@@ -108,7 +106,7 @@ if ( isset( $_POST['bricks-sidebar-index'] ) ) {
 						<tr>
 							<td><?php echo esc_html( $sidebar['name'] ); ?></td>
 							<td><?php echo esc_html( $sidebar['id'] ); ?></td>
-							<td><?php echo $sidebar['description'] ? esc_html__( $sidebar['description'] ) : '-'; ?></td>
+							<td><?php echo $sidebar['description'] ? $sidebar['description'] : '-'; ?></td>
 							<td>
 								<button
 									type="submit"
@@ -132,5 +130,4 @@ if ( isset( $_POST['bricks-sidebar-index'] ) ) {
 			<?php } ?>
 		</div>
 	</div>
-
 </div>

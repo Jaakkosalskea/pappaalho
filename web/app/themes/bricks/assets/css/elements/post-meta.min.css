@@ -1,1 +1,1 @@
-.brxe-post-meta a{color:currentColor}
+:where(.brxe-post-meta) a{color:currentcolor}

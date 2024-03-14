@@ -2,7 +2,7 @@
 $controls = [];
 
 $controls['contentMargin'] = [
-	'type'        => 'dimensions',
+	'type'        => 'spacing',
 	'label'       => esc_html__( 'Margin', 'bricks' ),
 	'css'         => [
 		[
@@ -26,7 +26,7 @@ $controls['contentBlockquoteSeparator'] = [
 ];
 
 $controls['contentBlockquoteMargin'] = [
-	'type'       => 'dimensions',
+	'type'       => 'spacing',
 	'label'      => esc_html__( 'Margin', 'bricks' ),
 	'css'        => [
 		[
@@ -38,7 +38,7 @@ $controls['contentBlockquoteMargin'] = [
 ];
 
 $controls['contentBlockquotePadding'] = [
-	'type'       => 'dimensions',
+	'type'       => 'spacing',
 	'label'      => esc_html__( 'Padding', 'bricks' ),
 	'css'        => [
 		[

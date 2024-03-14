@@ -8,7 +8,7 @@ class Element_Button extends Element {
 	public $category = 'basic';
 	public $name     = 'button';
 	public $icon     = 'ti-control-stop';
-	public $tag      = 'a';
+	public $tag      = 'span';
 
 	public function get_label() {
 		return esc_html__( 'Button', 'bricks' );
@@ -16,15 +16,21 @@ class Element_Button extends Element {
 
 	public function set_controls() {
 		$this->controls['text'] = [
-			'tab'         => 'content',
 			'type'        => 'text',
 			'default'     => esc_html__( 'I am a button', 'bricks' ),
 			'placeholder' => esc_html__( 'I am a button', 'bricks' ),
-			// 'hidden'      => true,
+		];
+
+		$this->controls['tag'] = [
+			'label'          => esc_html__( 'HTML tag', 'bricks' ),
+			'type'           => 'text',
+			'hasDynamicData' => false,
+			'inline'         => true,
+			'placeholder'    => 'span',
+			'required'       => [ 'link', '=', '' ],
 		];
 
 		$this->controls['size'] = [
-			'tab'         => 'content',
 			'label'       => esc_html__( 'Size', 'bricks' ),
 			'type'        => 'select',
 			'options'     => $this->control_options['buttonSizes'],
@@ -34,7 +40,6 @@ class Element_Button extends Element {
 		];
 
 		$this->controls['style'] = [
-			'tab'         => 'content',
 			'label'       => esc_html__( 'Style', 'bricks' ),
 			'type'        => 'select',
 			'options'     => $this->control_options['styles'],
@@ -45,14 +50,12 @@ class Element_Button extends Element {
 		];
 
 		$this->controls['circle'] = [
-			'tab'   => 'content',
 			'label' => esc_html__( 'Circle', 'bricks' ),
 			'type'  => 'checkbox',
 			'reset' => true,
 		];
 
 		$this->controls['outline'] = [
-			'tab'   => 'content',
 			'label' => esc_html__( 'Outline', 'bricks' ),
 			'type'  => 'checkbox',
 			'reset' => true,
@@ -60,32 +63,27 @@ class Element_Button extends Element {
 
 		// Link
 		$this->controls['linkSeparator'] = [
-			'tab'   => 'content',
 			'label' => esc_html__( 'Link', 'bricks' ),
 			'type'  => 'separator',
 		];
 
 		$this->controls['link'] = [
-			'tab'   => 'content',
 			'label' => esc_html__( 'Link type', 'bricks' ),
 			'type'  => 'link',
 		];
 
 		// Icon
 		$this->controls['iconSeparator'] = [
-			'tab'   => 'content',
 			'label' => esc_html__( 'Icon', 'bricks' ),
 			'type'  => 'separator',
 		];
 
 		$this->controls['icon'] = [
-			'tab'   => 'content',
 			'label' => esc_html__( 'Icon', 'bricks' ),
 			'type'  => 'icon',
 		];
 
 		$this->controls['iconTypography'] = [
-			'tab'      => 'content',
 			'label'    => esc_html__( 'Typography', 'bricks' ),
 			'type'     => 'typography',
 			'css'      => [
@@ -94,21 +92,10 @@ class Element_Button extends Element {
 					'selector' => 'i',
 				],
 			],
-			'exclude'  => [
-				'font-family',
-				'font-weight',
-				'font-style',
-				'text-align',
-				'text-decoration',
-				'text-transform',
-				'line-height',
-				'letter-spacing',
-			],
 			'required' => [ 'icon.icon', '!=', '' ],
 		];
 
 		$this->controls['iconPosition'] = [
-			'tab'         => 'content',
 			'label'       => esc_html__( 'Position', 'bricks' ),
 			'type'        => 'select',
 			'options'     => $this->control_options['iconPosition'],
@@ -118,7 +105,6 @@ class Element_Button extends Element {
 		];
 
 		$this->controls['iconGap'] = [
-			'tab'      => 'content',
 			'label'    => esc_html__( 'Gap', 'bricks' ),
 			'type'     => 'number',
 			'units'    => true,
@@ -131,7 +117,6 @@ class Element_Button extends Element {
 		];
 
 		$this->controls['iconSpace'] = [
-			'tab'      => 'content',
 			'label'    => esc_html__( 'Space between', 'bricks' ),
 			'type'     => 'checkbox',
 			'css'      => [
@@ -176,9 +161,9 @@ class Element_Button extends Element {
 		}
 
 		// Link
-		if ( empty( $settings['link'] ) ) {
-			$this->tag = 'span';
-		} else {
+		if ( ! empty( $settings['link'] ) ) {
+			$this->tag = 'a';
+
 			$this->set_link_attributes( '_root', $settings['link'] );
 		}
 
@@ -191,7 +176,7 @@ class Element_Button extends Element {
 			$output .= $icon;
 		}
 
-		if ( ! empty( $settings['text'] ) ) {
+		if ( isset( $settings['text'] ) ) {
 			$output .= trim( $settings['text'] );
 		}
 
@@ -207,7 +192,7 @@ class Element_Button extends Element {
 	public static function render_builder() { ?>
 		<script type="text/x-template" id="tmpl-bricks-element-button">
 			<component
-				:is="'a'"
+				:is="settings.link ? 'a' : settings.tag ? settings.tag : 'span'"
 				:class="[
 					'bricks-button',
 					settings.size ? settings.size : null,
@@ -217,9 +202,9 @@ class Element_Button extends Element {
 					settings.icon && settings.iconPosition ? `icon-${settings.iconPosition}` : null,
 					settings.icon && !settings.iconPosition ? 'icon-right' : null
 				]">
-				<icon-svg v-if="settings.iconPosition === 'left' && settings.icon" :iconSettings="settings.icon"/>
+				<icon-svg v-if="settings.iconPosition === 'left' && (settings?.icon?.icon || settings?.icon?.svg)" :iconSettings="settings.icon"/>
 				<contenteditable tag="span" :name="name" controlKey="text" toolbar="style" :settings="settings"/>
-				<icon-svg v-if="settings.iconPosition !== 'left' && settings.icon" :iconSettings="settings.icon"/>
+				<icon-svg v-if="settings.iconPosition !== 'left' && (settings?.icon?.icon || settings?.icon?.svg)" :iconSettings="settings.icon"/>
 			</component>
 		</script>
 		<?php

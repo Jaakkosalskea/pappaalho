@@ -61,11 +61,7 @@ $controls['contentBackground'] = [
 			'selector' => '.brx-boxed',
 		],
 	],
-	'exclude'  => [
-		'videoUrl',
-		'videoScale',
-		'videoAspectRatio',
-	],
+	'exclude'  => 'video',
 	'required' => [ 'siteLayout', '=', 'boxed' ],
 ];
 
@@ -77,16 +73,14 @@ $controls['siteBackground'] = [
 			'property' => 'background',
 			'selector' => 'html',
 		],
+		// Needed to overwrite default body background color #fff (@since 1.7.1)
 		[
 			'property' => 'background',
 			'selector' => 'body',
+			'value'    => 'none',
 		],
 	],
-	'exclude' => [
-		'videoUrl',
-		'videoScale',
-		'videoAspectRatio',
-	],
+	'exclude' => 'video',
 ];
 
 $controls['siteBorder'] = [
@@ -104,7 +98,7 @@ $controls['siteBorder'] = [
 $controls['elementMargin'] = [
 	'deprecated' => true, // @since 1.5 as nestable elements now allow for brxe- inside each other
 	'label'      => esc_html__( 'Element margin', 'bricks' ),
-	'type'       => 'dimensions',
+	'type'       => 'spacing',
 	'css'        => [
 		[
 			'property' => 'margin',
@@ -128,7 +122,7 @@ $controls['containerSeparator'] = [
 $controls['sectionMargin'] = [
 	'deprecated' => true, // @since 1.5
 	'label'      => esc_html__( 'Root container margin', 'bricks' ),
-	'type'       => 'dimensions',
+	'type'       => 'spacing',
 	'css'        => [
 		[
 			'property' => 'margin',
@@ -140,7 +134,7 @@ $controls['sectionMargin'] = [
 $controls['sectionPadding'] = [
 	'deprecated' => true, // @since 1.5
 	'label'      => esc_html__( 'Root container padding', 'bricks' ),
-	'type'       => 'dimensions',
+	'type'       => 'spacing',
 	'css'        => [
 		[
 			'property' => 'padding',
@@ -195,36 +189,30 @@ $controls['containerMaxWidth'] = [
 	'placeholder' => '1100px',
 ];
 
-// Lightbox
-
+/**
+ * Lightbox (PhotoSwipe 5)
+ *
+ * Lightbox width & height for lightbox video only.
+ * Lightbox image uses intrinsic image dimensions.
+ */
 $controls['lightboxSeparator'] = [
-	'type'  => 'separator',
-	'label' => esc_html__( 'Lightbox', 'bricks' ),
-];
-
-$controls['lightboxHeight'] = [
-	'type'  => 'number',
-	'units' => true,
-	'label' => esc_html__( 'Lightbox height', 'bricks' ),
-	'css'   => [
-		[
-			'property' => 'height',
-			'selector' => '#bricks-lightbox .inner',
-		],
-	],
+	'type'        => 'separator',
+	'label'       => esc_html__( 'Lightbox', 'bricks' ),
+	'description' => esc_html__( 'Set only width generates 16:9 ratio videos.', 'bricks' ),
 ];
 
 $controls['lightboxWidth'] = [
-	'type'  => 'number',
-	'units' => true,
-	'label' => esc_html__( 'Lightbox width', 'bricks' ),
-	'css'   => [
-		[
-			'property' => 'width',
-			'selector' => '#bricks-lightbox .inner',
-		],
-	],
+	'type'        => 'number',
+	'label'       => esc_html__( 'Lightbox width', 'bricks' ) . ' (' . esc_html__( 'Video', 'bricks' ) . ')',
+	'placeholder' => 1280,
 ];
+
+$controls['lightboxHeight'] = [
+	'type'        => 'number',
+	'label'       => esc_html__( 'Lightbox height', 'bricks' ) . ' (' . esc_html__( 'Video', 'bricks' ) . ')',
+	'placeholder' => 720,
+];
+
 
 $controls['lightboxBackground'] = [
 	'type'    => 'background',
@@ -232,18 +220,10 @@ $controls['lightboxBackground'] = [
 	'css'     => [
 		[
 			'property' => 'background-color',
-			'selector' => '#bricks-lightbox',
-		],
-		[
-			'property' => 'background-color',
 			'selector' => '.pswp .pswp__bg',
 		],
 	],
-	'exclude' => [
-		'videoUrl',
-		'videoScale',
-		'videoAspectRatio',
-	],
+	'exclude' => 'video',
 ];
 
 $controls['lightboxCloseColor'] = [
@@ -252,22 +232,25 @@ $controls['lightboxCloseColor'] = [
 	'css'   => [
 		[
 			'property' => 'color',
-			'selector' => '#bricks-lightbox .close',
+			'selector' => '.pswp.brx .pswp__top-bar button.pswp__button--close svg',
 		],
 	],
 ];
 
 $controls['lightboxCloseSize'] = [
-	'type'        => 'number',
-	'units'       => true,
-	'label'       => esc_html__( 'Lightbox close size', 'bricks' ),
-	'css'         => [
+	'type'  => 'number',
+	'units' => true,
+	'label' => esc_html__( 'Lightbox close size', 'bricks' ),
+	'css'   => [
 		[
-			'property' => 'font-size',
-			'selector' => '#bricks-lightbox .close',
+			'property' => 'width',
+			'selector' => '.pswp.brx .pswp__top-bar button.pswp__button svg',
+		],
+		[
+			'property' => 'height',
+			'selector' => '.pswp.brx .pswp__top-bar button.pswp__button svg',
 		],
 	],
-	'placeholder' => 60,
 ];
 
 return [

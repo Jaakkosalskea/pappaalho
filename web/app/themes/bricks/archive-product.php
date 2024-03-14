@@ -6,7 +6,16 @@
 
 get_header();
 
-$post_id       = function_exists( 'is_shop' ) && is_shop() ? wc_get_page_id( 'shop' ) : get_the_ID();
+/**
+ * Use get_queried_object_id() instead of get_the_ID()
+ *
+ * get_the_ID() gets the post ID of the 1st query result in archive or taxonomy pages (@see #862jbfkby)
+ *
+ * Same as in Database::set_page_data()
+ *
+ * @since 1.7.1
+ */
+$post_id       = function_exists( 'is_shop' ) && is_shop() ? wc_get_page_id( 'shop' ) : get_queried_object_id();
 $template_type = function_exists( 'is_shop' ) && is_shop() ? 'content' : 'wc_archive';
 $bricks_data   = Bricks\Helpers::get_bricks_data( $post_id, $template_type );
 
@@ -66,7 +75,6 @@ else {
 	$html = ob_get_clean();
 
 	Bricks\Frontend::render_content( [], $attributes, $html );
-
 }
 
 get_footer();

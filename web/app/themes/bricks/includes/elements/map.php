@@ -4,12 +4,11 @@ namespace Bricks;
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class Element_Map extends Element {
-	public $category     = 'general';
-	public $name         = 'map';
-	public $icon         = 'ti-location-pin';
-	public $css_selector = '.map';
-	public $scripts      = [ 'bricksMap' ];
-	public $draggable    = false;
+	public $category  = 'general';
+	public $name      = 'map';
+	public $icon      = 'ti-location-pin';
+	public $scripts   = [ 'bricksMap' ];
+	public $draggable = false;
 
 	public function get_label() {
 		return esc_html__( 'Map', 'bricks' );
@@ -44,8 +43,9 @@ class Element_Map extends Element {
 		$this->controls['infoNoApiKey'] = [
 			'tab'      => 'content',
 			'content'  => sprintf(
+				// translators: %s: Link to settings page
 				esc_html__( 'Google Maps API key required! Add key in dashboard under: %s', 'bricks' ),
-				'<a href="' . Helpers::settings_url( '#tab-api-keys' ) . '" target="_blank">' . esc_html__( 'Bricks > Settings > API Keys', 'bricks' ) . '</a>'
+				'<a href="' . Helpers::settings_url( '#tab-api-keys' ) . '" target="_blank">Bricks > ' . esc_html__( 'Settings', 'bricks' ) . ' > API keys</a>'
 			),
 			'type'     => 'info',
 			'required' => [ 'apiKeyGoogleMaps', '=', '', 'globalSettings' ],
@@ -118,9 +118,16 @@ class Element_Map extends Element {
 				],
 
 				'infoImages'       => [
-					'label'    => esc_html__( 'Info Images', 'bricks' ),
+					'label'    => esc_html__( 'Images', 'bricks' ),
 					'type'     => 'image-gallery',
 					'unsplash' => false,
+				],
+
+				'infoWidth'        => [
+					'label'       => esc_html__( 'Width', 'bricks' ),
+					'type'        => 'number',
+					'inline'      => true,
+					'placeholder' => '300',
 				],
 			],
 			'default'       => [
@@ -142,6 +149,7 @@ class Element_Map extends Element {
 			'type'           => 'image',
 			'hasDynamicData' => false,
 			'unsplash'       => false,
+			// translators: %s: Link to icons8.com
 			'description'    => sprintf( '<a href="https://icons8.com/icon/set/map-marker/all" target="_blank">%s</a>', esc_html__( 'Get free marker icons from icons8.com', 'bricks' ) ),
 			'required'       => [ 'apiKeyGoogleMaps', '!=', '', 'globalSettings' ],
 		];
@@ -177,6 +185,7 @@ class Element_Map extends Element {
 			'type'           => 'image',
 			'hasDynamicData' => false,
 			'unsplash'       => false,
+			// translators: %s: Link to icons8.com
 			'description'    => sprintf( '<a href="https://icons8.com/icon/set/map-marker/all" target="_blank">%s</a>', esc_html__( 'Get free marker icons from icons8.com', 'bricks' ) ),
 			'required'       => [ 'apiKeyGoogleMaps', '!=', '', 'globalSettings' ],
 		];
@@ -266,6 +275,7 @@ class Element_Map extends Element {
 			'label'       => esc_html__( 'Custom map style', 'bricks' ),
 			'type'        => 'code',
 			'mode'        => 'json',
+			// translators: %s: Link to snazzymaps.com
 			'description' => sprintf( esc_html__( 'Copy+paste code from one of the maps over at %s', 'bricks' ), '<a target="_blank" href="https://snazzymaps.com/explore">snazzymaps.com/explore</a>' ),
 			'required'    => [ 'style', '=', 'custom' ],
 		];
@@ -313,6 +323,14 @@ class Element_Map extends Element {
 			'default'  => true,
 		];
 
+		$this->controls['disableDefaultUI'] = [
+			'tab'      => 'content',
+			'group'    => 'settings',
+			'label'    => esc_html__( 'Disable Default UI', 'bricks' ),
+			'type'     => 'checkbox',
+			'required' => [ 'apiKeyGoogleMaps', '!=', '', 'globalSettings' ],
+		];
+
 		$this->controls['zoomControl'] = [
 			'tab'      => 'content',
 			'group'    => 'settings',
@@ -322,14 +340,25 @@ class Element_Map extends Element {
 			'default'  => true,
 		];
 
-		$this->controls['disableDefaultUI'] = [
+		$this->controls['minZoom'] = [
 			'tab'      => 'content',
 			'group'    => 'settings',
-			'label'    => esc_html__( 'Disable Default UI', 'bricks' ),
-			'type'     => 'checkbox',
-			'required' => [ 'apiKeyGoogleMaps', '!=', '', 'globalSettings' ],
+			'label'    => esc_html__( 'Zoom level', 'bricks' ) . ' (' . esc_html__( 'Min', 'bricks' ) . ')',
+			'type'     => 'number',
+			'step'     => 1,
+			'min'      => 0,
+			'required' => [ 'zoomControl', '!=', '' ],
 		];
 
+		$this->controls['maxZoom'] = [
+			'tab'      => 'content',
+			'group'    => 'settings',
+			'label'    => esc_html__( 'Zoom level', 'bricks' ) . ' (' . esc_html__( 'Max', 'bricks' ) . ')',
+			'type'     => 'number',
+			'step'     => 1,
+			'min'      => 0,
+			'required' => [ 'zoomControl', '!=', '' ],
+		];
 	}
 
 	public function render() {
@@ -339,8 +368,9 @@ class Element_Map extends Element {
 			return $this->render_element_placeholder(
 				[
 					'title' => sprintf(
+						// translators: %s: Link to settings page
 						esc_html__( 'Google Maps API key required! Add key in dashboard under: %s', 'bricks' ),
-						'<a href="' . Helpers::settings_url( '#tab-api-keys' ) . '" target="_blank">' . esc_html__( 'Bricks > Settings > API Keys', 'bricks' ) . '</a>'
+						'<a href="' . Helpers::settings_url( '#tab-api-keys' ) . '" target="_blank">Bricks > ' . esc_html__( 'Settings', 'bricks' ) . ' > API keys</a>'
 					)
 				]
 			);
@@ -351,15 +381,42 @@ class Element_Map extends Element {
 
 		// InfoImages Gallery may use a custom field (handle it before)
 		$gallery_class_name = isset( Elements::$elements['image-gallery']['class'] ) ? Elements::$elements['image-gallery']['class'] : false;
+
 		if ( $gallery_class_name ) {
 			$gallery = new $gallery_class_name();
 			$gallery->set_post_id( $this->post_id );
 
-			foreach ( $addresses as $key => $address ) {
-				if ( ! empty( $address['infoImages']['useDynamicData'] ) ) {
-					$settings                        = $gallery->get_normalized_image_settings( [ 'items' => $address['infoImages'] ] );
-					$addresses[ $key ]['infoImages'] = $settings['items'];
-					unset( $addresses[ $key ]['infoImages']['useDynamicData'] );
+			foreach ( $addresses as $index => $address ) {
+				if ( empty( $address['infoImages'] ) ) {
+					continue;
+				}
+
+				// Get infoImages data
+				$info_images = $gallery->get_normalized_image_settings( [ 'items' => $address['infoImages'] ] );
+
+				if ( empty( $info_images['items']['images'] ) ) {
+					continue;
+				}
+
+				$addresses[ $index ]['infoImages'] = [];
+
+				foreach ( $info_images['items']['images'] as $info_image ) {
+					if ( empty( $info_image['id'] ) ) {
+						continue;
+					}
+
+					$image_src = wp_get_attachment_image_src( $info_image['id'], $info_images['items']['size'] );
+
+					$addresses[ $index ]['infoImages'][] = [
+						'src'       => $image_src[0],
+						'width'     => $image_src[1],
+						'height'    => $image_src[2],
+						'thumbnail' => wp_get_attachment_image_url( $info_image['id'], 'thumbnail' ),
+					];
+				}
+
+				if ( isset( $addresses[ $index ]['infoImages']['useDynamicData'] ) ) {
+					unset( $addresses[ $index ]['infoImages']['useDynamicData'] );
 				}
 			}
 		}
@@ -383,6 +440,16 @@ class Element_Map extends Element {
 			'disableDefaultUI'  => isset( $settings['disableDefaultUI'] ),
 			'type'              => isset( $settings['type'] ) ? $settings['type'] : 'roadmap',
 		];
+
+		// Min zoom
+		if ( isset( $settings['minZoom'] ) ) {
+			$map_options['minZoom'] = intval( $settings['minZoom'] );
+		}
+
+		// Max zoom
+		if ( isset( $settings['maxZoom'] ) ) {
+			$map_options['maxZoom'] = intval( $settings['maxZoom'] );
+		}
 
 		// Custom marker
 		if ( isset( $settings['marker']['url'] ) ) {
@@ -410,20 +477,32 @@ class Element_Map extends Element {
 			$map_options['markerActiveWidth'] = $settings['markerActiveWidth'];
 		}
 
-		// Add 'style' or 'customStyle'
-		if ( isset( $settings['style'] ) ) {
-			$map_options['style'] = $settings['style'];
+		// Add pre-defined or custom map style
+		$map_style = $settings['style'] ?? '';
 
-			if ( $settings['style'] === 'custom' && isset( $settings['customStyle'] ) ) {
-				$map_options['customStyle'] = $settings['customStyle'];
+		/**
+		 * Set map style
+		 *
+		 * @since 1.9.3: Pass every map style as JSON string
+		 */
+		if ( $map_style ) {
+			// Custom map style
+			if ( $map_style === 'custom' ) {
+				if ( ! empty( $settings['customStyle'] ) ) {
+					$map_options['styles'] = wp_json_encode( $settings['customStyle'] );
+				}
+			}
+
+			// Pre-defined map style
+			else {
+				$map_style             = Setup::get_map_styles( $map_style );
+				$map_options['styles'] = $map_style;
 			}
 		}
 
-		$this->set_attribute( 'map', 'class', 'map' );
-		$this->set_attribute( 'map', 'data-bricks-map-options', wp_json_encode( $map_options ) );
+		$this->set_attribute( '_root', 'data-bricks-map-options', wp_json_encode( $map_options ) );
 
-		echo "<div {$this->render_attributes( '_root' )}>";
-		echo "<div {$this->render_attributes( 'map' )}></div>"; // Required in builder (DnD)
-		echo '</div>';
+		// No more inner .map as DnD only works in structure panel anyway (@since 1.5.4)
+		echo "<div {$this->render_attributes( '_root' )}></div>";
 	}
 }

@@ -36,7 +36,7 @@ class Woocommerce_Checkout_Order_Table extends Element {
 		$this->controls['headPadding'] = [
 			'tab'         => 'content',
 			'group'       => 'header',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
 			'css'         => [
 				[
@@ -96,7 +96,7 @@ class Woocommerce_Checkout_Order_Table extends Element {
 		$this->controls['productPadding'] = [
 			'tab'         => 'content',
 			'group'       => 'product',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
 			'css'         => [
 				[
@@ -160,7 +160,7 @@ class Woocommerce_Checkout_Order_Table extends Element {
 		$this->controls['footPadding'] = [
 			'tab'         => 'content',
 			'group'       => 'footer',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
 			'css'         => [
 				[
@@ -226,16 +226,19 @@ class Woocommerce_Checkout_Order_Table extends Element {
 
 	public function render() {
 		$settings = $this->settings;
+		$order    = false;
 
 		// Populate the template with the last order
-		if ( bricks_is_builder() ) {
+		if ( Helpers::is_bricks_preview() ) {
 			$orders = wc_get_orders(
 				[
 					'limit' => 1,
 				]
 			);
 
-			$order = $orders ? $orders[0] : false;
+			if ( isset( $orders[0] ) ) {
+				$order = $orders[0];
+			}
 		}
 
 		// Logic from WC_Shortcode_Checkout::order_received()
@@ -253,7 +256,7 @@ class Woocommerce_Checkout_Order_Table extends Element {
 		}
 
 		// Render WooCommerce part templates/checkout/form-pay.php
-		$totals = $order ? $order->get_order_item_totals() : false; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$totals = $order ? $order->get_order_item_totals() : false;
 		?>
 
 		<div <?php echo $this->render_attributes( '_root' ); ?>>
@@ -266,7 +269,7 @@ class Woocommerce_Checkout_Order_Table extends Element {
 					</tr>
 				</thead>
 				<tbody>
-					<?php if ( $order && count( $order->get_items() ) > 0 ) { ?>
+					<?php if ( is_a( $order, 'WC_Order' ) && is_array( $order->get_items() ) && count( $order->get_items() ) > 0 ) { ?>
 						<?php foreach ( $order->get_items() as $item_id => $item ) { ?>
 							<?php
 							if ( ! apply_filters( 'woocommerce_order_item_visible', true, $item ) ) {

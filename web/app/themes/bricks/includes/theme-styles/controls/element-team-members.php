@@ -115,7 +115,7 @@ $controls['contentSeparator'] = [
 
 $controls['contentPadding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',

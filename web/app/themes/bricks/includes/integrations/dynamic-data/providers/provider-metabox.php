@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class Provider_Metabox extends Base {
 	public static function load_me() {
+		add_filter( 'mbv_data', [ __CLASS__, 'mb_views_post_data' ], 10, 2 );
+
 		return class_exists( 'RWMB_Loader' );
 	}
 
@@ -39,7 +41,6 @@ class Provider_Metabox extends Base {
 		$key .= isset( $field['_brx_group'] ) && empty( $parent_field ) ? preg_replace( '/[\s\:]/', '', $field['_brx_group'] ) . '_' . $field['id'] : $field['id'];
 
 		foreach ( $contexts[ $type ] as $context ) {
-
 			$name = self::CONTEXT_TEXT === $context || self::CONTEXT_LOOP === $context ? $key : $key . '_' . $context;
 
 			// STEP: Field label
@@ -60,13 +61,12 @@ class Provider_Metabox extends Base {
 			if ( ! empty( $parent_field ) ) {
 				// Add the parent field attributes to the child tag
 				$tag['parent'] = [
-					'id' => $parent_field['id']
+					'id' => $parent_field['id'],
 				];
 			}
 
 			// Register tags in the loop
 			if ( $context === self::CONTEXT_LOOP ) {
-
 				$this->loop_tags[ $name ] = $tag;
 
 				if ( ! empty( $field['fields'] ) ) {
@@ -85,7 +85,6 @@ class Provider_Metabox extends Base {
 
 			// Register regular tags
 			elseif ( $context === self::CONTEXT_TEXT || empty( $parent_field ) ) {
-
 				// For legacy purposes we keep different tags for all the contexts, only when fields belong to posts
 				if ( $field['_brx_object_type'] != 'post' && $context != self::CONTEXT_TEXT ) {
 					continue;
@@ -109,8 +108,7 @@ class Provider_Metabox extends Base {
 
 		$mb_fields = [];
 
-		foreach ( [ 'post','term', 'user', 'setting' ] as $type ) {
-
+		foreach ( [ 'post', 'term', 'user', 'setting' ] as $type ) {
 			$fields = $field_registry->get_by_object_type( $type );
 
 			if ( empty( $fields ) ) {
@@ -118,7 +116,6 @@ class Provider_Metabox extends Base {
 			}
 
 			foreach ( $fields as $group => $group_fields ) {
-
 				if ( $type == 'post' ) {
 					$post_type_obj = get_post_type_object( $group );
 					$group_label   = $post_type_obj ? $post_type_obj->labels->name : $group;
@@ -158,7 +155,6 @@ class Provider_Metabox extends Base {
 		}
 
 		foreach ( $relations as $relation_key => $relation ) {
-
 			$label = ! empty( $relation['menu_title'] ) ? $relation['menu_title'] : ucfirst( str_replace( '-', ' ', $relation_key ) );
 
 			$relation['_brx_object_type'] = 'relationship';
@@ -178,9 +174,9 @@ class Provider_Metabox extends Base {
 	}
 
 	public function get_tag_value( $tag, $post, $args, $context ) {
-		$post_id = isset( $post->ID ) ? $post->ID : '';
-
-		$field = $this->tags[ $tag ]['field'];
+		$post_id    = isset( $post->ID ) ? $post->ID : '';
+		$tag_object = $this->tags[ $tag ];
+		$field      = $this->tags[ $tag ]['field'];
 
 		// STEP: Check for filter args
 		$filters = $this->get_filters_from_args( $args );
@@ -188,202 +184,327 @@ class Provider_Metabox extends Base {
 		// STEP: Get the value
 		$value = $this->get_raw_value( $tag, $post_id );
 
-		// Legacy from previous code (before Bricks 1.3.5)
-		if ( $context == 'text' ) {
-			$filters['separator'] = '<br>';
+		// @since 1.8 - New array_value filter. Once used, we don't want to process the field type logic
+		if ( isset( $filters['array_value'] ) && is_array( $value ) ) {
+			// Force context to text
+			$context = 'text';
+			$value   = $this->return_array_value( $value, $filters );
 		}
 
-		switch ( $field['type'] ) {
-			case 'file_input':
-				$filters['object_type'] = 'media';
-				$filters['link']        = true;
+		// Process field type logic
+		else {
+			// Legacy from previous code (@pre 1.3.5)
+			if ( $context == 'text' ) {
+				$filters['separator'] = '<br>';
+			}
 
-				$value = empty( $field['clone'] ) ? [ $value ] : $value;
+			switch ( $field['type'] ) {
+				case 'file_input':
+					$filters['object_type'] = 'media';
+					$filters['link']        = true;
 
-				$value = array_map( 'attachment_url_to_postid', $value );
-				$value = array_filter( $value );
-				break;
+					$value = empty( $field['clone'] ) ? [ $value ] : $value;
 
-			case 'file':
-			case 'file_upload':
-			case 'file_advanced':
-			case 'video':
-				$filters['object_type'] = 'media';
-				$filters['link']        = true;
+					$value = array_map( 'attachment_url_to_postid', $value );
+					$value = array_filter( $value );
+					break;
 
-				$value = ! empty( $value ) ? array_values( $value ) : [];
+				case 'file':
+				case 'file_upload':
+				case 'file_advanced':
+				case 'video':
+					$filters['object_type'] = 'media';
+					$filters['link']        = true;
 
-				$value = isset( $value[0]['ID'] ) ? wp_list_pluck( $value, 'ID' ) : $value;
-				break;
+					$value = ! empty( $value ) ? array_values( $value ) : [];
 
-			case 'image':
-			case 'image_advanced':
-			case 'image_upload':
-			case 'single_image':
-				$filters['object_type'] = 'media';
+					$value = isset( $value[0]['ID'] ) ? wp_list_pluck( $value, 'ID' ) : $value;
+					break;
 
-				// Single image returns a single array
-				$value = isset( $value['ID'] ) || ! is_array( $value ) ? [ $value ] : $value;
+				case 'image':
+				case 'image_advanced':
+				case 'image_upload':
+				case 'single_image':
+					$filters['object_type'] = 'media';
 
-				$value = ! empty( $value ) ? array_values( $value ) : [];
+					// Empty field value should return empty array to avoid default post title in text context. @see $this->format_value_for_context()
+					$value = empty( $value ) ? [] : $value;
 
-				$value = isset( $value[0]['ID'] ) ? wp_list_pluck( $value, 'ID' ) : $value;
-				break;
+					// Single image returns a single array
+					$value = isset( $value['ID'] ) || ! is_array( $value ) ? [ $value ] : $value;
 
-			case 'taxonomy_advanced':
-			case 'taxonomy':
-				$filters['object_type'] = 'term';
-				$filters['taxonomy']    = isset( $field['taxonomy'][0] ) ? $field['taxonomy'][0] : '';
+					$value = ! empty( $value ) ? array_values( $value ) : [];
 
-				// NOTE: Undocumented
-				$show_as_link = apply_filters( 'bricks/metabox/taxonomy/show_as_link', true, $value, $field );
+					$value = isset( $value[0]['ID'] ) ? wp_list_pluck( $value, 'ID' ) : $value;
+					break;
 
-				if ( $show_as_link ) {
-					$filters['link'] = true;
-				}
+				case 'taxonomy_advanced':
+				case 'taxonomy':
+					$filters['object_type'] = 'term';
+					$filters['taxonomy']    = isset( $field['taxonomy'][0] ) ? $field['taxonomy'][0] : '';
 
-				$value = is_a( $value, 'WP_Term' ) || ! is_array( $value ) ? [ $value ] : $value;
+					// NOTE: Undocumented
+					$show_as_link = apply_filters( 'bricks/metabox/taxonomy/show_as_link', true, $value, $field );
 
-				$value = is_a( $value[0], 'WP_Term' ) ? wp_list_pluck( $value, 'term_id' ) : $value;
-
-				break;
-
-			case 'radio':
-			case 'select':
-			case 'checkbox_list':
-			case 'select_advanced':
-			case 'autocomplete':
-				$value = empty( $field['clone'] ) || ! is_array( $value ) ? [ $value ] : $value;
-
-				foreach ( $value as $key => $item ) {
-					$item          = (array) $item;
-					$item          = array_intersect_key( $field['options'], array_fill_keys( $item, '' ) );
-					$value[ $key ] = implode( ', ', $item );
-				}
-
-				break;
-
-			case 'checkbox':
-				$value = (array) $value; // Supports clone option
-
-				foreach ( $value as $key => $item ) {
-					$original_value = $item;
-					$item           = $original_value ? esc_html__( 'Yes', 'bricks' ) : esc_html__( 'No', 'bricks' );
-
-					/**
-					 * NOTE: Undocumented
-					 */
-					$value[ $key ] = apply_filters( 'bricks/metabox/checkbox_value', $item, $original_value, $field, $post );
-				}
-				break;
-
-			case 'fieldset_text':
-				$value = empty( $field['clone'] ) ? [ $value ] : $value;
-
-				foreach ( $value as $key => $row ) {
-					$output = [];
-
-					if ( isset( $field['options'] ) ) {
-						foreach ( $field['options'] as $option_key => $label ) {
-							$output[] = esc_html( $label ) . ': ' . esc_html( $row[ $option_key ] );
-						}
-					} else {
-						$output = implode( ', ', array_values( $row ) );
+					if ( $show_as_link ) {
+						$filters['link'] = true;
 					}
 
-					$value[ $key ] = is_array( $output ) ? implode( ', ', $output ) : $output;
-				}
+					$value = is_a( $value, 'WP_Term' ) || ! is_array( $value ) ? [ $value ] : $value;
 
-				break;
+					$value = is_a( $value[0], 'WP_Term' ) ? wp_list_pluck( $value, 'term_id' ) : $value;
+					break;
 
-			case 'date':
-			case 'time':
-			case 'datetime':
-				$value = empty( $field['clone'] ) ? [ $value ] : $value;
+				case 'radio':
+				case 'select':
+				case 'checkbox_list':
+				case 'select_advanced':
+				case 'autocomplete':
+					// STEP: Return raw value for element conditions (@since 1.5.7)
+					if ( isset( $filters['value'] ) ) {
+						return is_array( $value ) ? implode( ', ', $value ) : $value;
+					}
 
-				if ( ! empty( $field['timestamp'] ) ) {
-					$format  = get_option( 'date_format' );
-					$format .= 'datetime' == $field['type'] ? ' ' . get_option( 'time_format' ) : '';
-				}
+					$value = empty( $field['clone'] ) || ! is_array( $value ) ? [ $value ] : $value;
 
-				foreach ( $value as $key => $row ) {
-					$value[ $key ] = ! empty( $field['timestamp'] ) ? date_i18n( $format, $row ) : $row;
-				}
-				break;
+					foreach ( $value as $key => $item ) {
+						$item          = (array) $item;
+						$item          = array_intersect_key( $field['options'], array_fill_keys( $item, '' ) );
+						$value[ $key ] = implode( ', ', $item );
+					}
 
-			case 'map':
-				/**
-				 * NOTE: Undocumented
-				 */
-				$show_as_map = apply_filters( 'bricks/metabox/show_as_map', false, $field, $post );
+					break;
 
-				if ( $show_as_map ) {
-					$value = rwmb_meta( $field['id'], null, $post_id );
-				} else {
+				// @since 1.6.2
+				case 'image_select':
+					// STEP: Return raw value for element conditions
+					if ( isset( $filters['value'] ) ) {
+						return is_array( $value ) ? implode( ', ', $value ) : $value;
+					}
+
+					// STEP: Set default value
+					$value = empty( $value ) ? [] : $value;
+					$value = ! is_array( $value ) ? [ $value ] : $value;
+
+					$attachment_ids = [];
+
+					foreach ( $value as $index => $option_key ) {
+						$url = isset( $field['options'][ $option_key ] ) ? $field['options'][ $option_key ] : $option_key;
+						// Try to get the image ID from the image URL (it might be URL from other site)
+						$attachment_id = attachment_url_to_postid( $url );
+
+						if ( $attachment_id ) {
+							$attachment_ids[] = $attachment_id;
+						}
+
+						$image = [
+							'ID'  => $attachment_id,
+							'url' => $url,
+							'key' => $option_key,
+						];
+
+						$value[ $index ] = $image;
+					}
+
+					// Verify if the total number of attachment IDs is the same as the total number of values
+					if ( count( $attachment_ids ) === count( $value ) ) {
+						// All images are from the current site, treat this dd field as a normal image field
+						// NOTE: image field can use on image element and gallery element and all filters like a normal image field
+						$filters['object_type'] = 'media';
+						$value                  = $attachment_ids;
+					} else {
+						// Some images are from other sites, treat this dd field as a normal text field and return the image URL
+						// NOTE: image url can use on image element, but not on image gallery element
+						foreach ( $value as $index => $image ) {
+							$value[ $index ] = $image['url'];
+						}
+
+						// Note: If the field is allowed multiple, implode the values with comma but cannot use on image element anymore
+						$value = ! empty( $field['multiple'] ) ? implode( ', ', $value ) : $value;
+					}
+
+					break;
+
+				case 'checkbox':
+					// STEP: Return raw value for element conditions (@since 1.5.7)
+					if ( isset( $filters['value'] ) ) {
+						return is_array( $value ) ? implode( ', ', $value ) : $value;
+					}
+
+					$value = (array) $value; // Supports clone option
+
+					foreach ( $value as $key => $item ) {
+						$original_value = $item;
+						$item           = $original_value ? esc_html__( 'Yes', 'bricks' ) : esc_html__( 'No', 'bricks' );
+
+						/**
+						 * NOTE: Undocumented
+						 */
+						$value[ $key ] = apply_filters( 'bricks/metabox/checkbox_value', $item, $original_value, $field, $post );
+					}
+					break;
+
+				case 'fieldset_text':
 					$value = empty( $field['clone'] ) ? [ $value ] : $value;
 
 					foreach ( $value as $key => $row ) {
 						$output = [];
 
-						foreach ( [ 'latitude', 'longitude' ] as $coordinate ) {
-							if ( ! empty( $row[ $coordinate ] ) ) {
-								$output[] = sprintf( '<span class="metabox-map-%s">%s</span>', $coordinate, $row[ $coordinate ] );
+						if ( isset( $field['options'] ) ) {
+							foreach ( $field['options'] as $option_key => $label ) {
+								$output[] = esc_html( $label ) . ': ' . esc_html( $row[ $option_key ] );
 							}
+						} else {
+							$output = implode( ', ', array_values( $row ) );
 						}
 
-						$value[ $key ] = implode( ', ', $output );
+						$value[ $key ] = is_array( $output ) ? implode( ', ', $output ) : $output;
 					}
-				}
-				break;
 
-			case 'oembed':
-				if ( $context === 'text' ) {
-					$filters['separator']     = '';
-					$filters['skip_sanitize'] = true;
+					break;
 
+				case 'date':
+				case 'time':
+				case 'datetime':
+					// NOTE: Rework the logic to support dynamic date filters @since 1.9
+
+					// Make sure the $value is not empty
+					if ( ! empty( $value ) ) {
+						// STEP: Force $value to be an array
+						$value = empty( $field['clone'] ) ? [ $value ] : $value;
+
+						// STEP: Get the date format so that we can use it to create a DateTime object
+						// Default date time format in metabox
+						$date_format = 'Y-m-d';
+						$time_format = 'H:i';
+
+						switch ( $field['type'] ) {
+							case 'date':
+								$format = $date_format;
+								break;
+							case 'datetime':
+								$format = $date_format . ' ' . $time_format;
+								break;
+							case 'time':
+								$format = $time_format;
+								break;
+						}
+
+						$use_timestamp      = ! empty( $field['timestamp'] );
+						$is_group_sub_field = isset( $tag_object['parent']['id'] );
+
+						// NOTE: Overwrite the format if not using timestamp and save_format is set (Metabox not follow save_format if it's a group subfield)
+						if ( ! $use_timestamp && ! $is_group_sub_field && ! empty( $field['save_format'] ) ) {
+							$format = $field['save_format'];
+						}
+
+						$utc_value = [];
+						// STEP: Try convert the $value to DateTime object in UTC and save it to $utc_value
+						foreach ( $value as $key => $row ) {
+							// If this is a group sub-field and saved as timestamp, the $row is an array, pick the timestamp value
+							$date_value = $use_timestamp && is_array( $row ) && isset( $row['timestamp'] ) ? $row['timestamp'] : $row;
+
+							$date_value = $use_timestamp ? date_i18n( $format, $date_value ) : $date_value;
+
+							// Replace original $value with $date_value as well for backward compatibility (in case the createFromFormat() failed)
+							$value[ $key ] = $date_value;
+
+							$date = \DateTime::createFromFormat( $format, $date_value );
+							// Skip if the conversion failed
+							if ( ! $date instanceof \DateTime ) {
+								continue;
+							}
+
+							// Store converted DateTime in UTC
+							$utc_value[ $key ] = $date->format( 'U' );
+						}
+
+						/**
+						 * STEP: Set the object_type and meta_key so format_value_for_context() can handle it
+						 *
+						 * Only execute this if $utc_value is not empty and $utc_value will be used in the next step.
+						 */
+						if ( ! empty( $utc_value ) ) {
+							$filters['meta_key']    = ! empty( $filters['meta_key'] ) ? $filters['meta_key'] : $format;
+							$filters['object_type'] = $field['type'] == 'date' ? 'date' : 'datetime';
+							$value                  = $utc_value;
+						}
+					}
+					break;
+
+				case 'map':
+					/**
+					 * NOTE: Undocumented
+					 */
+					$show_as_map = apply_filters( 'bricks/metabox/show_as_map', false, $field, $post );
+
+					if ( $show_as_map ) {
+						$value = rwmb_meta( $field['id'], null, $post_id );
+					} else {
+						$value = empty( $field['clone'] ) ? [ $value ] : $value;
+
+						foreach ( $value as $key => $row ) {
+							$output = [];
+
+							foreach ( [ 'latitude', 'longitude' ] as $coordinate ) {
+								if ( ! empty( $row[ $coordinate ] ) ) {
+									$output[] = sprintf( '<span class="metabox-map-%s">%s</span>', $coordinate, $row[ $coordinate ] );
+								}
+							}
+
+							$value[ $key ] = implode( ', ', $output );
+						}
+					}
+					break;
+
+				case 'oembed':
+					if ( $context === 'text' ) {
+						$filters['separator']     = '';
+						$filters['skip_sanitize'] = true;
+
+						$value = empty( $field['clone'] ) ? [ $value ] : $value;
+
+						foreach ( $value as $key => $row ) {
+							$value[ $key ] = wp_oembed_get( esc_url( $row ) );
+						}
+					}
+					break;
+
+				case 'text_list':
 					$value = empty( $field['clone'] ) ? [ $value ] : $value;
 
 					foreach ( $value as $key => $row ) {
-						$value[ $key ] = wp_oembed_get( esc_url( $row ) );
+						$value[ $key ] = esc_html( implode( ', ', array_values( (array) $row ) ) );
 					}
-				}
-				break;
+					break;
 
-			case 'text_list':
-				$value = empty( $field['clone'] ) ? [ $value ] : $value;
+				case 'wysiwyg':
+					$filters['separator'] = ' ';
 
-				foreach ( $value as $key => $row ) {
-					$value[ $key ] = esc_html( implode( ', ', array_values( (array) $row ) ) );
-				}
-				break;
+					$value = empty( $field['clone'] ) ? [ $value ] : $value;
 
-			case 'wysiwyg':
-				$filters['separator'] = ' ';
+					foreach ( $value as $key => $item ) {
+						$value[ $key ] = \Bricks\Helpers::parse_editor_content( $item );
+					}
+					break;
 
-				$value = empty( $field['clone'] ) ? [ $value ] : $value;
+				case 'post':
+					// Support :value filter to return the post ID (@since 1.8)
+					// Note: separator is <br> by default if multiple checked, didn't change in 1.8
+					if ( ! isset( $filters['value'] ) ) {
+						$filters['object_type'] = 'post';
+						$filters['link']        = true;
+					}
 
-				// Note: Meta Box returns the field value after wpautop. User needs to set the field to "raw" format (Meta Box)
-				remove_filter( 'the_content', 'wpautop' );
+					$value = ! empty( $value ) ? $value : [];
+					break;
 
-				foreach ( $value as $key => $item ) {
-					$value[ $key ] = apply_filters( 'the_content', $item );
-				}
+				case 'user':
+					$filters['object_type'] = 'user';
+					$filters['link']        = true;
 
-				add_filter( 'the_content', 'wpautop' );
-				break;
-
-			case 'post':
-				$filters['object_type'] = 'post';
-				$filters['link']        = true;
-
-				$value = ! empty( $value ) ? $value : [];
-				break;
-
-			case 'user':
-				$filters['object_type'] = 'user';
-				$filters['link']        = true;
-
-				break;
+					break;
+			}
 
 		}
 
@@ -416,7 +537,7 @@ class Provider_Metabox extends Base {
 					$query_loop_object = \Bricks\Query::get_loop_object();
 
 					// Sub-field not found in the loop object (array)
-					if ( ! array_key_exists( $field['id'], $query_loop_object ) ) {
+					if ( ! is_array( $query_loop_object ) || ! array_key_exists( $field['id'], $query_loop_object ) ) {
 						return '';
 					}
 
@@ -433,7 +554,6 @@ class Provider_Metabox extends Base {
 
 		// STEP: is a Group sub-field (not in query loop builder)
 		if ( isset( $tag_object['parent']['id'] ) ) {
-
 			$parent_field_value = rwmb_get_value( $tag_object['parent']['id'], $get_args, $this->get_object_id( $field, $post_id ) );
 
 			// If field is clonable, get the first row
@@ -451,7 +571,6 @@ class Provider_Metabox extends Base {
 	 *
 	 * @param array $field
 	 * @param int   $post_id
-	 * @return void
 	 */
 	public function get_object_id( $field, $post_id ) {
 		$object_type = $field['_brx_object_type'];
@@ -478,7 +597,6 @@ class Provider_Metabox extends Base {
 		}
 
 		if ( $object_type == 'user' ) {
-
 			if ( is_a( $queried_object, 'WP_User' ) && isset( $queried_object->ID ) ) {
 				return $queried_object->ID;
 			}
@@ -486,7 +604,6 @@ class Provider_Metabox extends Base {
 			return get_current_user_id();
 		}
 
-		// By default
 		return $post_id;
 	}
 
@@ -511,13 +628,18 @@ class Provider_Metabox extends Base {
 
 		if ( $looping_query_id ) {
 			$loop_query_object_type = \Bricks\Query::get_query_object_type( $looping_query_id );
+			$loop_object_type       = \Bricks\Query::get_loop_object_type( $looping_query_id );
 
 			// Maybe it is a nested relationship or nested group
 			if ( array_key_exists( $loop_query_object_type, $this->loop_tags ) ) {
-
 				$loop_object = \Bricks\Query::get_loop_object( $looping_query_id );
 
 				if ( is_array( $loop_object ) && array_key_exists( $field['id'], $loop_object ) ) {
+					// Non-cloneable nested group field: $loop_object[ $field['id'] ] is considered as a single result (@since 1.6.2)
+					if ( ! $field['clone'] ) {
+						return [ $loop_object[ $field['id'] ] ];
+					}
+
 					return $loop_object[ $field['id'] ];
 				}
 
@@ -528,8 +650,12 @@ class Provider_Metabox extends Base {
 				}
 			}
 
-			// Or maybe it is a post loop
-			elseif ( $loop_query_object_type === 'post' ) {
+			/**
+			 * Check: Is it a post loop?
+			 *
+			 * @since 1.7: use $loop_object_type instead of $loop_query_object_type so that it works with user custom queries via PHP filters
+			 */
+			elseif ( $loop_object_type === 'post' ) {
 				$post_id      = get_the_ID();
 				$mb_object_id = $post_id;
 			}
@@ -556,7 +682,6 @@ class Provider_Metabox extends Base {
 			] as $object_type => $object_class ) {
 
 				foreach ( [ 'from', 'to' ] as $direction ) {
-
 					// Queried object type is the same as the field direction object type
 					if ( is_a( $queried_object, $object_class ) && $field[ $direction ]['object_type'] == $object_type ) {
 
@@ -595,7 +720,13 @@ class Provider_Metabox extends Base {
 			return [];
 		}
 
-		return isset( $results[0] ) ? $results : [ $results ];
+		// Check if the first array key is numeric (@since 1.5.3)
+		if ( is_array( $results ) ) {
+			reset( $results );
+			$first_key = key( $results );
+		}
+
+		return isset( $first_key ) && is_numeric( $first_key ) ? $results : [ $results ];
 	}
 
 	/**
@@ -642,6 +773,8 @@ class Provider_Metabox extends Base {
 			'select_advanced'   => [ self::CONTEXT_TEXT ],
 			'radio'             => [ self::CONTEXT_TEXT ],
 			'select'            => [ self::CONTEXT_TEXT ],
+			'image_select'      => [ self::CONTEXT_TEXT ], // @since 1.6.2
+			'switch'            => [ self::CONTEXT_TEXT ], // @since 1.5.5
 			'url'               => [ self::CONTEXT_TEXT, self::CONTEXT_LINK ],
 
 			// Advanced
@@ -678,5 +811,30 @@ class Provider_Metabox extends Base {
 		];
 
 		return $fields;
+	}
+
+	/**
+	 * Inside Query Loop: Change $post value so it could be used inside of the MB view
+	 *
+	 * @since 1.5.3
+	 */
+	public static function mb_views_post_data( $data, $twig ) {
+		if ( ! \Bricks\Query::is_looping() || \Bricks\Query::get_loop_object_type() !== 'post' ) {
+			return $data;
+		}
+
+		// Get the iteration $post object
+		$loop_object = \Bricks\Query::get_loop_object();
+
+		// Init of the MB Views logic to prepare the post data
+		// @see meta-box-aio/vendor/meta-box/mb-views/src/Renderer.php: get_post_data()
+		$meta_box_renderer = new \MBViews\Renderer\MetaBox();
+		$post_object       = new \MBViews\Renderer\Post( $meta_box_renderer );
+		$post_object->set_post( $loop_object );
+
+		// Replace the value in the mb views data array
+		$data['post'] = $post_object;
+
+		return $data;
 	}
 }

@@ -13,12 +13,6 @@ class Product_Rating extends Element {
 	}
 
 	public function set_controls() {
-		$this->controls['noRatingsText'] = [
-			'tab'   => 'content',
-			'label' => esc_html__( 'No ratings text', 'bricks' ),
-			'type'  => 'text',
-		];
-
 		$this->controls['starColor'] = [
 			'tab'   => 'content',
 			'label' => esc_html__( 'Star color', 'bricks' ),
@@ -43,18 +37,38 @@ class Product_Rating extends Element {
 			],
 		];
 
-		// Show Reviews Link
+		/**
+		 * Show Reviews Link
+		 *
+		 * Disable the output of reviews link instead of hiding it (@see Woocommerce_Helpers::render_product_rating)
+		 *
+		 * @since 1.8
+		 */
 		$this->controls['hideReviewsLink'] = [
 			'tab'   => 'content',
 			'label' => esc_html__( 'Hide reviews link', 'bricks' ),
 			'type'  => 'checkbox',
-			'css'   => [
-				[
-					'selector' => '.woocommerce-review-link',
-					'property' => 'display',
-					'value'    => 'none',
-				],
-			],
+		];
+
+		// NO RATINGS
+
+		$this->controls['noRatings'] = [
+			'tab'   => 'content',
+			'label' => esc_html__( 'No ratings', 'bricks' ),
+			'type'  => 'separator',
+		];
+
+		$this->controls['noRatingsText'] = [
+			'tab'      => 'content',
+			'label'    => esc_html__( 'Text', 'bricks' ),
+			'type'     => 'text',
+			'required' => [ 'noRatingsStars', '=', '' ],
+		];
+
+		$this->controls['noRatingsStars'] = [
+			'tab'   => 'content',
+			'label' => esc_html__( 'Show empty stars', 'bricks' ),
+			'type'  => 'checkbox',
 		];
 	}
 
@@ -81,18 +95,26 @@ class Product_Rating extends Element {
 			);
 		}
 
-		$rating_count = $product->get_rating_count();
+		$show_empty_stars  = isset( $settings['noRatingsStars'] );
+		$hide_reviews_link = isset( $settings['hideReviewsLink'] );
 
 		echo "<div {$this->render_attributes( '_root' )}>";
 
-		if ( $rating_count ) {
-			wc_get_template( 'single-product/rating.php' );
+		if ( $show_empty_stars || $product->get_rating_count() ) {
+			$params = [
+				'wrapper'           => true,
+				'show_empty_stars'  => $show_empty_stars,
+				'hide_reviews_link' => $hide_reviews_link,
+			];
+
+			Woocommerce_Helpers::render_product_rating( $product, $params );
+		}
+
+		// No ratings txt
+		elseif ( ! empty( $settings['noRatingsText'] ) ) {
+			echo $settings['noRatingsText'];
 		} else {
-			if ( ! empty( $settings['noRatingsText'] ) ) {
-				echo $settings['noRatingsText'];
-			} else {
-				$this->render_element_placeholder( [ 'title' => esc_html__( 'No ratings yet.', 'bricks' ) ] );
-			}
+			$this->render_element_placeholder( [ 'title' => esc_html__( 'No ratings yet.', 'bricks' ) ] );
 		}
 
 		echo '</div>';

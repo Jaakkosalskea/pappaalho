@@ -11,12 +11,12 @@ $active_theme      = wp_get_theme();
 
 $theme_information['theme_name'] = [
 	'label' => esc_html__( 'Theme name', 'bricks' ),
-	'data'  => $active_theme->Name,
+	'data'  => $active_theme->Name, // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 ];
 
 $theme_information['theme_version'] = [
 	'label' => esc_html__( 'Theme version', 'bricks' ),
-	'data'  => $active_theme->Version,
+	'data'  => $active_theme->Version, // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 ];
 
 $theme_information['theme_author'] = [
@@ -35,16 +35,16 @@ $theme_information['theme_is_child_theme'] = [
 ];
 
 if ( is_child_theme() ) {
-	$parent_theme = wp_get_theme( $active_theme->Template );
+	$parent_theme = wp_get_theme( $active_theme->Template ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 
 	$theme_information['parent_theme_name'] = [
 		'label' => esc_html__( 'Parent theme name', 'bricks' ),
-		'data'  => $parent_theme->Name,
+		'data'  => $parent_theme->Name, // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 	];
 
 	$theme_information['parent_theme_version'] = [
 		'label' => esc_html__( 'Parent theme version', 'bricks' ),
-		'data'  => $parent_theme->Version,
+		'data'  => $parent_theme->Version, // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 	];
 
 	$theme_information['parent_theme_uri'] = [
@@ -98,60 +98,44 @@ $wp_environment['wp_multisite'] = [
 	'data'  => is_multisite() ? '<span class="dashicons dashicons-yes"></span>' : '<span class="dashicons dashicons-minus"></span>',
 ];
 
-function bricks_let_to_num( $v ) {
-	$l   = substr( $v, -1 );
-	$ret = substr( $v, 0, -1 );
-
-	switch ( strtoupper( $l ) ) {
-		case 'P':
-		case 'T':
-		case 'G':
-		case 'M':
-		case 'K':
-			$ret *= 1024;
-			break;
-		default:
-			break;
-	}
-
-	return $ret;
-}
-
-$memory_limit = bricks_let_to_num( WP_MEMORY_LIMIT ) / 1024;
+// Use wp_convert_hr_to_bytes() + size_format() instead of bricks_let_to_num (@since 1.8)
+$memory_limit = wp_convert_hr_to_bytes( WP_MEMORY_LIMIT );
 
 $wp_environment['wp_memory_limit'] = [
 	'label' => esc_html__( 'WP memory limit', 'bricks' ),
-	'data'  => '<span class="' . ( $memory_limit >= 64 ? 'text-success' : 'text-warning' ) . '">' . $memory_limit . 'MB' . ( $memory_limit >= 64 ? '' : ' - ' . esc_html__( 'Recommended wp_memory_limit: 64M (or more)', 'bricks' ) ) . '</span><a href="https://academy.bricksbuilder.io/article/requirements/#wp-memory-limit" target="_blank" rel="noopener"><i class="dashicons dashicons-editor-help"></i></a>',
+	'data'  => sprintf(
+		'<span class="%s">%s</span>%s',
+		$memory_limit >= wp_convert_hr_to_bytes( '64M' ) ? 'text-success' : 'text-warning',
+		size_format( $memory_limit ),
+		$memory_limit >= wp_convert_hr_to_bytes( '64M' ) ? '' : ' - ' . esc_html__( 'Recommended wp_memory_limit: 64M (or more)', 'bricks' ) . '<a href="https://academy.bricksbuilder.io/article/requirements/#wp-memory-limit" target="_blank" rel="noopener"><i class="dashicons dashicons-editor-help"></i></a>'
+	),
 ];
-?>
 
-<?php
 // Server Environment
 $server_environment = [];
 
 $server_environment['server_info'] = [
 	'label' => esc_html__( 'Server info', 'bricks' ),
-	'data'  => $_SERVER['SERVER_SOFTWARE'],
+	'data'  => $_SERVER['SERVER_SOFTWARE'] ?? '',
 ];
 
 global $wpdb;
 
-if ( $wpdb->use_mysqli ) {
-	$mysql_version = @mysqli_get_server_info( $wpdb->dbh );
-} else {
-	$mysql_version = @mysql_get_server_info();
-}
-
 $server_environment['server_mysql_version'] = [
 	'label' => esc_html__( 'MySQL version', 'bricks' ),
-	'data'  => $mysql_version,
+	'data'  => $wpdb->db_version(),
 ];
 
 if ( function_exists( 'phpversion' ) ) {
 	$php_version                              = phpversion();
 	$server_environment['server_php_version'] = [
 		'label' => esc_html__( 'PHP version', 'bricks' ),
-		'data'  => '<span class="' . ( $php_version >= 5.4 ? 'text-success' : 'text-danger' ) . '">' . $php_version . ( $php_version >= 5.4 ? '' : ' - ' . esc_html__( 'Min. PHP version to run Bricks is PHP 5.4', 'bricks' ) ) . '</span>',
+		'data'  => sprintf(
+			'<span class="%s">%s</span>%s',
+			$php_version >= 5.4 ? 'text-success' : 'text-warning',
+			$php_version,
+			$php_version >= 5.4 ? '' : ' - ' . esc_html__( 'Min. PHP version to run Bricks is PHP 5.4', 'bricks' )
+		),
 	];
 }
 
@@ -164,7 +148,12 @@ $max_execution_time = ini_get( 'max_execution_time' );
 
 $server_environment['server_php_time_limit'] = [
 	'label' => esc_html__( 'PHP execution time limit', 'bricks' ),
-	'data'  => '<span class="' . ( $max_execution_time >= 180 ? 'text-success' : 'text-warning' ) . '">' . $max_execution_time . ( $max_execution_time >= 180 ? '' : ' - ' . esc_html__( 'Recommended max_execution_time: 180 (or more)', 'bricks' ) ) . '</span><a href="https://academy.bricksbuilder.io/article/requirements/#max-execution-time" target="_blank" rel="noopener"><i class="dashicons dashicons-editor-help"></i></a>',
+	'data'  => sprintf(
+		'<span class="%s">%s</span>%s',
+		$max_execution_time >= 180 ? 'text-success' : 'text-warning',
+		$max_execution_time,
+		$max_execution_time >= 180 ? '' : ' - ' . esc_html__( 'Recommended max_execution_time: 180 (or more)', 'bricks' ) . '<a href="https://academy.bricksbuilder.io/article/requirements/#max-execution-time" target="_blank" rel="noopener"><i class="dashicons dashicons-editor-help"></i></a>'
+	),
 ];
 
 $server_environment['server_php_max_input_vars'] = [
@@ -182,10 +171,18 @@ $server_environment['server_php_memory_limit'] = [
 	'data'  => ini_get( 'memory_limit' ),
 ];
 
+$upload_max_filesize = ini_get( 'upload_max_filesize' );
+
 $server_environment['server_php_upload_max_filesize'] = [
 	'label' => esc_html__( 'PHP max upload file size', 'bricks' ),
-	'data'  => '<span class="' . ( (int) ini_get( 'upload_max_filesize' ) >= 16 ? 'text-success' : 'text-danger' ) . '">' . ini_get( 'upload_max_filesize' ) . ( (int) ini_get( 'upload_max_filesize' ) >= 16 ? '' : ' - ' . esc_html__( 'Recommended upload_max_filesize: 16M (or more)', 'bricks' ) ) . '</span><a href="https://academy.bricksbuilder.io/article/requirements/#max-file-upload-size" target="_blank" rel="noopener"><i class="dashicons dashicons-editor-help"></i></a>',
+	'data'  => sprintf(
+		'<span class="%s">%s</span>%s',
+		wp_convert_hr_to_bytes( $upload_max_filesize ) >= wp_convert_hr_to_bytes( '16M' ) ? 'text-success' : 'text-danger',
+		$upload_max_filesize,
+		wp_convert_hr_to_bytes( $upload_max_filesize ) >= wp_convert_hr_to_bytes( '16M' ) ? '' : ' - ' . esc_html__( 'Recommended upload_max_filesize: 16M (or more)', 'bricks' ) . '<a href="https://academy.bricksbuilder.io/article/requirements/#max-file-upload-size" target="_blank" rel="noopener"><i class="dashicons dashicons-editor-help"></i></a>'
+	),
 ];
+
 ?>
 
 <?php
@@ -272,14 +269,63 @@ foreach ( $get_plugins as $plugin_path => $plugin ) {
 			</tr>
 		</thead>
 		<tbody>
-	  <?php foreach ( $active_plugins as $plugin_data ) { ?>
-		<tr>
-		  <td class="label"><?php echo esc_html( $plugin_data['name'] . ' (' . $plugin_data['version'] . ')' ); ?></td>
-		  <td><?php esc_html_e( 'by', 'bricks' ); ?> <a href="<?php echo esc_url( $plugin_data['uri'] ); ?>" target="_blank"><?php echo $plugin_data['author']; ?></a></td>
-		</tr>
-	  <?php } ?>
-	</tbody>
+			<?php foreach ( $active_plugins as $plugin_data ) { ?>
+			<tr>
+				<td class="label"><?php echo esc_html( $plugin_data['name'] . ' (' . $plugin_data['version'] . ')' ); ?></td>
+				<td><?php esc_html_e( 'by', 'bricks' ); ?> <a href="<?php echo esc_url( $plugin_data['uri'] ); ?>" target="_blank"><?php echo $plugin_data['author']; ?></a></td>
+			</tr>
+			<?php } ?>
+		</tbody>
 	</table>
 
 	<!-- <textarea id="bricks-system-information-output" cols="30" rows="10" readonly></textarea> -->
+
+	<?php if ( isset( $_GET['database'] ) ) { ?>
+	<table class="widefat" cellspacing="0">
+		<thead>
+			<tr>
+				<th colspan="3"><?php esc_html_e( 'Database', 'bricks' ); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+			<?php $bricks_global_classes_changes = get_option( 'bricks_global_classes_changes', [] ); ?>
+			<tr>
+				<td class="label">bricks_global_classes_changes (<?php echo count( $bricks_global_classes_changes ); ?>)</td>
+				<td>
+				<?php
+				// Last 25 global classes changes (newest first)
+				if ( is_array( $bricks_global_classes_changes ) && count( $bricks_global_classes_changes ) ) {
+					foreach ( array_reverse( $bricks_global_classes_changes ) as $global_classes_change ) {
+						if ( ! is_array( $global_classes_change ) ) {
+							continue;
+						}
+
+						foreach ( $global_classes_change as $key => $value ) {
+							if ( $key === 'timestamp' ) {
+								$value = wp_date( get_option( 'date_format' ) . ' (' . get_option( 'time_format' ) . ')', $value );
+							} elseif ( $key === 'user_id' ) {
+								$user  = get_user_by( 'ID', $value );
+								$value = $user ? $value . " (user_login: {$user->user_login})" : $value;
+							}
+
+							// New value is empty: Global classes deleted
+							elseif ( $key === 'new_count' && $value == 0 ) {
+								echo "<div style='color: red'><strong>$key</strong>: $value</div>";
+								continue;
+							}
+
+							echo "<strong>$key</strong>: $value<br>";
+						}
+
+						echo '<hr>';
+					}
+				} else {
+					echo '-';
+				}
+				?>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	<?php } ?>
 </div>

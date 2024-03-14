@@ -25,6 +25,49 @@ class Element_Post_Taxonomy extends Element {
 			'default'   => 'post_tag',
 		];
 
+		$this->controls['linkDisable'] = [
+			'tab'   => 'content',
+			'label' => esc_html__( 'Disable link', 'bricks' ),
+			'type'  => 'checkbox',
+		];
+
+		$this->controls['separator'] = [
+			'tab'    => 'content',
+			'label'  => esc_html__( 'Separator', 'bricks' ),
+			'type'   => 'text',
+			'inline' => true,
+		];
+
+		$term_order_by = Setup::$control_options['termsOrderBy'];
+		unset( $term_order_by['include'] ); // Not needed in this element
+
+		$this->controls['orderby'] = [
+			'tab'         => 'content',
+			'label'       => esc_html__( 'Order by', 'bricks' ),
+			'type'        => 'select',
+			'inline'      => true,
+			'options'     => $term_order_by,
+			'placeholder' => esc_html__( 'Name', 'bricks' ),
+		];
+
+		$this->controls['order'] = [
+			'tab'         => 'content',
+			'label'       => esc_html__( 'Order', 'bricks' ),
+			'type'        => 'select',
+			'inline'      => true,
+			'options'     => Setup::$control_options['queryOrder'],
+			'placeholder' => esc_html__( 'Ascending', 'bricks' ),
+		];
+
+		$this->controls['size'] = [
+			'label'       => esc_html__( 'Size', 'bricks' ),
+			'type'        => 'select',
+			'options'     => $this->control_options['buttonSizes'],
+			'inline'      => true,
+			'reset'       => true,
+			'placeholder' => esc_html__( 'Default', 'bricks' ),
+		];
+
 		$this->controls['style'] = [
 			'tab'         => 'content',
 			'label'       => esc_html__( 'Style', 'bricks' ),
@@ -60,16 +103,22 @@ class Element_Post_Taxonomy extends Element {
 		$settings = $this->settings;
 
 		global $post;
-		$post = get_post( $this->post_id );
 
+		$post     = get_post( $this->post_id );
 		$taxonomy = isset( $settings['taxonomy'] ) ? $settings['taxonomy'] : 'post_tag';
+		$args     = [
+			'fields'  => 'all',
+			'orderby' => ! empty( $settings['orderby'] ) ? $settings['orderby'] : 'name',
+			'order'   => ! empty( $settings['order'] ) ? $settings['order'] : 'ASC',
+		];
 
-		$terms = wp_get_post_terms( get_the_ID(), $taxonomy, [ 'fields' => 'all' ] );
+		$terms = wp_get_post_terms( get_the_ID(), $taxonomy, $args );
 		$terms = wp_list_filter( $terms, [ 'slug' => 'uncategorized' ], 'NOT' );
 
 		if ( ! count( $terms ) ) {
 			return $this->render_element_placeholder(
 				[
+					// translators: %s is the taxonomy name
 					'title' => sprintf( esc_html__( 'This post has no %s terms.', 'bricks' ), ucfirst( get_taxonomy( $taxonomy )->name ) ),
 				]
 			);
@@ -77,24 +126,51 @@ class Element_Post_Taxonomy extends Element {
 
 		$this->set_attribute( '_root', 'class', sanitize_html_class( $taxonomy ) );
 
-		echo "<ul {$this->render_attributes( '_root' )}>";
+		if ( ! empty( $settings['separator'] ) ) {
+			$this->set_attribute( '_root', 'class', 'separator' );
+		}
+
+		$root_tag = empty( $settings['separator'] ) ? 'ul' : 'div';
+
+		echo "<$root_tag {$this->render_attributes( '_root' )}>";
+
+		$output = '';
 
 		$icon = ! empty( $settings['icon'] ) ? self::render_icon( $settings['icon'] ) : false;
 
 		foreach ( $terms as $index => $term_id ) {
 			$term_object = get_term( $term_id );
 
-			$button_classes = [ 'bricks-button' ];
+			if ( empty( $settings['separator'] ) ) {
+				$button_classes = [ 'bricks-button' ];
 
-			if ( ! empty( $settings['style'] ) ) {
-				$button_classes[] = "bricks-background-{$settings['style']}";
+				if ( ! empty( $settings['size'] ) ) {
+					$button_classes[] = $settings['size'];
+				}
+
+				if ( ! empty( $settings['style'] ) ) {
+					$button_classes[] = "bricks-background-{$settings['style']}";
+				}
+
+				$this->set_attribute( "a-$index", 'class', $button_classes );
 			}
 
-			$this->set_attribute( "a-$index", 'class', $button_classes );
-			$this->set_attribute( "a-$index", 'href', get_term_link( $term_id ) );
+			$html_tag = 'a';
 
-			$output  = '<li>';
-			$output .= "<a {$this->render_attributes( "a-$index" )}>";
+			// Disable link and use <span> instead (@since 1.7.2)
+			if ( isset( $settings['linkDisable'] ) ) {
+				$html_tag = empty( $settings['separator'] ) ? 'span' : '';
+			} else {
+				$this->set_attribute( "a-$index", 'href', get_term_link( $term_id ) );
+			}
+
+			if ( empty( $settings['separator'] ) ) {
+				$output .= '<li>';
+			}
+
+			if ( $html_tag ) {
+				$output .= "<$html_tag {$this->render_attributes( "a-$index" )}>";
+			}
 
 			if ( $icon ) {
 				$output .= $icon . '<span>';
@@ -102,16 +178,31 @@ class Element_Post_Taxonomy extends Element {
 
 			$output .= $term_object->name;
 
+			// Add separator (@since 1.7.2)
+			if ( $html_tag !== 'a' && ! empty( $settings['separator'] ) && $index !== count( $terms ) - 1 ) {
+				$output .= $settings['separator'];
+			}
+
 			if ( $icon ) {
 				$output .= '</span>';
 			}
 
-			$output .= '</a>';
-			$output .= '</li>';
+			if ( $html_tag ) {
+				$output .= "</$html_tag>";
+			}
 
-			echo $output;
+			// Add separator (@since 1.7.2)
+			if ( $html_tag === 'a' && ! empty( $settings['separator'] ) && $index !== count( $terms ) - 1 ) {
+				$output .= '<span>' . $settings['separator'] . '</span>';
+			}
+
+			if ( empty( $settings['separator'] ) ) {
+				$output .= '</li>';
+			}
 		}
 
-		echo '</ul>';
+		echo $output;
+
+		echo "</$root_tag>";
 	}
 }

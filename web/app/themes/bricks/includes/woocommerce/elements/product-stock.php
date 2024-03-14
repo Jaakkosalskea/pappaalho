@@ -84,7 +84,7 @@ class Product_Stock extends Element {
 			'css'   => [
 				[
 					'property' => 'font',
-					'selector' => '.low-stock',
+					'selector' => '.low-stock, .available-on-backorder',
 				],
 			],
 		];
@@ -97,7 +97,7 @@ class Product_Stock extends Element {
 			'css'   => [
 				[
 					'property' => 'background-color',
-					'selector' => '.low-stock',
+					'selector' => '.low-stock, .available-on-backorder',
 				]
 			],
 		];
@@ -175,21 +175,36 @@ class Product_Stock extends Element {
 	}
 
 	public function woocommerce_get_availability( $availability, $product ) {
-		$settings = $this->settings;
+		$settings        = $this->settings;
+		$stock_quantity  = $product->get_stock_quantity();
+		$is_manage_stock = $product->managing_stock();
 
-		$stock_quantity   = $product->get_stock_quantity();
-		$low_stock_amount = $product->get_low_stock_amount();
+		// Low stock amount should consider product level and WC Low stock threshold (@since 1.8.3)
+		$product_low_stock_amount = $product->get_low_stock_amount(); // Maybe zero or empty string, can't use absint here or "0" will be ignored
+		$wc_low_stock_amount      = absint( max( get_option( 'woocommerce_notify_low_stock_amount' ), 0 ) );
 
-		if ( $product->is_in_stock() && $stock_quantity <= $low_stock_amount ) {
+		// If product level is not set, use WC Low stock threshold
+		$low_stock_amount = $product_low_stock_amount === '' ? $wc_low_stock_amount : absint( $product_low_stock_amount );
+
+		// Set availability class if stock is low and only if stock management is enabled, is_in_stock will be true if not managing stock (@since 1.8.3)
+		if ( $product->is_in_stock() && $stock_quantity <= $low_stock_amount && $is_manage_stock ) {
 			$availability['class'] = 'low-stock';
 		}
 
-		if ( ! empty( $settings['inStockText'] ) && $availability['class'] === 'in-stock' ) {
-			$availability['availability'] = $settings['inStockText'];
-		} elseif ( ! empty( $settings['lowStockText'] ) && $availability['class'] === 'low-stock' ) {
-			$availability['availability'] = $settings['lowStockText'];
-		} elseif ( ! empty( $settings['outOfStockText'] ) && $availability['class'] === 'out-of-stock' ) {
-			$availability['availability'] = $settings['outOfStockText'];
+		// Set availability text based on user input (@since 1.8.2)
+		switch ( $availability['class'] ) {
+			case 'in-stock':
+				$availability['availability'] = ! empty( $settings['inStockText'] ) && $is_manage_stock ? $settings['inStockText'] : $availability['availability'];
+				break;
+
+			case 'available-on-backorder':
+			case 'low-stock':
+				$availability['availability'] = ! empty( $settings['lowStockText'] ) ? $settings['lowStockText'] : $availability['availability'];
+				break;
+
+			case 'out-of-stock':
+				$availability['availability'] = ! empty( $settings['outOfStockText'] ) ? $settings['outOfStockText'] : $availability['availability'];
+				break;
 		}
 
 		return $availability;

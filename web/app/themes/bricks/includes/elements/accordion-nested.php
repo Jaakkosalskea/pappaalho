@@ -30,6 +30,7 @@ class Element_Accordion_Nested extends Element {
 			'type'          => 'repeater',
 			'titleProperty' => 'label',
 			'items'         => 'children', // NOTE: Undocumented
+			'description'   => esc_html__( 'Set "ID" on items above to open via anchor link.', 'bricks' ) . ' ' . esc_html__( 'No spaces. No pound (#) sign.', 'bricks' ),
 		];
 
 		$this->controls['expandFirstItem'] = [
@@ -38,8 +39,9 @@ class Element_Accordion_Nested extends Element {
 		];
 
 		$this->controls['independentToggle'] = [
-			'label' => esc_html__( 'Independent toggle', 'bricks' ),
-			'type'  => 'checkbox',
+			'label'       => esc_html__( 'Independent toggle', 'bricks' ),
+			'type'        => 'checkbox',
+			'description' => esc_html__( 'Enable to open & close an item without toggling other items.', 'bricks' ),
 		];
 
 		$this->controls['transition'] = [
@@ -67,7 +69,7 @@ class Element_Accordion_Nested extends Element {
 		$this->controls['titleMargin'] = [
 			'group' => 'title',
 			'label' => esc_html__( 'Margin', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'margin',
@@ -79,7 +81,7 @@ class Element_Accordion_Nested extends Element {
 		$this->controls['titlePadding'] = [
 			'group' => 'title',
 			'label' => esc_html__( 'Padding', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'padding',
@@ -131,9 +133,10 @@ class Element_Accordion_Nested extends Element {
 		// ACTIVE TITLE
 
 		$this->controls['titleActiveSeparator'] = [
-			'group' => 'title',
-			'label' => esc_html__( 'Active', 'bricks' ),
-			'type'  => 'separator',
+			'group'      => 'title',
+			'label'      => esc_html__( 'Active', 'bricks' ),
+			'type'       => 'separator',
+			'fullAccess' => true,
 		];
 
 		$this->controls['titleActiveBackgroundColor'] = [
@@ -181,7 +184,7 @@ class Element_Accordion_Nested extends Element {
 		$this->controls['contentMargin'] = [
 			'group' => 'content',
 			'label' => esc_html__( 'Margin', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'margin',
@@ -193,7 +196,7 @@ class Element_Accordion_Nested extends Element {
 		$this->controls['contentPadding'] = [
 			'group'   => 'content',
 			'label'   => esc_html__( 'Padding', 'bricks' ),
-			'type'    => 'dimensions',
+			'type'    => 'spacing',
 			'css'     => [
 				[
 					'property' => 'padding',
@@ -320,7 +323,7 @@ class Element_Accordion_Nested extends Element {
 			$item = $this->get_nestable_item();
 
 			// Replace {item_index} with $index
-			$item       = json_encode( $item );
+			$item       = wp_json_encode( $item );
 			$item       = str_replace( '{item_index}', $i + 1, $item );
 			$item       = json_decode( $item, true );
 			$children[] = $item;

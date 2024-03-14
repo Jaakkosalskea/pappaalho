@@ -13,50 +13,47 @@ class Element_List extends Element {
 	}
 
 	public function set_control_groups() {
-		$this->control_groups['items'] = [
-			'title' => esc_html__( 'Items', 'bricks' ),
-			'tab'   => 'content',
-		];
-
 		$this->control_groups['item'] = [
 			'title' => esc_html__( 'List item', 'bricks' ),
-			'tab'   => 'content',
 		];
 
 		$this->control_groups['highlight'] = [
 			'title' => esc_html__( 'Highlight', 'bricks' ),
-			'tab'   => 'content',
+		];
+
+		$this->control_groups['icon'] = [
+			'title' => esc_html__( 'Icon', 'bricks' ),
 		];
 
 		$this->control_groups['title'] = [
 			'title' => esc_html__( 'Title', 'bricks' ),
-			'tab'   => 'content',
 		];
 
 		$this->control_groups['meta'] = [
 			'title' => esc_html__( 'Meta', 'bricks' ),
-			'tab'   => 'content',
 		];
 
 		$this->control_groups['description'] = [
 			'title' => esc_html__( 'Description', 'bricks' ),
-			'tab'   => 'content',
 		];
 
 		$this->control_groups['separator'] = [
 			'title' => esc_html__( 'Separator', 'bricks' ),
-			'tab'   => 'content',
 		];
 	}
 
 	public function set_controls() {
 		$this->controls['items'] = [
-			'tab'           => 'content',
-			'group'         => 'items',
-			'placeholder'   => esc_html__( 'List items', 'bricks' ),
+			'label'         => esc_html__( 'List items', 'bricks' ),
 			'type'          => 'repeater',
+			'selector'      => 'li',
 			'titleProperty' => 'title',
 			'fields'        => [
+				'icon'           => [
+					'label' => esc_html__( 'Icon', 'bricks' ),
+					'type'  => 'icon',
+				],
+
 				'title'          => [
 					'label' => esc_html__( 'Title', 'bricks' ),
 					'type'  => 'text',
@@ -108,7 +105,7 @@ class Element_List extends Element {
 		$this->controls['itemJustifyContent'] = [
 			'tab'   => 'content',
 			'group' => 'item',
-			'label' => esc_html__( 'Alignment', 'bricks' ),
+			'label' => esc_html__( 'Justify content', 'bricks' ),
 			'type'  => 'justify-content',
 			'css'   => [
 				[
@@ -122,11 +119,29 @@ class Element_List extends Element {
 			],
 		];
 
+		$this->controls['itemAlignItems'] = [
+			'tab'     => 'content',
+			'group'   => 'item',
+			'label'   => esc_html__( 'Align items', 'bricks' ),
+			'type'    => 'align-items',
+			'css'     => [
+				[
+					'property' => 'align-items',
+					'selector' => '.content',
+				],
+				[
+					'property' => 'align-items',
+					'selector' => '.description',
+				],
+			],
+			'exclude' => [ 'stretch' ],
+		];
+
 		$this->controls['itemMargin'] = [
 			'tab'   => 'content',
 			'group' => 'item',
 			'label' => esc_html__( 'Margin', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'margin',
@@ -139,7 +154,7 @@ class Element_List extends Element {
 			'tab'   => 'content',
 			'group' => 'item',
 			'label' => esc_html__( 'Padding', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'padding',
@@ -228,7 +243,7 @@ class Element_List extends Element {
 			'tab'   => 'content',
 			'group' => 'highlight',
 			'label' => esc_html__( 'Padding', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'padding',
@@ -287,7 +302,7 @@ class Element_List extends Element {
 			'tab'   => 'content',
 			'group' => 'highlight',
 			'label' => esc_html__( 'Padding', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'padding',
@@ -344,6 +359,126 @@ class Element_List extends Element {
 		];
 
 		/**
+		 * Icon
+		 */
+
+		$this->controls['icon'] = [
+			'tab'   => 'content',
+			'group' => 'icon',
+			'label' => esc_html__( 'Icon', 'bricks' ),
+			'type'  => 'icon',
+		];
+
+		$this->controls['iconAfterTitle'] = [
+			'tab'   => 'content',
+			'group' => 'icon',
+			'label' => esc_html__( 'After title', 'bricks' ),
+			'type'  => 'checkbox',
+		];
+
+		$this->controls['iconWidth'] = [
+			'tab'   => 'content',
+			'group' => 'icon',
+			'label' => esc_html__( 'Width', 'bricks' ),
+			'type'  => 'number',
+			'units' => true,
+			'css'   => [
+				[
+					'property' => 'width',
+					'selector' => '.icon',
+				],
+			],
+		];
+
+		$this->controls['iconHeight'] = [
+			'tab'   => 'content',
+			'group' => 'icon',
+			'label' => esc_html__( 'Height', 'bricks' ),
+			'type'  => 'number',
+			'units' => true,
+			'css'   => [
+				[
+					'property' => 'height',
+					'selector' => '.icon',
+				],
+			],
+		];
+
+		$this->controls['iconSize'] = [
+			'tab'   => 'content',
+			'group' => 'icon',
+			'label' => esc_html__( 'Size', 'bricks' ),
+			'type'  => 'number',
+			'units' => true,
+			'css'   => [
+				[
+					'property' => 'font-size',
+					'selector' => '.icon',
+				],
+				[
+					'property' => 'height',
+					'selector' => '.icon svg',
+				],
+				[
+					'property' => 'width',
+					'selector' => '.icon svg',
+				],
+			],
+		];
+
+		$this->controls['iconColor'] = [
+			'tab'   => 'content',
+			'group' => 'icon',
+			'label' => esc_html__( 'Color', 'bricks' ),
+			'type'  => 'color',
+			'css'   => [
+				[
+					'property' => 'color',
+					'selector' => '.icon',
+				],
+			],
+		];
+
+		$this->controls['iconBackgroundColor'] = [
+			'tab'   => 'content',
+			'group' => 'icon',
+			'label' => esc_html__( 'Background color', 'bricks' ),
+			'type'  => 'color',
+			'css'   => [
+				[
+					'property' => 'background-color',
+					'selector' => '.icon',
+				],
+			],
+		];
+
+		$this->controls['iconBorder'] = [
+			'tab'   => 'content',
+			'group' => 'icon',
+			'label' => esc_html__( 'Border', 'bricks' ),
+			'type'  => 'border',
+			'css'   => [
+				[
+					'property' => 'border',
+					'selector' => '.icon',
+				],
+			],
+		];
+
+		$this->controls['iconBoxShadow'] = [
+			'tab'   => 'content',
+			'group' => 'icon',
+			'label' => esc_html__( 'Box shadow', 'bricks' ),
+			'type'  => 'box-shadow',
+			'css'   => [
+				[
+					'property' => 'box-shadow',
+					'selector' => '.icon',
+				],
+			],
+		];
+
+		/**
 		 * Title
 		 */
 
@@ -351,7 +486,7 @@ class Element_List extends Element {
 			'tab'   => 'content',
 			'group' => 'title',
 			'label' => esc_html__( 'Margin', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'margin',
@@ -361,19 +496,13 @@ class Element_List extends Element {
 		];
 
 		$this->controls['titleTag'] = [
-			'tab'         => 'content',
-			'group'       => 'title',
-			'label'       => esc_html__( 'Tag', 'bricks' ),
-			'type'        => 'select',
-			'options'     => [
-				'h2' => esc_html__( 'Heading 2 (h2)', 'bricks' ),
-				'h3' => esc_html__( 'Heading 3 (h3)', 'bricks' ),
-				'h4' => esc_html__( 'Heading 4 (h4)', 'bricks' ),
-				'h5' => esc_html__( 'Heading 5 (h5)', 'bricks' ),
-				'h6' => esc_html__( 'Heading 6 (h6)', 'bricks' ),
-			],
-			'inline'      => true,
-			'placeholder' => 'span',
+			'tab'            => 'content',
+			'group'          => 'title',
+			'label'          => esc_html__( 'HTML tag', 'bricks' ),
+			'type'           => 'text',
+			'hasDynamicData' => false,
+			'inline'         => true,
+			'placeholder'    => 'span',
 		];
 
 		$this->controls['titleTypography'] = [
@@ -397,7 +526,7 @@ class Element_List extends Element {
 			'tab'   => 'content',
 			'group' => 'meta',
 			'label' => esc_html__( 'Margin', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'margin',
@@ -441,17 +570,18 @@ class Element_List extends Element {
 		 */
 
 		$this->controls['separatorDisable'] = [
-			'tab'   => 'content',
-			'group' => 'separator',
-			'label' => esc_html__( 'Disable', 'bricks' ),
-			'type'  => 'checkbox',
-			'css'   => [
+			'tab'      => 'content',
+			'group'    => 'separator',
+			'label'    => esc_html__( 'Disable', 'bricks' ),
+			'type'     => 'checkbox',
+			'css'      => [
 				[
 					'property' => 'display',
 					'selector' => '.separator',
 					'value'    => 'none',
 				],
 			],
+			'rerender' => true,
 		];
 
 		$this->controls['separatorStyle'] = [
@@ -531,10 +661,15 @@ class Element_List extends Element {
 			);
 		}
 
+		$icon = ! empty( $settings['icon'] ) ? self::render_icon( $settings['icon'] ) : false;
+
 		$output = "<ul {$this->render_attributes( '_root' )}>";
 
 		foreach ( $settings['items'] as $index => $item ) {
-			$highlight = isset( $item['highlight'] ) && ! empty( $item['highlightLabel'] ) ? $item['highlightLabel'] : false;
+			$title       = ! empty( $item['title'] ) ? $this->render_dynamic_data( $item['title'] ) : false;
+			$meta        = ! empty( $item['meta'] ) ? $this->render_dynamic_data( $item['meta'] ) : false;
+			$description = ! empty( $item['description'] ) ? $this->render_dynamic_data( $item['description'] ) : false;
+			$highlight   = isset( $item['highlight'] ) && ! empty( $item['highlightLabel'] ) ? $this->render_dynamic_data( $item['highlightLabel'] ) : false;
 
 			if ( $highlight ) {
 				$this->set_attribute( "item-$index", 'data-highlight', $highlight );
@@ -544,7 +679,14 @@ class Element_List extends Element {
 
 			$output .= '<div class="content">';
 
-			if ( ! empty( $item['title'] ) ) {
+			// Icon item precedes icon set under "Icon" control group for all items
+			$current_icon = ! empty( $item['icon'] ) ? self::render_icon( $item['icon'] ) : $icon;
+
+			if ( $current_icon && ! isset( $settings['iconAfterTitle'] ) ) {
+				$output .= '<span class="icon">' . $current_icon . '</span>';
+			}
+
+			if ( ! empty( $title ) ) {
 				$title_tag = ! empty( $settings['titleTag'] ) ? esc_attr( $settings['titleTag'] ) : 'span';
 
 				$this->set_attribute( "title-$index", $title_tag );
@@ -555,29 +697,33 @@ class Element_List extends Element {
 					$output .= "<a {$this->render_attributes( "a-$index" )}>";
 				}
 
-				$output .= "<{$this->render_attributes( "title-$index" )}>{$item['title']}</{$title_tag}>";
+				$output .= "<{$this->render_attributes( "title-$index" )}>{$title}</{$title_tag}>";
 
 				if ( ! empty( $item['link'] ) ) {
 					$output .= '</a>';
 				}
 			}
 
+			if ( $current_icon && isset( $settings['iconAfterTitle'] ) ) {
+				$output .= '<span class="icon">' . $current_icon . '</span>';
+			}
+
 			if ( ! isset( $settings['separatorDisable'] ) ) {
 				$output .= '<span class="separator"></span>';
 			}
 
-			if ( ! empty( $item['meta'] ) ) {
+			if ( ! empty( $meta ) ) {
 				$this->set_attribute( "meta-$index", 'class', [ 'meta' ] );
 
-				$output .= "<span {$this->render_attributes( "meta-$index" )}>{$item['meta']}</span>";
+				$output .= "<span {$this->render_attributes( "meta-$index" )}>{$meta}</span>";
 			}
 
 			$output .= '</div>';
 
-			if ( ! empty( $item['description'] ) ) {
+			if ( ! empty( $description ) ) {
 				$this->set_attribute( "description-$index", 'class', [ 'description' ] );
 
-				$output .= "<div {$this->render_attributes( "description-$index" )}>{$item['description']}</div>";
+				$output .= "<div {$this->render_attributes( "description-$index" )}>{$description}</div>";
 			}
 
 			$output .= '</li>';

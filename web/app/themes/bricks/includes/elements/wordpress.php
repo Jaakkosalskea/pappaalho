@@ -60,16 +60,6 @@ class Element_WordPress extends Element {
 					'selector' => '.bricks-widget-wrapper i',
 				],
 			],
-			'exclude'  => [
-				'font-family',
-				'font-weight',
-				'font-style',
-				'text-align',
-				'text-decoration',
-				'text-transform',
-				'line-height',
-				'letter-spacing',
-			],
 			'required' => [ 'icon.icon', '!=', '' ],
 		];
 
@@ -425,6 +415,7 @@ class Element_WordPress extends Element {
 
 				foreach ( $comments as $comment ) {
 					$comments_output .= sprintf(
+						// translators: %1$s is the comment author, %2$s is the post title
 						_x( '%1$s on %2$s', 'bricks' ),
 						'<li class="recentcomments">' . $icon . '<span class="comment-author-link">' . get_comment_author_link( $comment ) . '</span>',
 						'<a href="' . esc_url( get_comment_link( $comment ) ) . '">' . get_the_title( $comment->comment_post_ID ) . '</a></li>'
@@ -506,16 +497,22 @@ class Element_WordPress extends Element {
 				$taxonomy_output = '';
 
 				foreach ( $terms as $term ) {
+					$term_id = isset( $term->term_id ) ? $term->term_id : false;
+
+					if ( ! $term_id ) {
+						continue;
+					}
+
 					$taxonomy_output .= '<li>';
 
 					if ( $icon ) {
 						$taxonomy_output .= $icon;
 					}
 
-					$taxonomy_output .= '<a href="' . get_term_link( $term->term_id ) . '">' . $term->name . '</a>';
+					$taxonomy_output .= '<a href="' . get_term_link( $term_id ) . '">' . $term->name . '</a>';
 
 					if ( isset( $settings['showCount'] ) ) {
-						$term_object      = get_term( $term->term_id, $term->taxonomy );
+						$term_object      = get_term( $term_id, $term->taxonomy );
 						$taxonomy_output .= ' <span class="term-count">(' . $term_object->count . ')</span>';
 					}
 

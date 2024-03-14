@@ -57,7 +57,7 @@ class Woocommerce_Checkout_Thankyou extends Element {
 			'tab'         => 'content',
 			'group'       => 'message',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'css'         => [
 				[
 					'property' => 'margin',
@@ -77,7 +77,7 @@ class Woocommerce_Checkout_Thankyou extends Element {
 			'tab'      => 'content',
 			'group'    => 'message',
 			'label'    => esc_html__( 'Padding', 'bricks' ),
-			'type'     => 'dimensions',
+			'type'     => 'spacing',
 			'css'      => [
 				[
 					'property' => 'padding',
@@ -135,7 +135,7 @@ class Woocommerce_Checkout_Thankyou extends Element {
 			'tab'         => 'content',
 			'group'       => 'overview',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'css'         => [
 				[
 					'property' => 'margin',
@@ -177,15 +177,21 @@ class Woocommerce_Checkout_Thankyou extends Element {
 		];
 
 		$this->controls['overviewBorderItem'] = [
-			'tab'   => 'content',
-			'group' => 'overview',
-			'label' => esc_html__( 'Border', 'bricks' ) . ' (' . esc_html__( 'Item', 'bricks' ) . ')',
-			'type'  => 'border',
-			'css'   => [
+			'tab'         => 'content',
+			'group'       => 'overview',
+			'label'       => esc_html__( 'Border', 'bricks' ) . ' (' . esc_html__( 'Item', 'bricks' ) . ')',
+			'type'        => 'border',
+			'css'         => [
 				[
 					'property' => 'border',
 					'selector' => '.woocommerce-order-overview.order_details li',
 				],
+			],
+			'placeholder' => [
+				'top'    => 0,
+				'right'  => 1,
+				'bottom' => 1,
+				'left'   => 0,
 			],
 		];
 
@@ -221,7 +227,7 @@ class Woocommerce_Checkout_Thankyou extends Element {
 			'tab'         => 'content',
 			'group'       => 'details',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'css'         => [
 				[
 					'property' => 'margin',
@@ -240,7 +246,7 @@ class Woocommerce_Checkout_Thankyou extends Element {
 			'tab'         => 'content',
 			'group'       => 'details',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'css'         => [
 				[
 					'property' => 'padding',
@@ -304,7 +310,7 @@ class Woocommerce_Checkout_Thankyou extends Element {
 			'tab'         => 'content',
 			'group'       => 'address',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'css'         => [
 				[
 					'property' => 'margin',
@@ -437,7 +443,7 @@ class Woocommerce_Checkout_Thankyou extends Element {
 				?>
 				<?php if ( $thankyou_message ) { ?>
 				<p class="woocommerce-notice woocommerce-notice--success woocommerce-thankyou-order-received">
-					<?php echo apply_filters( 'woocommerce_thankyou_order_received_text', esc_html( $thankyou_message ), null ); ?>
+					<?php echo apply_filters( 'woocommerce_thankyou_order_received_text', esc_html( $thankyou_message ), false ); ?>
 				</p>
 				<?php } ?>
 			<?php } ?>

@@ -8,13 +8,38 @@
   justify-content: space-between;
   margin-left: auto;
   margin-right: auto;
-  max-width: $width-grid-base;
   padding-bottom: var(--padding-site-header-vertical);
   padding-left: var(--padding-container-horizontal);
   padding-right: var(--padding-container-horizontal);
   padding-top: var(--padding-site-header-vertical);
   position: relative;
   z-index: 15;
+
+    a {
+      color: #fff;
+      transition: color .3s ease;
+      text-transform: uppercase;
+
+      &:hover,
+      &:focus {
+        color: var(--color-highlight);
+        text-shadow: 0 0 .65px #333, 0 0 .65px #333;
+      }
+    }
+
+    ul {
+      list-style: none;
+    }
+}
+
+.sticky {
+  border: none;
+  margin-bottom: 2rem;
+  padding: 2rem;
+}
+
+.header-background {
+  background-color: rgba(0, 0, 0, 0)
 }
 
 .site-title {

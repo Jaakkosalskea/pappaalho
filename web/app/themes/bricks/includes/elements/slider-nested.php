@@ -15,7 +15,7 @@ class Element_Slider_Nested extends Element {
 	}
 
 	public function get_keywords() {
-		return [ 'slider', 'testimonials', 'carousel' ];
+		return [ 'slider', 'testimonials', 'carousel', 'nestable' ];
 	}
 
 	public function enqueue_scripts() {
@@ -72,6 +72,7 @@ class Element_Slider_Nested extends Element {
 			],
 			'inline'      => true,
 			'placeholder' => esc_html__( 'Default', 'bricks' ),
+			'fullAccess'  => true,
 		];
 
 		$this->controls['options'] = [
@@ -80,6 +81,7 @@ class Element_Slider_Nested extends Element {
 			'type'        => 'code',
 			'required'    => [ 'optionsType', '=', 'custom' ],
 			'description' => esc_html__( 'Provide your own options in JSON format', 'bricks' ) . ' (<a href="https://splidejs.com/guides/options" target="_blank" rel="noopener">' . esc_html__( 'learn more', 'bricks' ) . '</a>).',
+			'fullAccess'  => true,
 		];
 
 		// Fixed settings:
@@ -96,6 +98,7 @@ class Element_Slider_Nested extends Element {
 			'inline'      => true,
 			'placeholder' => esc_html__( 'Loop', 'bricks' ),
 			'required'    => [ 'optionsType', '!=', 'custom' ],
+			'fullAccess'  => true,
 		];
 
 		$this->controls['direction'] = [
@@ -105,12 +108,13 @@ class Element_Slider_Nested extends Element {
 			'options'     => [
 				'ltr' => esc_html__( 'Left to right', 'bricks' ),
 				'rtl' => esc_html__( 'Right to left', 'bricks' ),
-				'ttb' => esc_html__( 'Horizontal', 'bricks' ),
+				'ttb' => esc_html__( 'Vertical', 'bricks' ),
 			],
 			'inline'      => true,
 			'placeholder' => esc_html__( 'Left to right', 'bricks' ),
 			'breakpoints' => true,
 			'required'    => [ 'optionsType', '!=', 'custom' ],
+			'fullAccess'  => true,
 		];
 
 		$this->controls['keyboard'] = [
@@ -126,6 +130,30 @@ class Element_Slider_Nested extends Element {
 			'placeholder' => esc_html__( 'Global', 'bricks' ),
 			'breakpoints' => true,
 			'required'    => [ 'optionsType', '!=', 'custom' ],
+			'fullAccess'  => true,
+		];
+
+		/**
+		 * NOTE: Natively not supported for horizontal slides
+		 *
+		 * Added custom solution to calculate height: https://github.com/Splidejs/splide/issues/227#issuecomment-997330823
+		 *
+		 * @since 1.9.1
+		 */
+		$this->controls['autoHeight'] = [
+			'group'      => 'options',
+			'label'      => esc_html__( 'Auto height', 'bricks' ),
+			'type'       => 'checkbox',
+			'inline'     => true,
+			'required'   => [ 'optionsType', '!=', 'custom' ],
+			'fullAccess' => true,
+		];
+
+		$this->controls['autoHeightInfo'] = [
+			'group'    => 'options',
+			'content'  => esc_html__( 'Using "Auto height" might lead to CLS (Cumulative Layout Shift).', 'bricks' ),
+			'type'     => 'info',
+			'required' => [ 'autoHeight', '=', true ],
 		];
 
 		$this->controls['height'] = [
@@ -135,7 +163,11 @@ class Element_Slider_Nested extends Element {
 			'units'       => true,
 			'placeholder' => '50vh',
 			'breakpoints' => true,
-			'required'    => [ 'optionsType', '!=', 'custom' ],
+			'required'    => [
+				[ 'optionsType', '!=', 'custom' ],
+				[ 'autoHeight', '=', '' ],
+			],
+			'fullAccess'  => true,
 		];
 
 		$this->controls['gap'] = [
@@ -146,6 +178,7 @@ class Element_Slider_Nested extends Element {
 			'placeholder' => 0,
 			'breakpoints' => true,
 			'required'    => [ 'optionsType', '!=', 'custom' ],
+			'fullAccess'  => true,
 		];
 
 		$this->controls['start'] = [
@@ -154,6 +187,7 @@ class Element_Slider_Nested extends Element {
 			'type'        => 'number',
 			'placeholder' => 0,
 			'required'    => [ 'optionsType', '!=', 'custom' ],
+			'fullAccess'  => true,
 		];
 
 		$this->controls['perPage'] = [
@@ -162,8 +196,11 @@ class Element_Slider_Nested extends Element {
 			'type'        => 'number',
 			'placeholder' => 1,
 			'breakpoints' => true,
-			'breakpoints' => true,
-			'required'    => [ 'optionsType', '!=', 'custom' ],
+			'required'    => [
+				[ 'optionsType', '!=', 'custom' ],
+				[ 'type', '!=', 'fade' ],
+			],
+			'fullAccess'  => true,
 		];
 
 		$this->controls['perMove'] = [
@@ -172,17 +209,12 @@ class Element_Slider_Nested extends Element {
 			'type'        => 'number',
 			'placeholder' => 1,
 			'breakpoints' => true,
-			'breakpoints' => true,
-			'required'    => [ 'optionsType', '!=', 'custom' ],
+			'required'    => [
+				[ 'optionsType', '!=', 'custom' ],
+				[ 'type', '!=', 'fade' ],
+			],
+			'fullAccess'  => true,
 		];
-
-		// TODO NEXT: 'lazyLoad' does only seem to work for 'img' not 'background-image' out of the box (https://splidejs.com/guides/options/#lazyload)
-		// $this->controls['disableLazyLoad'] = [
-		// 'group'  => 'options',
-		// 'label' => esc_html__( 'Disable lazy load', 'bricks' ),
-		// 'type'  => 'checkbox',
-		// 'required' => ['optionsType', '!=', 'custom'],
-		// ];
 
 		$this->controls['speed'] = [
 			'group'       => 'options',
@@ -191,104 +223,130 @@ class Element_Slider_Nested extends Element {
 			'placeholder' => 400,
 			'breakpoints' => true,
 			'required'    => [ 'optionsType', '!=', 'custom' ],
+			'fullAccess'  => true,
 		];
 
-		$this->controls['autoHeight'] = [
-			'group'    => 'options',
-			'label'    => esc_html__( 'Auto height', 'bricks' ),
-			'type'     => 'checkbox',
-			'inline'   => true,
-			'required' => [ 'optionsType', '!=', 'custom' ],
+		// @since 1.9.2
+		$this->controls['focus'] = [
+			'group'       => 'options',
+			'info'        => esc_html__( 'Number', 'bricks' ),
+			'label'       => esc_html__( 'Focus', 'bricks' ),
+			'type'        => 'number',
+			'breakpoints' => true,
+			'desc'        => sprintf(
+				'<a href="https://splidejs.com/guides/options/#focus" target="_blank">%s</a>',
+				esc_html__( 'Determines which slide should be active if the carousel has multiple slides in a page.', 'bricks' ),
+			),
+			'required'    => [
+				[ 'optionsType', '!=', 'custom' ],
+				[ 'perPage', '>=', 2 ],
+			],
+			'fullAccess'  => true,
 		];
 
 		// AUTOPLAY
 
 		$this->controls['autoplaySeparator'] = [
-			'group'    => 'options',
-			'label'    => esc_html__( 'Autoplay', 'bricks' ),
-			'type'     => 'separator',
-			'required' => [ 'optionsType', '!=', 'custom' ],
+			'group'      => 'options',
+			'label'      => esc_html__( 'Autoplay', 'bricks' ),
+			'type'       => 'separator',
+			'required'   => [ 'optionsType', '!=', 'custom' ],
+			'fullAccess' => true,
 		];
 
 		$this->controls['autoplay'] = [
-			'group'    => 'options',
-			'label'    => esc_html__( 'Autoplay', 'bricks' ),
-			'type'     => 'checkbox',
-			'required' => [ 'optionsType', '!=', 'custom' ],
+			'group'      => 'options',
+			'label'      => esc_html__( 'Autoplay', 'bricks' ),
+			'type'       => 'checkbox',
+			'required'   => [ 'optionsType', '!=', 'custom' ],
+			'fullAccess' => true,
 		];
 
 		$this->controls['pauseOnHover'] = [
-			'group'    => 'options',
-			'label'    => esc_html__( 'Pause on hover', 'bricks' ),
-			'type'     => 'checkbox',
-			'required' => [ 'autoplay', '!=', '' ],
-			'inline'   => true,
-			'required' => [ 'optionsType', '!=', 'custom' ],
+			'group'      => 'options',
+			'label'      => esc_html__( 'Pause on hover', 'bricks' ),
+			'type'       => 'checkbox',
+			'inline'     => true,
+			'required'   => [
+				[ 'optionsType', '!=', 'custom' ],
+				[ 'autoplay', '!=', '' ],
+			],
+			'fullAccess' => true,
 		];
 
 		$this->controls['pauseOnFocus'] = [
-			'group'    => 'options',
-			'label'    => esc_html__( 'Pause on focus', 'bricks' ),
-			'type'     => 'checkbox',
-			'required' => [ 'autoplay', '!=', '' ],
-			'inline'   => true,
-			'required' => [ 'optionsType', '!=', 'custom' ],
+			'group'      => 'options',
+			'label'      => esc_html__( 'Pause on focus', 'bricks' ),
+			'type'       => 'checkbox',
+			'inline'     => true,
+			'required'   => [
+				[ 'optionsType', '!=', 'custom' ],
+				[ 'autoplay', '!=', '' ],
+			],
+			'fullAccess' => true,
 		];
 
 		$this->controls['interval'] = [
 			'group'       => 'options',
 			'label'       => esc_html__( 'Interval in ms', 'bricks' ),
 			'type'        => 'number',
-			'required'    => [ 'autoplay', '!=', '' ],
 			'placeholder' => 3000,
-			'required'    => [ 'optionsType', '!=', 'custom' ],
+			'required'    => [
+				[ 'optionsType', '!=', 'custom' ],
+				[ 'autoplay', '!=', '' ],
+			],
+			'fullAccess'  => true,
 		];
 
 		// REWIND: If 'type' != 'loop'
 
 		$this->controls['rewindSeparator'] = [
-			'group'    => 'options',
-			'label'    => esc_html__( 'Rewind', 'bricks' ),
-			'type'     => 'separator',
-			'required' => [
+			'group'      => 'options',
+			'label'      => esc_html__( 'Rewind', 'bricks' ),
+			'type'       => 'separator',
+			'required'   => [
 				[ 'optionsType', '!=', 'custom' ],
 				[ 'type', '!=', [ '', 'loop' ] ],
 			],
+			'fullAccess' => true,
 		];
 
 		$this->controls['rewind'] = [
-			'group'    => 'options',
-			'label'    => esc_html__( 'Rewind', 'bricks' ),
-			'type'     => 'checkbox',
-			'inline'   => true,
-			'required' => [
+			'group'      => 'options',
+			'label'      => esc_html__( 'Rewind', 'bricks' ),
+			'type'       => 'checkbox',
+			'inline'     => true,
+			'required'   => [
 				[ 'optionsType', '!=', 'custom' ],
 				[ 'type', '!=', [ '', 'loop' ] ],
 			],
+			'fullAccess' => true,
 		];
 
 		$this->controls['rewindByDrag'] = [
-			'group'    => 'options',
-			'label'    => esc_html__( 'Rewind by drag', 'bricks' ),
-			'type'     => 'checkbox',
-			'inline'   => true,
-			'required' => [
+			'group'      => 'options',
+			'label'      => esc_html__( 'Rewind by drag', 'bricks' ),
+			'type'       => 'checkbox',
+			'inline'     => true,
+			'required'   => [
 				[ 'optionsType', '!=', 'custom' ],
 				[ 'type', '!=', [ '', 'loop' ] ],
 				[ 'rewind', '!=', '' ]
 			],
+			'fullAccess' => true,
 		];
 
 		$this->controls['rewindSpeed'] = [
-			'group'    => 'options',
-			'label'    => esc_html__( 'Speed in ms', 'bricks' ),
-			'type'     => 'number',
-			'inline'   => true,
-			'required' => [
+			'group'      => 'options',
+			'label'      => esc_html__( 'Speed in ms', 'bricks' ),
+			'type'       => 'number',
+			'inline'     => true,
+			'required'   => [
 				[ 'optionsType', '!=', 'custom' ],
 				[ 'type', '!=', [ '', 'loop' ] ],
 				[ 'rewind', '!=', '' ]
 			],
+			'fullAccess' => true,
 		];
 
 		// SLIDE
@@ -296,7 +354,7 @@ class Element_Slider_Nested extends Element {
 		$this->controls['slidePadding'] = [
 			'group' => 'slide',
 			'label' => esc_html__( 'Padding', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'padding',
@@ -333,14 +391,53 @@ class Element_Slider_Nested extends Element {
 			],
 		];
 
+		$this->controls['slideBackground'] = [
+			'group'   => 'slide',
+			'label'   => esc_html__( 'Background', 'bricks' ),
+			'type'    => 'background',
+			'css'     => [
+				[
+					'property' => 'background',
+					'selector' => '.splide__slide',
+				],
+			],
+			'exclude' => 'video',
+		];
+
+		$this->controls['slideBorder'] = [
+			'group' => 'slide',
+			'label' => esc_html__( 'Border', 'bricks' ),
+			'type'  => 'border',
+			'css'   => [
+				[
+					'property' => 'border',
+					'selector' => '.splide__slide',
+				],
+			],
+		];
+
+		// NOTE: Not in use as slider has overflow: hidden
+		// $this->controls['slideBoxShadow'] = [
+		// 'group' => 'slide',
+		// 'label' => esc_html__( 'Box shadow', 'bricks' ),
+		// 'type'  => 'box-shadow',
+		// 'css'   => [
+		// [
+		// 'property' => 'box-shadow',
+		// 'selector' => '.splide__slide',
+		// ],
+		// ],
+		// ];
+
 		// Arrows
 
 		$this->controls['arrows'] = [
-			'group'    => 'arrows',
-			'label'    => esc_html__( 'Show', 'bricks' ),
-			'type'     => 'checkbox',
-			'inline'   => true,
-			'rerender' => true,
+			'group'      => 'arrows',
+			'label'      => esc_html__( 'Show', 'bricks' ),
+			'type'       => 'checkbox',
+			'inline'     => true,
+			'rerender'   => true,
+			'fullAccess' => true,
 		];
 
 		$this->controls['arrowHeight'] = [
@@ -399,17 +496,80 @@ class Element_Slider_Nested extends Element {
 			'required' => [ 'arrows', '!=', '' ],
 		];
 
-		$this->controls['arrowTypography'] = [
+		$this->controls['arrowColor'] = [
 			'group'    => 'arrows',
-			'label'    => esc_html__( 'Typography', 'bricks' ),
-			'type'     => 'typography',
+			'label'    => esc_html__( 'Color', 'bricks' ),
+			'type'     => 'color',
 			'css'      => [
+				[
+					'property' => 'color',
+					'selector' => '.splide__arrow',
+				],
+				[
+					'property' => 'fill',
+					'selector' => '.splide__arrow svg',
+				],
+			],
+			'required' => [ 'arrows', '!=', '' ],
+		];
+
+		$this->controls['arrowSize'] = [
+			'group'    => 'arrows',
+			'label'    => esc_html__( 'Size', 'bricks' ),
+			'type'     => 'number',
+			'units'    => true,
+			'css'      => [
+				[
+					'property' => 'font-size',
+					'selector' => '.splide__arrow',
+				],
+				[
+					'property' => 'height',
+					'selector' => '.splide__arrow svg',
+				],
+				[
+					'property' => 'width',
+					'selector' => '.splide__arrow svg',
+				],
+				[
+					'property' => 'min-height',
+					'selector' => '.splide__arrow',
+				],
+				[
+					'property' => 'min-width',
+					'selector' => '.splide__arrow',
+				],
+			],
+			'required' => [ 'arrows', '!=', '' ],
+		];
+
+		// text-shadow (@since 1.8.5)
+		$this->controls['arrowTextShadow'] = [
+			'group'    => 'arrows',
+			'label'    => esc_html__( 'Text shadow', 'bricks' ),
+			'type'     => 'text-shadow',
+			'css'      => [
+				[
+					'property' => 'text-shadow',
+					'selector' => '.splide__arrow',
+				],
+			],
+			'required' => [ 'arrows', '!=', '' ],
+		];
+
+		// Custom arrows typography
+		$this->controls['arrowTypography'] = [
+			'deprecated' => true, // @since 1.8.5 (use 'arrowTextShadow' setting above)
+			'group'      => 'arrows',
+			'label'      => esc_html__( 'Typography', 'bricks' ),
+			'type'       => 'typography',
+			'css'        => [
 				[
 					'property' => 'font',
 					'selector' => '.splide__arrow',
 				],
 			],
-			'exclude'  => [
+			'exclude'    => [
 				'font-family',
 				'font-weight',
 				'font-style',
@@ -419,16 +579,89 @@ class Element_Slider_Nested extends Element {
 				'text-decoration',
 				'text-transform',
 			],
+			'required'   => [
+				[ 'arrows', '!=', '' ],
+				[ 'prevArrow.icon', '!=', '' ],
+				[ 'nextArrow.icon', '!=', '' ],
+			],
+		];
+
+		$this->controls['disabledArrowSep'] = [
+			'group'    => 'arrows',
+			'label'    => esc_html__( 'Disabled', 'bricks' ),
+			'type'     => 'separator',
+			'required' => [ 'arrows', '!=', '' ],
+		];
+
+		$this->controls['arrowDisabledBackground'] = [
+			'group'    => 'arrows',
+			'label'    => esc_html__( 'Background', 'bricks' ),
+			'type'     => 'color',
+			'css'      => [
+				[
+					'property' => 'background-color',
+					'selector' => '.splide__arrow:disabled',
+				],
+			],
+			'required' => [ 'arrows', '!=', '' ],
+		];
+
+		$this->controls['arrowDisabledBorder'] = [
+			'group'    => 'arrows',
+			'label'    => esc_html__( 'Border', 'bricks' ),
+			'type'     => 'border',
+			'css'      => [
+				[
+					'property' => 'border',
+					'selector' => '.splide__arrow:disabled',
+				],
+			],
+			'required' => [ 'arrows', '!=', '' ],
+
+		];
+
+		$this->controls['arrowDisabledColor'] = [
+			'group'    => 'arrows',
+			'label'    => esc_html__( 'Color', 'bricks' ),
+			'type'     => 'color',
+			'css'      => [
+				[
+					'property' => 'color',
+					'selector' => '.splide__arrow:disabled',
+				],
+				[
+					'property' => 'fill',
+					'selector' => '.splide__arrow:disabled svg',
+				],
+			],
+			'required' => [ 'arrows', '!=', '' ],
+		];
+
+		$this->controls['arrowDisabledOpacity'] = [
+			'group'    => 'arrows',
+			'label'    => esc_html__( 'Opacity', 'bricks' ),
+			'type'     => 'number',
+			'inline'   => true,
+			'min'      => 0,
+			'max'      => 1,
+			'step'     => 0.1,
+			'css'      => [
+				[
+					'property' => 'opacity',
+					'selector' => '.splide__arrow:disabled',
+				],
+			],
 			'required' => [ 'arrows', '!=', '' ],
 		];
 
 		// PREV ARROW
 
 		$this->controls['prevArrowSeparator'] = [
-			'group'    => 'arrows',
-			'label'    => esc_html__( 'Prev arrow', 'bricks' ),
-			'type'     => 'separator',
-			'required' => [ 'arrows', '!=', '' ],
+			'group'      => 'arrows',
+			'label'      => esc_html__( 'Prev arrow', 'bricks' ),
+			'type'       => 'separator',
+			'required'   => [ 'arrows', '!=', '' ],
+			'fullAccess' => true,
 		];
 
 		$this->controls['prevArrow'] = [
@@ -438,7 +671,7 @@ class Element_Slider_Nested extends Element {
 			'rerender' => true,
 			'css'      => [
 				[
-					'selector' => '.splide__arrow--prev',
+					'selector' => '.splide__arrow--prev > *',
 				],
 			],
 			'required' => [ 'arrows', '!=', '' ],
@@ -500,13 +733,38 @@ class Element_Slider_Nested extends Element {
 			'required' => [ 'arrows', '!=', '' ],
 		];
 
+		$this->controls['prevArrowTransform'] = [
+			'group'    => 'arrows',
+			'label'    => esc_html__( 'Transform', 'bricks' ),
+			'type'     => 'transform',
+			'css'      => [
+				[
+					'property' => 'transform',
+					'selector' => '.splide__arrow--prev',
+				],
+			],
+			'required' => [ 'arrows', '!=', '' ],
+		];
+
+		$this->controls['prevArrowTransformInfo'] = [
+			'group'    => 'arrows',
+			'content'  => esc_html__( 'Please make sure to set the "Scale X" value inside the transform setting above to "-1".', 'bricks' ),
+			'type'     => 'info',
+			'required' => [
+				[ 'arrows', '!=', '' ],
+				[ 'prevArrow', '=', '' ],
+				[ 'prevArrowTransform', '!=', '' ],
+			],
+		];
+
 		// NEXT ARROW
 
 		$this->controls['nextArrowSeparator'] = [
-			'group'    => 'arrows',
-			'label'    => esc_html__( 'Next arrow', 'bricks' ),
-			'type'     => 'separator',
-			'required' => [ 'arrows', '!=', '' ],
+			'group'      => 'arrows',
+			'label'      => esc_html__( 'Next arrow', 'bricks' ),
+			'type'       => 'separator',
+			'required'   => [ 'arrows', '!=', '' ],
+			'fullAccess' => true,
 		];
 
 		$this->controls['nextArrow'] = [
@@ -516,7 +774,7 @@ class Element_Slider_Nested extends Element {
 			'rerender' => true,
 			'css'      => [
 				[
-					'selector' => '.splide__arrow--next',
+					'selector' => '.splide__arrow--next > *',
 				],
 			],
 			'required' => [ 'arrows', '!=', '' ],
@@ -578,21 +836,35 @@ class Element_Slider_Nested extends Element {
 			'required' => [ 'arrows', '!=', '' ],
 		];
 
+		$this->controls['nextArrowTransform'] = [
+			'group'    => 'arrows',
+			'label'    => esc_html__( 'Transform', 'bricks' ),
+			'type'     => 'transform',
+			'css'      => [
+				[
+					'property' => 'transform',
+					'selector' => '.splide__arrow--next',
+				],
+			],
+			'required' => [ 'arrows', '!=', '' ],
+		];
+
 		// Pagination (dots)
 
 		$this->controls['pagination'] = [
-			'group'    => 'pagination',
-			'label'    => esc_html__( 'Show', 'bricks' ),
-			'type'     => 'checkbox',
-			'inline'   => true,
-			'rerender' => true,
-			'default'  => true,
+			'group'      => 'pagination',
+			'label'      => esc_html__( 'Show', 'bricks' ),
+			'type'       => 'checkbox',
+			'inline'     => true,
+			'rerender'   => true,
+			'default'    => true,
+			'fullAccess' => true,
 		];
 
 		$this->controls['paginationSpacing'] = [
 			'group'       => 'pagination',
-			'label'       => esc_html__( 'Spacing', 'bricks' ),
-			'type'        => 'dimensions',
+			'label'       => esc_html__( 'Margin', 'bricks' ),
+			'type'        => 'spacing',
 			'css'         => [
 				[
 					'property' => 'margin',
@@ -683,10 +955,11 @@ class Element_Slider_Nested extends Element {
 		// ACTIVE
 
 		$this->controls['paginationActiveSeparator'] = [
-			'group'    => 'pagination',
-			'label'    => esc_html__( 'Active', 'bricks' ),
-			'type'     => 'separator',
-			'required' => [ 'pagination', '!=', '' ],
+			'group'      => 'pagination',
+			'label'      => esc_html__( 'Active', 'bricks' ),
+			'type'       => 'separator',
+			'required'   => [ 'pagination', '!=', '' ],
+			'fullAccess' => true,
 		];
 
 		$this->controls['paginationHeightActive'] = [
@@ -750,10 +1023,11 @@ class Element_Slider_Nested extends Element {
 		// POSITION
 
 		$this->controls['paginationPositionSeparator'] = [
-			'group'    => 'pagination',
-			'label'    => esc_html__( 'Position', 'bricks' ),
-			'type'     => 'separator',
-			'required' => [ 'pagination', '!=', '' ],
+			'group'      => 'pagination',
+			'label'      => esc_html__( 'Position', 'bricks' ),
+			'type'       => 'separator',
+			'required'   => [ 'pagination', '!=', '' ],
+			'fullAccess' => true,
 		];
 
 		$this->controls['paginationTop'] = [
@@ -868,7 +1142,7 @@ class Element_Slider_Nested extends Element {
 			$item = $this->get_nestable_item();
 
 			// Replace {item_index} with $index
-			$item       = json_encode( $item );
+			$item       = wp_json_encode( $item );
 			$item       = str_replace( '{item_index}', $i + 1, $item );
 			$item       = json_decode( $item, true );
 			$children[] = $item;
@@ -888,7 +1162,7 @@ class Element_Slider_Nested extends Element {
 			return;
 		}
 
-		$output = '<div class="splide__arrows splide__arrows--ltr custom">';
+		$output = '<div class="splide__arrows custom">';
 
 		if ( $prev_arrow ) {
 			$output .= '<button class="splide__arrow splide__arrow--prev" type="button">' . $prev_arrow . '</button>';
@@ -907,18 +1181,25 @@ class Element_Slider_Nested extends Element {
 	 * Render individual slides
 	 */
 	public function render() {
-		$this->set_attribute( '_root', 'class', 'splide' );
-
 		$settings = $this->settings;
 
+		$splide_class = [ 'splide' ];
+
+		// To allpy required CSS when using autoHeight (@since 1.9.1)
+		if ( ! empty( $settings['autoHeight'] ) ) {
+			$splide_class[] = 'brx-auto-height';
+		}
+
+		$this->set_attribute( '_root', 'class', $splide_class );
+
 		/**
-		 * splideJS (replaces swiperJS)
+		 * Library: splideJS (replaces swiperJS)
 		 *
 		 * - Lighter (30KB instead of 139KB)
 		 * - Less issues
 		 * - More flexible breakpoints (via mediaQuery)
 		 * - 'gap' in any unit
-		 * - horizontal slider via 'direction: ttb' (top to bottom)
+		 * - vertical slider via 'direction: ttb' (top to bottom)
 		 *
 		 * NOTE: Arrows only support SVG files by default (no icon fonts, etc.)
 		 *
@@ -930,24 +1211,49 @@ class Element_Slider_Nested extends Element {
 		 */
 		$type = ! empty( $settings['type'] ) ? $settings['type'] : 'loop';
 
+		// Spacing requires a unit
+		$gap = ! empty( $settings['gap'] ) ? $settings['gap'] : 0;
+
+		// Add default unit
+		if ( is_numeric( $gap ) ) {
+			$gap = "{$gap}px";
+		}
+
+		// Arrows
+		$arrows = isset( $settings['arrows'] );
+
+		if ( $arrows ) {
+			// Custom arrows set OR use default splide SVG arrows if no custom arrows set
+			$arrows = ( ! empty( $settings['prevArrow'] ) && ! empty( $settings['nextArrow'] ) ) || ( empty( $settings['prevArrow'] ) && empty( $settings['nextArrow'] ) );
+		}
+
 		$splide_options = [
 			'type'         => $type,
 			'direction'    => ! empty( $settings['direction'] ) ? $settings['direction'] : ( is_rtl() ? 'rtl' : 'ltr' ),
 			'keyboard'     => ! empty( $settings['keyboard'] ) ? $settings['keyboard'] : 'global', // 'focused', false
 			'height'       => ! empty( $settings['height'] ) ? $settings['height'] : '50vh',
-			'gap'          => ! empty( $settings['gap'] ) ? $settings['gap'] : 0,
+			'gap'          => $gap,
 			'start'        => ! empty( $settings['start'] ) ? $settings['start'] : 0,
-			'perPage'      => ! empty( $settings['perPage'] ) ? $settings['perPage'] : 1,
-			'perMove'      => ! empty( $settings['perMove'] ) ? $settings['perMove'] : 1,
+			'perPage'      => ! empty( $settings['perPage'] ) && $type !== 'fade' ? $settings['perPage'] : 1,
+			'perMove'      => ! empty( $settings['perMove'] ) && $type !== 'fade' ? $settings['perMove'] : 1,
 			'speed'        => ! empty( $settings['speed'] ) ? $settings['speed'] : 400,
+			'interval'     => ! empty( $settings['interval'] ) ? $settings['interval'] : 3000,
 			'autoHeight'   => isset( $settings['autoHeight'] ),
 			'autoplay'     => isset( $settings['autoplay'] ),
 			'pauseOnHover' => isset( $settings['pauseOnHover'] ),
 			'pauseOnFocus' => isset( $settings['pauseOnFocus'] ),
-			'interval'     => ! empty( $settings['interval'] ) ? $settings['interval'] : 3000,
-			'arrows'       => isset( $settings['arrows'] ) && ! empty( $settings['prevArrow'] ) && ! empty( $settings['nextArrow'] ),
+			'arrows'       => $arrows,
 			'pagination'   => isset( $settings['pagination'] ),
 		];
+
+		if ( isset( $settings['focus'] ) ) {
+			$splide_options['focus'] = $settings['focus'];
+		}
+
+		// Auto height enabled: Set height to "auto"
+		if ( isset( $settings['autoHeight'] ) ) {
+			$splide_options['height'] = 'auto';
+		}
 
 		if ( isset( $settings['rewind'] ) && $type !== 'loop' ) {
 			$splide_options['rewind'] = $settings['rewind'];
@@ -964,12 +1270,22 @@ class Element_Slider_Nested extends Element {
 		// STEP: Add settings per breakpoints to splide options
 		$breakpoints = [];
 
-		foreach ( Setup::$breakpoints as $breakpoint ) {
+		foreach ( Breakpoints::$breakpoints as $breakpoint ) {
 			foreach ( array_keys( $splide_options ) as $option ) {
-				$setting_key = "$option:{$breakpoint['key']}";
+				$setting_key      = "$option:{$breakpoint['key']}";
+				$breakpoint_width = ! empty( $breakpoint['width'] ) ? $breakpoint['width'] : false;
+				$setting_value    = isset( $settings[ $setting_key ] ) ? $settings[ $setting_key ] : false;
 
-				if ( isset( $settings[ $setting_key ] ) ) {
-					$breakpoints[ $breakpoint['max'] ][ $option ] = $settings[ $setting_key ];
+				// Spacing requires a unit
+				if ( $option === 'gap' ) {
+					// Add default unit
+					if ( is_numeric( $setting_value ) ) {
+						$setting_value = "{$setting_value}px";
+					}
+				}
+
+				if ( $breakpoint_width && $setting_value !== false ) {
+					$breakpoints[ $breakpoint_width ][ $option ] = $setting_value;
 				}
 			}
 		}
@@ -996,7 +1312,10 @@ class Element_Slider_Nested extends Element {
 			$splide_options = wp_json_encode( $splide_options );
 		}
 
-		$this->set_attribute( '_root', 'data-splide', $splide_options );
+		// Remove line breaks
+		$splide_options = str_replace( [ "\r", "\n", ' ' ], '', $splide_options );
+
+		$this->set_attribute( '_root', 'data-splide', trim( $splide_options ) );
 
 		$output = "<div {$this->render_attributes( '_root' )}>";
 
@@ -1009,7 +1328,9 @@ class Element_Slider_Nested extends Element {
 		$output .= '</div>'; // .splide__track
 		$output .= '</div>'; // .splide__list
 
-		$output .= $this->render_arrows();
+		if ( isset( $settings['arrows'] ) ) {
+			$output .= $this->render_arrows();
+		}
 
 		$output .= '</div>'; // _root
 

@@ -10,7 +10,7 @@ $controls['itemSeparator'] = [
 
 $controls['itemMargin'] = [
 	'label' => esc_html__( 'Margin', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'margin',
@@ -21,7 +21,7 @@ $controls['itemMargin'] = [
 
 $controls['itemPadding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',
@@ -101,7 +101,7 @@ $controls['highlightBlock'] = [
 
 $controls['highlightLabelPadding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',
@@ -152,7 +152,7 @@ $controls['separatorHighlightContent'] = [
 
 $controls['highlightContentPadding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',
@@ -211,7 +211,7 @@ $controls['titleSeparator'] = [
 
 $controls['titleMargin'] = [
 	'label' => esc_html__( 'Margin', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'margin',
@@ -240,7 +240,7 @@ $controls['metaSeparator'] = [
 
 $controls['metaMargin'] = [
 	'label' => esc_html__( 'Margin', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'margin',

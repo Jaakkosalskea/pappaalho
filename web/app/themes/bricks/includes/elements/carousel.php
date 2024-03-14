@@ -21,6 +21,7 @@ class Element_Carousel extends Element {
 
 		if ( isset( $this->settings['imageLightbox'] ) ) {
 			wp_enqueue_script( 'bricks-photoswipe' );
+			wp_enqueue_script( 'bricks-photoswipe-lightbox' );
 			wp_enqueue_style( 'bricks-photoswipe' );
 		}
 	}
@@ -82,6 +83,9 @@ class Element_Carousel extends Element {
 			'tab'      => 'content',
 			'type'     => 'image-gallery',
 			'label'    => esc_html__( 'Images', 'bricks' ),
+			'exclude'  => [
+				'size',
+			],
 			'required' => [ 'type', '!=', 'posts' ],
 		];
 
@@ -92,7 +96,12 @@ class Element_Carousel extends Element {
 			'popup'    => true,
 			'inline'   => true,
 			'required' => [ 'type', '=', 'posts' ],
-			'exclude'  => [ 'objectType', 'infinite_scroll_separator', 'infinite_scroll', 'infinite_scroll_margin' ],
+			'exclude'  => [
+				'objectType',
+				'infinite_scroll_separator',
+				'infinite_scroll',
+				'infinite_scroll_margin',
+			],
 		];
 
 		// SETTINGS
@@ -139,7 +148,6 @@ class Element_Carousel extends Element {
 		$this->controls['stopOnLastSlide']               = $carousel_controls['stopOnLastSlide'];
 		$this->controls['autoplaySpeed']                 = $carousel_controls['autoplaySpeed'];
 		$this->controls['speed']                         = $carousel_controls['speed'];
-		$this->controls['responsive']                    = $carousel_controls['responsive'];
 
 		// IMAGE
 
@@ -151,6 +159,15 @@ class Element_Carousel extends Element {
 			'required' => [ 'type', '=', 'posts' ],
 		];
 
+		$this->controls['imageSize'] = [
+			'tab'      => 'content',
+			'group'    => 'image',
+			'label'    => esc_html__( 'Image size', 'bricks' ),
+			'type'     => 'select',
+			'options'  => $this->control_options['imageSizes'],
+			'required' => [ 'imageDisable', '=', '' ],
+		];
+
 		$this->controls['imageLightbox'] = [
 			'tab'      => 'content',
 			'group'    => 'image',
@@ -159,13 +176,24 @@ class Element_Carousel extends Element {
 			'required' => [ 'type', '!=', 'posts' ],
 		];
 
-		$this->controls['imageSize'] = [
+		$this->controls['imageLightboxSize'] = [
 			'tab'      => 'content',
 			'group'    => 'image',
-			'label'    => esc_html__( 'Image size', 'bricks' ),
+			'label'    => esc_html__( 'Lightbox', 'bricks' ) . ': ' . esc_html__( 'Image size', 'bricks' ),
 			'type'     => 'select',
 			'options'  => $this->control_options['imageSizes'],
-			'required' => [ 'imageDisable', '=', '' ],
+			'required' => [ 'imageLightbox', '!=', '' ],
+		];
+
+		// @since 1.8.4
+		$this->controls['lightboxAnimationType'] = [
+			'tab'         => 'content',
+			'group'       => 'image',
+			'label'       => esc_html__( 'Lightbox animation type', 'bricks' ),
+			'type'        => 'select',
+			'options'     => $this->control_options['lightboxAnimationTypes'],
+			'placeholder' => esc_html__( 'Zoom', 'bricks' ),
+			'required'    => [ 'imageLightbox', '!=', '' ],
 		];
 
 		// FIELDS
@@ -215,9 +243,9 @@ class Element_Carousel extends Element {
 		$this->controls['dotsBottom']      = $carousel_controls['dotsBottom'];
 		$this->controls['dotsLeft']        = $carousel_controls['dotsLeft'];
 		$this->controls['dotsBorder']      = $carousel_controls['dotsBorder'];
-		$this->controls['dotsSpacing']     = $carousel_controls['dotsSpacing'];
 		$this->controls['dotsColor']       = $carousel_controls['dotsColor'];
 		$this->controls['dotsActiveColor'] = $carousel_controls['dotsActiveColor'];
+		$this->controls['dotsSpacing']     = $carousel_controls['dotsSpacing'];
 
 		$this->controls['dotsSpacing']['placeholder'] = [
 			'top'    => 0,
@@ -236,7 +264,7 @@ class Element_Carousel extends Element {
 	public function render() {
 		$settings = $this->settings;
 
-		// https://swiperjs.com/api
+		// https://swiperjs.com/swiper-api
 		$options = [
 			'slidesPerView'  => isset( $settings['slidesToShow'] ) ? intval( $settings['slidesToShow'] ) : 2,
 			'slidesPerGroup' => isset( $settings['slidesToScroll'] ) ? intval( $settings['slidesToScroll'] ) : 1,
@@ -250,18 +278,7 @@ class Element_Carousel extends Element {
 		];
 
 		if ( isset( $settings['autoplay'] ) ) {
-			$options['autoplay'] = [
-				'delay'                => isset( $settings['autoplaySpeed'] ) ? intval( $settings['autoplaySpeed'] ) : 3000,
-
-				// Set to false if pauseOnHover is true, otherwise it stops after the first hover
-				'disableOnInteraction' => ! isset( $settings['pauseOnHover'] ),
-
-				// Pause autoplay on mouse enter (new in v6.6: autoplay.pauseOnMouseEnter)
-				'pauseOnMouseEnter'    => isset( $settings['pauseOnHover'] ),
-
-				// Stop autoplay on last slide (@since 1.4)
-				'stopOnLastSlide'      => isset( $settings['stopOnLastSlide'] ),
-			];
+			$options['autoplay'] = Helpers::generate_swiper_autoplay_options( $settings );
 		}
 
 		// Arrow navigation
@@ -280,10 +297,11 @@ class Element_Carousel extends Element {
 
 		$breakpoint_options = Helpers::generate_swiper_breakpoint_data_options( $settings );
 
-		// Has slidesPerView/slidesPerGroup set on non-base breakpoints
-		if ( is_array( $breakpoint_options ) && count( $breakpoint_options ) > 1 ) {
+		// Has slidesPerView/slidesPerGroup set on non-desktop breakpoints
+		if ( count( $breakpoint_options ) > 1 ) {
 			unset( $options['slidesPerView'] );
 			unset( $options['slidesPerGroup'] );
+
 			$options['breakpoints'] = $breakpoint_options;
 		}
 
@@ -292,52 +310,28 @@ class Element_Carousel extends Element {
 
 		$type = ! empty( $settings['type'] ) ? $settings['type'] : 'media';
 
-		// TYPE: IMAGES
-
+		// TYPE: MEDIA
 		if ( $type === 'media' ) {
-			// Gallery might use a custom field (handle it before)
-			$gallery_class_name = isset( Elements::$elements['image-gallery']['class'] ) ? Elements::$elements['image-gallery']['class'] : false;
+			// NOTE: $this->element['settings'] is not updated by bricks/element/settings filter. Best if we update in base.php (#86bwkh7y2; @since 1.9.4)
+			$this->element['settings'] = $this->settings;
+			// Dynamic data already checked inside this helper function (@since 1.9.3)
+			$query_settings = Helpers::populate_query_vars_for_element( $this->element, $this->post_id );
 
-			if ( $gallery_class_name && ! empty( $settings['items']['useDynamicData'] ) ) {
-
-				$gallery = new $gallery_class_name();
-				$gallery->set_post_id( $this->post_id );
-				$settings = $gallery->get_normalized_image_settings( $settings );
-
-				if ( empty( $settings['items']['images'] ) ) {
-					return $this->render_element_placeholder(
-						[
-							'title' => esc_html__( 'Dynamic data is empty.', 'bricks' )
-						]
-					);
-				}
-			}
-
-			if ( ! empty( $settings['items']['images'] ) ) {
-				$query_vars['post_status'] = 'any';
-				$query_vars['post_type']   = 'attachment';
-				$query_vars['orderby']     = 'post__in';
-
-				$images = isset( $settings['items']['images'] ) ? $settings['items']['images'] : $settings['items'];
-
-				// Gallery might use a custom field (handle it before)
-				$gallery_class_name = isset( Elements::$elements['image-gallery']['class'] ) ? Elements::$elements['image-gallery']['class'] : false;
-
-				if ( $gallery_class_name && ! empty( $settings['items']['useDynamicData'] ) ) {
-					$gallery = new $gallery_class_name();
-					$gallery->set_post_id( $this->post_id );
-					$settings = $gallery->get_normalized_image_settings( $settings );
+			if ( ! empty( $query_settings ) ) {
+				// Set lang to empty string if Polylang is active to fetch all images even if they are not translated (@since 1.9.4)
+				if ( \Bricks\Integrations\Polylang\Polylang::$is_active ) {
+					$query_settings['lang'] = '';
 				}
 
-				foreach ( $images as $image ) {
-					if ( isset( $image['id'] ) ) {
-						$query_vars['post__in'][] = $image['id'];
-					}
-				}
+				// Add query_settings to element_settings under query key
+				$this->element['settings']['query'] = $query_settings;
 
-				$query_vars['posts_per_page'] = count( $query_vars['post__in'] );
+				$carousel_query = new Query( $this->element );
 
-				$carousel_query = new \WP_Query( $query_vars );
+				// Destroy query to explicitly remove it from the global store
+				$carousel_query->destroy();
+
+				$carousel_query = $carousel_query ? $carousel_query->query_result : false;
 			}
 
 			// Element placeholder
@@ -347,7 +341,6 @@ class Element_Carousel extends Element {
 		}
 
 		// TYPE: POSTS
-
 		elseif ( $type === 'posts' ) {
 			$carousel_query = new Query(
 				[
@@ -365,12 +358,23 @@ class Element_Carousel extends Element {
 				}
 			}
 
+			// Destroy query to explicitly remove it from the global store
+			$carousel_query->destroy();
+
 			$carousel_query = $carousel_query ? $carousel_query->query_result : false;
 		}
 
 		$carousel_posts = $carousel_query ? $carousel_query->get_posts() : [];
 
-		// RENDER
+		if ( $type === 'media' && isset( $settings['imageLightbox'] ) ) {
+			$this->set_attribute( '_root', 'class', 'bricks-lightbox' );
+
+			if ( ! empty( $settings['lightboxAnimationType'] ) ) {
+				$this->set_attribute( '_root', 'data-animation-type', esc_attr( $settings['lightboxAnimationType'] ) );
+			}
+		}
+
+		// STEP: Render
 		echo "<div {$this->render_attributes( '_root' )}>";
 
 		if ( $type === 'posts' && $carousel_query && $carousel_query->count === 0 ) {
@@ -381,44 +385,48 @@ class Element_Carousel extends Element {
 
 			$item_classes = [ 'repeater-item', 'swiper-slide' ];
 
+			$image_size = isset( $settings['imageSize'] ) ? $settings['imageSize'] : BRICKS_DEFAULT_IMAGE_SIZE;
+
 			foreach ( $carousel_posts as $item_index => $item ) {
-
 				$this->set_attribute( "list-item-$item_index", 'class', $item_classes );
-
-				$image_size = isset( $settings['imageSize'] ) ? $settings['imageSize'] : BRICKS_DEFAULT_IMAGE_SIZE;
 
 				echo "<div {$this->render_attributes( "list-item-$item_index" )}>";
 					$image_url = false;
 
-					// Selected media image
+				// Selected media image
 				if ( $type === 'media' ) {
 					$image_url = wp_get_attachment_image_src( $item->ID, $image_size );
 					$image_url = $image_url[0];
 				}
 
-					// Featured image
+				// Featured image
 				if ( $type === 'posts' && has_post_thumbnail( $item->ID ) && ! isset( $settings['imageDisable'] ) ) {
 					$image_url = get_the_post_thumbnail_url( $item->ID, $image_size );
 				}
 
 				if ( $image_url ) {
+					// Lightbox (Photoswipe 5 requires <a> tag)
+					$lightbox = $type === 'media' && isset( $settings['imageLightbox'] );
+
+					if ( $lightbox ) {
+						$lightbox_image_size = ! empty( $settings['imageLightboxSize'] ) ? $settings['imageLightboxSize'] : 'full';
+						$lightbox_image_src  = wp_get_attachment_image_src( $item->ID, $lightbox_image_size );
+
+						$this->set_attribute( "a-$item_index", 'data-pswp-src', $lightbox_image_src[0] );
+						$this->set_attribute( "a-$item_index", 'data-pswp-width', $lightbox_image_src[1] );
+						$this->set_attribute( "a-$item_index", 'data-pswp-height', $lightbox_image_src[2] );
+
+						echo "<a {$this->render_attributes( "a-$item_index" )}>";
+					}
+
 					// Use img tag
 					if ( isset( $settings['adaptiveHeight'] ) ) {
+						$image_id   = $type === 'posts' ? get_post_thumbnail_id( $item->ID ) : $item->ID;
 						$image_atts = [ 'class' => 'image css-filter' ];
 
-						if ( $type === 'media' && isset( $settings['imageLightbox'] ) ) {
-							$image_atts['class'] .= ' bricks-lightbox';
-
-							$image_atts['data-bricks-lightbox-index'] = $item_index;
-							$image_atts['data-bricks-lightbox-id']    = $this->id;
-
-							$image_src                                 = wp_get_attachment_image_src( $item->ID, 'full' );
-							$image_atts['data-bricks-lightbox-source'] = $image_src[0];
-							$image_atts['data-bricks-lightbox-width']  = $image_src[1];
-							$image_atts['data-bricks-lightbox-height'] = $image_src[2];
+						if ( ! $this->lazy_load() ) {
+							$image_atts['loading'] = 'eager';
 						}
-
-						$image_id = $type === 'posts' ? get_post_thumbnail_id( $item->ID ) : $item->ID;
 
 						echo wp_get_attachment_image( $image_id, $image_size, false, $image_atts );
 					}
@@ -429,19 +437,6 @@ class Element_Carousel extends Element {
 
 						if ( $this->lazy_load() ) {
 							$image_classes[] = 'bricks-lazy-hidden';
-						}
-
-						if ( $type === 'media' && isset( $settings['imageLightbox'] ) ) {
-							$image_classes[] = 'bricks-lightbox';
-
-							$image_src = wp_get_attachment_image_src( $item->ID, 'full' );
-
-							$this->set_attribute( "image-$item_index", 'data-bricks-lightbox-source', $image_src[0] );
-							$this->set_attribute( "image-$item_index", 'data-bricks-lightbox-width', $image_src[1] );
-							$this->set_attribute( "image-$item_index", 'data-bricks-lightbox-height', $image_src[2] );
-
-							$this->set_attribute( "image-$item_index", 'data-bricks-lightbox-id', $this->id );
-							$this->set_attribute( "image-$item_index", 'data-bricks-lightbox-index', $item_index );
 						}
 
 						$this->set_attribute( "image-$item_index", 'class', $image_classes );
@@ -455,6 +450,10 @@ class Element_Carousel extends Element {
 						}
 
 						echo "<div {$this->render_attributes( "image-$item_index" )}></div>";
+					}
+
+					if ( $lightbox ) {
+						echo '</a>';
 					}
 				}
 

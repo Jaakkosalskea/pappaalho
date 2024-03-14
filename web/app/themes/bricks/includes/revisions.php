@@ -4,7 +4,9 @@ namespace Bricks;
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class Revisions {
-	// Bricks-specific revisions for header, content and footer data saved in post meta table.
+	/**
+	 * Bricks-specific revisions for header, content and footer data saved in post meta table
+	 */
 	public function __construct() {
 		add_action( 'init', [ $this, 'add_revisions_to_all_bricks_enabled_post_types' ], 999 );
 		add_filter( 'wp_revisions_to_keep', [ $this, 'wp_revisions_to_keep' ], 10, 2 );
@@ -18,8 +20,6 @@ class Revisions {
 	/**
 	 * Get all revisions of a specific post via AJAX
 	 *
-	 * @param int   $post_id
-	 * @param array $query_args
 	 * @uses get_revisions()
 	 *
 	 * @since 1.0
@@ -58,8 +58,6 @@ class Revisions {
 	/**
 	 * Delete specific revision
 	 *
-	 * @param int   $post_id
-	 * @param array $query_args
 	 * @uses get_revisions()
 	 *
 	 * @return array Post revisions.
@@ -83,8 +81,6 @@ class Revisions {
 	/**
 	 * Delete all revisions of specific post
 	 *
-	 * @param int $post_id
-	 *
 	 * @return array Post revisions.
 	 *
 	 * @since 1.0
@@ -92,14 +88,15 @@ class Revisions {
 	public static function ajax_delete_all_revisions_of_post_id() {
 		Ajax::verify_request();
 
-		if ( ! isset( $_POST['postId'] ) || empty( $_POST['postId'] ) ) {
+		$post_id = $_POST['postId'] ?? 0;
+
+		// Return: No post ID
+		if ( ! $post_id ) {
 			return;
 		}
 
-		$post_id = $_POST['postId'];
-
 		global $wpdb;
-		$query = $wpdb->get_col( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_parent = $post_id AND post_type = %s", 'revision' ) );
+		$query = $wpdb->get_col( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_parent = $post_id AND post_type = %s", 'revision' ) ); // phpcs:ignore
 
 		if ( $query ) {
 			foreach ( $query as $id ) {
@@ -122,35 +119,17 @@ class Revisions {
 	 * @since 1.0
 	 */
 	public static function get_revisions( $post_id, $query_args = [] ) {
-		if ( get_post_meta( $post_id, BRICKS_DB_PAGE_HEADER, true ) ) {
-			$meta_key = BRICKS_DB_PAGE_HEADER;
-		} elseif ( get_post_meta( $post_id, BRICKS_DB_PAGE_FOOTER, true ) ) {
-			$meta_key = BRICKS_DB_PAGE_FOOTER;
-		} else {
-			$meta_key = BRICKS_DB_PAGE_CONTENT;
-		}
-
 		$default_query_args = [
 			'posts_per_page' => BRICKS_MAX_REVISIONS_TO_KEEP,
-			'meta_key'       => $meta_key,
 		];
 
 		$query_args = wp_parse_args( $query_args, $default_query_args );
 
 		$posts = wp_get_post_revisions( $post_id, $query_args );
 
-		// return $posts;
-
 		$revisions = [];
 
 		$current_time = current_time( 'timestamp' );
-
-		// Get and prepend autosave to revisions
-		// $post_autosave = wp_get_post_autosave( $post_id );
-
-		// if ( $post_autosave ) {
-			// array_unshift( $posts, $post_autosave );
-		// }
 
 		foreach ( $posts as $revision ) {
 			$human_time_diff = human_time_diff( strtotime( $revision->post_modified ), $current_time );
@@ -161,6 +140,7 @@ class Revisions {
 				'type'      => strpos( $revision->post_name, 'autosave' ) === false ? 'revision' : 'autosave',
 				'id'        => $revision->ID,
 				'author'    => $author,
+				// translators: %s: human-readable time difference
 				'humanDate' => sprintf( esc_html__( '%s ago', 'bricks' ), $human_time_diff ),
 				'date'      => date_i18n( _x( 'M j @ H:i', 'revision date format', 'bricks' ), strtotime( $revision->post_modified ) ),
 				'avatar'    => get_avatar_url( $revision->post_author, [ 'size' => 30 ] ),

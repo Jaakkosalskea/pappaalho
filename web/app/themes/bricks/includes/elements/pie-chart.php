@@ -149,24 +149,44 @@ class Element_Pie_Chart extends Element {
 			$this->set_attribute( '_root', 'data-scale-color', $scale_color );
 		}
 
-		if ( isset( $settings['barColor']['rgb'] ) ) {
-			$bar_color = $settings['barColor']['rgb'];
-		} elseif ( isset( $settings['barColor']['hex'] ) ) {
-			$bar_color = $settings['barColor']['hex'];
-		} else {
-			$bar_color = 'transparent';
+		$color_palettes = Database::$global_data['colorPalette'];
+
+		$bar_color   = ! empty( $settings['barColor'] ) ? Assets::generate_css_color( $settings['barColor'] ) : 'transparent';
+		$track_color = ! empty( $settings['trackColor'] ) ? Assets::generate_css_color( $settings['trackColor'] ) : 'transparent';
+
+		// Is global color: Get HEX/RGB/RAW value from color palette
+		$bar_color_id   = ! empty( $settings['barColor']['id'] ) ? $settings['barColor']['id'] : false;
+		$track_color_id = ! empty( $settings['trackColor']['id'] ) ? $settings['trackColor']['id'] : false;
+
+		if ( $bar_color_id || $track_color_id ) {
+			foreach ( $color_palettes as $index => $palette ) {
+				$colors = ! empty( $palette['colors'] ) ? $palette['colors'] : [];
+
+				foreach ( $colors as $color ) {
+					if ( $bar_color_id === $color['id'] ) {
+						if ( ! empty( $color['rgb'] ) ) {
+							$bar_color = $color['rgb'];
+						} elseif ( ! empty( $color['hex'] ) ) {
+							$bar_color = $color['hex'];
+						} elseif ( ! empty( $color['raw'] ) ) {
+							$bar_color = $color['raw'];
+						}
+					}
+
+					if ( $track_color_id === $color['id'] ) {
+						if ( ! empty( $color['rgb'] ) ) {
+							$track_color = $color['rgb'];
+						} elseif ( ! empty( $color['hex'] ) ) {
+							$track_color = $color['hex'];
+						} elseif ( ! empty( $color['raw'] ) ) {
+							$track_color = $color['raw'];
+						}
+					}
+				}
+			}
 		}
 
 		$this->set_attribute( '_root', 'data-bar-color', $bar_color );
-
-		if ( ! empty( $settings['trackColor']['rgb'] ) ) {
-			$track_color = $settings['trackColor']['rgb'];
-		} elseif ( ! empty( $settings['trackColor']['hex'] ) ) {
-			$track_color = $settings['trackColor']['hex'];
-		} else {
-			$track_color = 'transparent';
-		}
-
 		$this->set_attribute( '_root', 'data-track-color', $track_color );
 
 		$size = ! empty( $settings['size'] ) ? intval( $settings['size'] ) : 160;

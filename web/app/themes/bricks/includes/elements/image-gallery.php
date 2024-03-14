@@ -17,7 +17,7 @@ class Element_Image_Gallery extends Element {
 	public function enqueue_scripts() {
 		$layout = ! empty( $this->settings['layout'] ) ? $this->settings['layout'] : 'grid';
 
-		if ( $layout === 'masonry' || $layout === 'metro' ) {
+		if ( $layout === 'masonry' ) {
 			wp_enqueue_script( 'bricks-isotope' );
 			wp_enqueue_style( 'bricks-isotope' );
 		}
@@ -26,6 +26,7 @@ class Element_Image_Gallery extends Element {
 
 		if ( $link_to === 'lightbox' ) {
 			wp_enqueue_script( 'bricks-photoswipe' );
+			wp_enqueue_script( 'bricks-photoswipe-lightbox' );
 			wp_enqueue_style( 'bricks-photoswipe' );
 		}
 	}
@@ -72,19 +73,35 @@ class Element_Image_Gallery extends Element {
 		];
 
 		$this->controls['imageHeight'] = [
-			'tab'      => 'content',
-			'label'    => esc_html__( 'Image height', 'bricks' ),
-			'type'     => 'number',
-			'units'    => true,
-			'css'      => [
+			'tab'         => 'content',
+			'label'       => esc_html__( 'Image height', 'bricks' ),
+			'type'        => 'number',
+			'units'       => true,
+			'css'         => [
 				[
 					'property'  => 'padding-top',
 					'selector'  => '.image',
 					'important' => true,
 				],
 			],
-			'info'     => esc_html__( 'Precedes image ratio setting.', 'bricks' ),
-			'required' => [ 'layout', '!=', [ 'masonry', 'metro' ] ],
+			'placeholder' => '',
+			'required'    => [ 'layout', '!=', [ 'masonry', 'metro' ] ],
+		];
+
+		$this->controls['columns'] = [
+			'tab'         => 'content',
+			'label'       => esc_html__( 'Columns', 'bricks' ),
+			'type'        => 'number',
+			'min'         => 2,
+			'css'         => [
+				[
+					'property' => '--columns',
+					'selector' => '',
+				],
+			],
+			'rerender'    => true,
+			'placeholder' => 3,
+			'required'    => [ 'layout', '!=', [ 'metro' ] ],
 		];
 
 		$this->controls['gutter'] = [
@@ -94,47 +111,11 @@ class Element_Image_Gallery extends Element {
 			'units'       => true,
 			'css'         => [
 				[
-					'property' => 'padding-right',
-					'selector' => '.bricks-layout-item',
+					'property' => '--gutter',
+					'selector' => '',
 				],
-				[
-					'property' => 'padding-bottom',
-					'selector' => '.bricks-layout-item',
-				],
-				// NOTE: Undocumented
-				[
-					'property' => 'margin-right',
-					'invert'   => true,
-				],
-				[
-					'property' => 'margin-bottom',
-					'invert'   => true,
-				],
-				// [
-				// 'property' => 'width',
-				// 'selector' => '.bricks-gutter-sizer',
-				// ],
-				// [
-				// 'property' => 'right',
-				// 'invert'   => true,
-				// ],
-				// [
-				// 'property' => 'width',
-				// 'selector' => '',
-				// 'value'    => 'calc(100% + %s)',
-				// ],
 			],
 			'placeholder' => 0,
-		];
-
-		$this->controls['columns'] = [
-			'tab'         => 'content',
-			'label'       => esc_html__( 'Columns', 'bricks' ),
-			'type'        => 'number',
-			'min'         => 1,
-			'breakpoints' => true,
-			'placeholder' => 3,
-			'required'    => [ 'layout', '!=', [ 'metro' ] ],
 		];
 
 		$this->controls['link'] = [
@@ -157,6 +138,16 @@ class Element_Image_Gallery extends Element {
 			'type'        => 'select',
 			'options'     => $this->control_options['imageSizes'],
 			'placeholder' => esc_html__( 'Full', 'bricks' ),
+			'required'    => [ 'link', '=', 'lightbox' ],
+		];
+
+		// @since 1.8.4
+		$this->controls['lightboxAnimationType'] = [
+			'tab'         => 'content',
+			'label'       => esc_html__( 'Lightbox animation type', 'bricks' ),
+			'type'        => 'select',
+			'options'     => $this->control_options['lightboxAnimationTypes'],
+			'placeholder' => esc_html__( 'Zoom', 'bricks' ),
 			'required'    => [ 'link', '=', 'lightbox' ],
 		];
 
@@ -186,11 +177,10 @@ class Element_Image_Gallery extends Element {
 	}
 
 	public function get_normalized_image_settings( $settings ) {
-		$items = isset( $settings['items'] ) ? $settings['items'] : [];
+		$items = ! empty( $settings['items'] ) ? $settings['items'] : [];
+		$size  = ! empty( $items['size'] ) ? $items['size'] : BRICKS_DEFAULT_IMAGE_SIZE;
 
-		$size = ! empty( $items['size'] ) ? $items['size'] : BRICKS_DEFAULT_IMAGE_SIZE;
-
-		// Dynamic Data
+		// Dynamic data
 		if ( ! empty( $items['useDynamicData'] ) ) {
 			$items['images'] = [];
 
@@ -207,7 +197,7 @@ class Element_Image_Gallery extends Element {
 			}
 		}
 
-		// Either empty OR old data structure used before 1.0 (images were saved as one array directly on $items)
+		// Old data structure (images were saved as one array directly on $items)
 		if ( ! isset( $items['images'] ) ) {
 			$images = ! empty( $items ) ? $items : [];
 
@@ -216,38 +206,35 @@ class Element_Image_Gallery extends Element {
 			$items['images'] = $images;
 		}
 
-		// Get 'size' from first image if not set (previous to 1.4-RC)
+		// Get 'size' from first image if not set
 		$first_image_size = ! empty( $items['images'][0]['size'] ) ? $items['images'][0]['size'] : false;
 		$size             = empty( $items['size'] ) && $first_image_size ? $first_image_size : $size;
 
-		// Calculate new image URL if size is not the same as from the Media Library
-		if ( $first_image_size && $first_image_size !== $size ) {
-			foreach ( $items['images'] as $key => $image ) {
-				$items['images'][ $key ]['size'] = $size;
-				$items['images'][ $key ]['url']  = wp_get_attachment_image_url( $image['id'], $size );
+		// Get image 'url' for requested $size
+		foreach ( $items['images'] as $key => $image ) {
+			if ( ! empty( $image['id'] ) ) {
+				$items['images'][ $key ]['url'] = wp_get_attachment_image_url( $image['id'], $size );
 			}
 		}
 
-		$settings['items'] = $items;
-
+		$settings['items']         = $items;
 		$settings['items']['size'] = $size;
 
 		return $settings;
 	}
 
 	public function render() {
-		$settings           = $this->get_normalized_image_settings( $this->settings );
-		$images             = ! empty( $settings['items']['images'] ) ? $settings['items']['images'] : false;
-		$size               = ! empty( $settings['items']['size'] ) ? $settings['items']['size'] : BRICKS_DEFAULT_IMAGE_SIZE;
-		$layout             = ! empty( $settings['layout'] ) ? $settings['layout'] : 'grid';
-		$link_to            = ! empty( $settings['link'] ) ? $settings['link'] : false;
-		$columns            = ! empty( $settings['columns'] ) ? $settings['columns'] : 3;
-		$breakpoint_classes = $layout !== 'metro' ? $this->generate_columns_per_breakpoint_css_classes( $columns, $settings ) : [];
+		$settings = $this->get_normalized_image_settings( $this->settings );
+		$images   = ! empty( $settings['items']['images'] ) ? $settings['items']['images'] : false;
+		$size     = ! empty( $settings['items']['size'] ) ? $settings['items']['size'] : BRICKS_DEFAULT_IMAGE_SIZE;
+		$layout   = ! empty( $settings['layout'] ) ? $settings['layout'] : 'grid';
+		$link_to  = ! empty( $settings['link'] ) ? $settings['link'] : false;
+		$columns  = ! empty( $settings['columns'] ) ? $settings['columns'] : 3;
 
 		// Return placeholder
 		if ( ! $images ) {
 			if ( ! empty( $settings['items']['useDynamicData'] ) ) {
-				if ( BRICKS_DB_TEMPLATE_SLUG !== get_post_type( $this->post_id ) ) {
+				if ( ! Helpers::is_bricks_template( $this->post_id ) ) {
 					return $this->render_element_placeholder(
 						[
 							'title' => esc_html__( 'Dynamic data is empty.', 'bricks' )
@@ -266,7 +253,7 @@ class Element_Image_Gallery extends Element {
 		$root_classes = [ 'bricks-layout-wrapper' ];
 
 		// Set isotopeJS CSS class
-		if ( $layout === 'masonry' || $layout === 'metro' ) {
+		if ( $layout === 'masonry' ) {
 			$root_classes[] = 'isotope';
 		}
 
@@ -275,18 +262,17 @@ class Element_Image_Gallery extends Element {
 
 		foreach ( $images as $index => $item ) {
 			$item_classes  = [ 'bricks-layout-item' ];
+			$image_classes = [ 'image' ];
 			$image_styles  = [];
-			$image_classes = [];
 
-			if ( count( $breakpoint_classes ) ) {
-				$item_classes = array_merge( $item_classes, $breakpoint_classes );
-			}
-
-			$this->set_attribute( "item-{$index}", 'class', $item_classes );
+			$this->set_attribute( "item-$index", 'class', $item_classes );
 
 			// Get image url, width and height (Fallback: Placeholder image)
 			if ( isset( $item['id'] ) ) {
 				$image_src = wp_get_attachment_image_src( $item['id'], $size );
+
+				// Add 'data-id' attribute to image <li> (helps to perform custom JS logic based on attachment ID)
+				$this->set_attribute( "item-$index", 'data-id', $item['id'] );
 			} elseif ( isset( $item['url'] ) ) {
 				$image_src = [ $item['url'], 800, 600 ];
 			}
@@ -311,31 +297,9 @@ class Element_Image_Gallery extends Element {
 				$image_classes[] = 'bricks-lazy-load-isotope';
 			}
 
-			// Layout-specific attributes (data atts for lazy load)
-			if ( $layout === 'masonry' ) {
-				if ( $this->lazy_load() ) {
-					if ( ! empty( $image_url ) ) {
-						$this->set_attribute( "img-$index", 'data-src', $image_url );
-					}
-
-					// Calc image ratio for img to take up proper space without src attribute
-					$masonry_ratio = ( $image_height / $image_width * 100 ) . '%';
-					$masonry_style = "padding-top: $masonry_ratio; position: relative";
-
-					$this->set_attribute( "img-$index", 'style="' . $masonry_style . '"' );
-				} else {
-					if ( ! empty( $image_url ) ) {
-						$this->set_attribute( "img-$index", 'src', $image_url );
-					}
-				}
-
-				if ( isset( $item['id'] ) ) {
-					$this->set_attribute( "img-$index", 'alt', get_post_meta( $item['id'], '_wp_attachment_image_alt', true ) );
-				}
-
-			} else {
+			// Layout-specific attributes
+			if ( $layout !== 'masonry' ) {
 				$image_classes[] = 'bricks-layout-inner';
-				$image_classes[] = 'image';
 
 				if ( $layout === 'grid' ) {
 					// Precedes imageRatio setting
@@ -347,8 +311,6 @@ class Element_Image_Gallery extends Element {
 					} else {
 						// Default: Ratio square
 						$image_classes[] = 'bricks-ratio-square';
-						// $image_styles[] = "width: {$image_width}px";
-						// $image_styles[] = "height: {$image_height}px";
 					}
 				}
 
@@ -356,11 +318,7 @@ class Element_Image_Gallery extends Element {
 
 				$image_styles = join( '; ', $image_styles );
 
-				if ( $this->lazy_load() ) {
-					$this->set_attribute( "img-$index", 'data-style', $image_styles );
-				} else {
-					$this->set_attribute( "img-$index", 'style', $image_styles );
-				}
+				$this->set_attribute( "img-$index", $this->lazy_load() ? 'data-style' : 'style', $image_styles );
 
 				if ( isset( $item['id'] ) ) {
 					$this->set_attribute( "img-$index", 'role', 'img' );
@@ -370,30 +328,24 @@ class Element_Image_Gallery extends Element {
 
 			// CSS filters
 			$image_classes[] = 'css-filter';
-
-			if ( $link_to === 'lightbox' ) {
-				$image_classes[] = 'bricks-lightbox';
-			}
-
-			$this->set_attribute( "img-$index", 'class', $image_classes );
 		}
 
 		// Item sizer (Isotope requirement)
 		$item_sizer_classes = [ 'bricks-isotope-sizer' ];
 
-		if ( count( $breakpoint_classes ) ) {
-			$item_sizer_classes = array_merge( $item_sizer_classes, $breakpoint_classes );
-		}
-
-		// Set index for 'isotope_column_width' to 1 (to utilize .bricks-col-25)
-		$item_sizer_classes[] = "bricks-col-{$this->isotope_column_width( 1, $columns )}";
-
 		$this->set_attribute( 'item-sizer', 'class', $item_sizer_classes );
 
 		// STEP: Render
-
 		$layout = isset( $settings['layout'] ) ? $settings['layout'] : 'grid';
 		$gutter = isset( $settings['gutter'] ) ? $settings['gutter'] : '0px';
+
+		if ( $link_to === 'lightbox' ) {
+			$this->set_attribute( '_root', 'class', 'bricks-lightbox' );
+
+			if ( ! empty( $settings['lightboxAnimationType'] ) ) {
+				$this->set_attribute( '_root', 'data-animation-type', esc_attr( $settings['lightboxAnimationType'] ) );
+			}
+		}
 
 		echo "<ul {$this->render_attributes( '_root' )}>";
 
@@ -422,26 +374,21 @@ class Element_Image_Gallery extends Element {
 			// Lightbox attributes
 			elseif ( $link_to === 'lightbox' ) {
 				$lightbox_image_size = ! empty( $settings['lightboxImageSize'] ) ? $settings['lightboxImageSize'] : 'full';
-				$lightbox_image      = wp_get_attachment_image_src( $item['id'], $lightbox_image_size );
-				$lightbox_image      = ! empty( $lightbox_image ) && is_array( $lightbox_image ) ? $lightbox_image : [ $item['url'], 800, 600 ];
+				$lightbox_image      = ! empty( $item['id'] ) ? wp_get_attachment_image_src( $item['id'], $lightbox_image_size ) : false;
+				$lightbox_image      = ! empty( $lightbox_image ) && is_array( $lightbox_image ) ? $lightbox_image : [ ! empty( $item['url'] ) ? $item['url'] : '', 800, 600 ];
 
-				$this->set_attribute( "img-$index", 'data-bricks-lightbox-source', $lightbox_image[0] );
-				$this->set_attribute( "img-$index", 'data-bricks-lightbox-width', $lightbox_image[1] );
-				$this->set_attribute( "img-$index", 'data-bricks-lightbox-height', $lightbox_image[2] );
-				$this->set_attribute( "img-$index", 'data-bricks-lightbox-index', $index );
-				$this->set_attribute( "img-$index", 'data-bricks-lightbox-id', $this->id );
+				$this->set_attribute( "a-$index", 'href', $lightbox_image[0] );
+				$this->set_attribute( "a-$index", 'data-pswp-src', $lightbox_image[0] );
+				$this->set_attribute( "a-$index", 'data-pswp-width', $lightbox_image[1] );
+				$this->set_attribute( "a-$index", 'data-pswp-height', $lightbox_image[2] );
+
+				$close_a_tag = true;
+
+				echo "<a {$this->render_attributes( "a-$index" )}>";
 			}
 
 			if ( $layout === 'masonry' ) {
 				$image_atts = [ 'class' => implode( ' ', $image_classes ) ];
-
-				if ( ! empty( $lightbox_image ) ) {
-					$image_atts['data-bricks-lightbox-index']  = $index;
-					$image_atts['data-bricks-lightbox-id']     = $this->id;
-					$image_atts['data-bricks-lightbox-source'] = $lightbox_image[0];
-					$image_atts['data-bricks-lightbox-width']  = $lightbox_image[1];
-					$image_atts['data-bricks-lightbox-height'] = $lightbox_image[2];
-				}
 
 				echo wp_get_attachment_image( $item['id'], $size, false, $image_atts );
 			} else {
@@ -451,7 +398,7 @@ class Element_Image_Gallery extends Element {
 			}
 
 			if ( $caption ) {
-				echo '<div class="bricks-image-caption css-var" style="--gutter: ' . $gutter . '">' . $caption . '</div>';
+				echo "<div class=\"bricks-image-caption\">$caption</div>";
 			}
 
 			if ( $close_a_tag ) {
@@ -461,12 +408,10 @@ class Element_Image_Gallery extends Element {
 			echo '</li>';
 		}
 
-		if ( $layout === 'metro' ) {
-			echo '<li></li>';
+		if ( $layout === 'masonry' ) {
+			echo "<li {$this->render_attributes( 'item-sizer' )}></li>";
+			echo '<li class="bricks-gutter-sizer"></li>';
 		}
-
-		echo "<li {$this->render_attributes( 'item-sizer' )}></li>";
-		// echo '<li class="bricks-gutter-sizer"></li>';
 
 		echo '</ul>';
 	}
@@ -537,7 +482,7 @@ class Element_Image_Gallery extends Element {
 
 		$element_settings = [
 			'gutter'  => 15,
-			'columns' => $columns
+			'columns' => $columns,
 		];
 
 		if ( isset( $attributes['linkTo'] ) && in_array( $attributes['linkTo'], [ 'attachment', 'media' ] ) ) {

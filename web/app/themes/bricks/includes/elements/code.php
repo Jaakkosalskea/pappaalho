@@ -22,7 +22,7 @@ class Element_Code extends Element {
 	}
 
 	public function get_keywords() {
-		return [ 'snippet' ];
+		return [ 'code', 'css', 'html', 'javascript', 'js', 'php', 'script', 'snippet', 'style' ];
 	}
 
 	public function set_controls() {
@@ -36,22 +36,38 @@ class Element_Code extends Element {
 			'rerender'  => true,
 		];
 
+		$this->controls['useDynamicData'] = [
+			'deprecated'  => true, // @since 1.9.5
+			'tab'         => 'content',
+			'label'       => '',
+			'type'        => 'text',
+			'placeholder' => esc_html__( 'Select dynamic data', 'bricks' ),
+			'required'    => [ 'code', '=', '' ],
+		];
+
 		// NOTE: Undocumented (enable code execution first under: Bricks > Settings > Builder Access)
 		$execution_allowed = apply_filters( 'bricks/code/allow_execution', ! Database::get_setting( 'executeCodeDisabled', false ) );
 
 		if ( $execution_allowed ) {
 			$this->controls['executeCode'] = [
-				'tab'      => 'content',
-				'label'    => esc_html__( 'Execute code', 'bricks' ),
-				'type'     => 'checkbox',
-				'required' => [ 'useDynamicData', '=', '' ],
+				'tab'   => 'content',
+				'label' => esc_html__( 'Execute code', 'bricks' ),
+				'type'  => 'checkbox',
 			];
 
-			if ( ! current_user_can( Capabilities::EXECUTE_CODE ) ) {
+			$this->controls['noRoot'] = [
+				'tab'         => 'content',
+				'label'       => esc_html__( 'Render without wrapper', 'bricks' ),
+				'type'        => 'checkbox',
+				'description' => esc_html__( 'Render on the front-end without the div wrapper.', 'bricks' ),
+				'required'    => [ 'executeCode', '!=', '' ],
+			];
+
+			if ( ! Capabilities::current_user_can_execute_code() ) {
 				$this->controls['infoExecuteCodeOff'] = [
 					'tab'     => 'content',
 					'content' => esc_html__( 'You can manage code execution permissions under: Bricks > Settings > Builder Access > Code Execution', 'bricks' ),
-					'type'    => 'info'
+					'type'    => 'info',
 				];
 			}
 
@@ -59,24 +75,15 @@ class Element_Code extends Element {
 				'tab'      => 'content',
 				'content'  => esc_html__( 'The code above will be executed on your site! Proceed with care and use only trusted code that you deem safe.', 'bricks' ),
 				'type'     => 'info',
-				'required' => [ 'executeCode', '!=', '' ]
+				'required' => [ 'executeCode', '!=', '' ],
 			];
 		}
 
 		$this->controls['infoExecuteCode'] = [
 			'tab'      => 'content',
-			'content'  => esc_html__( 'Important: The code above will run on your site! Only add code that you consider safe. Especially when executing PHP & JavaSript code.', 'bricks' ),
+			'content'  => esc_html__( 'Important: The code above will run on your site! Only add code that you consider safe. Especially when executing PHP & JS code.', 'bricks' ),
 			'type'     => 'info',
-			'required' => [ 'executeCode', '!=', '' ]
-		];
-
-		$this->controls['useDynamicData'] = [
-			'tab'                  => 'content',
-			'label'                => '',
-			'type'                 => 'text',
-			'placeholder'          => esc_html__( 'Select dynamic data', 'bricks' ),
-			'fetchContentOnCanvas' => true, // NOTE: Undocumented. When picking, fetch content for preview. (by default for link and video, needed for text field types)
-			'required'             => [ 'executeCode', '=', '' ]
+			'required' => [ 'executeCode', '!=', '' ],
 		];
 
 		$this->controls['language'] = [
@@ -88,22 +95,25 @@ class Element_Code extends Element {
 			'description'    => esc_html__( 'Set language if auto detect fails (e.g. "css").', 'bricks' ),
 			'required'       => [ 'executeCode', '=', '' ],
 		];
-
-		$this->controls['infoBeautify'] = [
-			'tab'      => 'content',
-			'content'  => esc_html__( 'Beautify your code under: Settings > Theme Styles > Element - Code', 'bricks' ),
-			'type'     => 'info',
-			'required' => [ 'executeCode', '=', '' ],
-		];
 	}
 
 	public function render() {
 		$settings = $this->settings;
+		$code     = $settings['code'] ?? false;
 
-		$code = ! empty( $settings['code'] ) ? $settings['code'] : false;
+		// STEP: Get Dynamic code
+		if ( ! empty( $settings['useDynamicData'] ) ) {
+			$dynamic_data_code = $this->render_dynamic_data_tag( $settings['useDynamicData'] );
 
-		if ( empty( $code ) ) {
-			return $this->render_element_placeholder( [ 'title' => esc_html__( 'No code found.', 'bricks' ) ] );
+			if ( empty( $dynamic_data_code ) ) {
+				return $this->render_element_placeholder(
+					[
+						'title' => esc_html__( 'Dynamic data is empty.', 'bricks' )
+					]
+				);
+			}
+
+			$code = $dynamic_data_code;
 		}
 
 		// STEP: Execute code
@@ -140,6 +150,13 @@ class Element_Code extends Element {
 				}
 			}
 
+			// Sanitize element code
+			$code = Helpers::sanitize_element_php_code( $this->post_id, $this->id, $code );
+
+			if ( empty( $code ) ) {
+				return $this->render_element_placeholder( [ 'title' => esc_html__( 'No code found.', 'bricks' ) ] );
+			}
+
 			// Sets context on AJAX/REST API calls or when reloading the builder
 			if ( bricks_is_builder() || bricks_is_builder_call() ) {
 				global $post;
@@ -158,7 +175,7 @@ class Element_Code extends Element {
 
 			try {
 				$result = eval( ' ?>' . $code . '<?php ' );
-			} catch ( \Exception $e ) {
+			} catch ( \Exception $error ) {
 				echo 'Exception: ' . $error->getMessage();
 
 				return;
@@ -189,7 +206,12 @@ class Element_Code extends Element {
 				wp_reset_postdata();
 			}
 
-			echo "<div {$this->render_attributes( '_root' )}>{$output}</div>";
+			// No root wrapper (frontend only, wrapper required in builder to get all inner nodes)
+			if ( isset( $settings['noRootForce'] ) || ( isset( $settings['noRoot'] ) && ! bricks_is_builder() && ! bricks_is_builder_call() ) ) {
+				echo $output;
+			} else {
+				echo "<div {$this->render_attributes( '_root' )}>{$output}</div>";
+			}
 
 			return;
 		}
@@ -205,19 +227,6 @@ class Element_Code extends Element {
 
 		$language = ! empty( $settings['language'] ) ? ' lang-' . strtolower( $settings['language'] ) : '';
 
-		// STEP: Get code
-		if ( ! empty( $settings['useDynamicData'] ) ) {
-			$code = $this->render_dynamic_data_tag( $settings['useDynamicData'] );
-
-			if ( empty( $code ) ) {
-				return $this->render_element_placeholder(
-					[
-						'title' => esc_html__( 'Dynamic data is empty.', 'bricks' )
-					]
-				);
-			}
-		}
-
 		// Escaping
 		$code = esc_html( $code );
 
@@ -230,7 +239,7 @@ class Element_Code extends Element {
 			return;
 		}
 
-		// Prettiprint theme set
+		// Prettyprint theme set
 		if ( $theme ) {
 			echo "<div {$this->render_attributes( '_root' )}>";
 			echo '<pre class="prettyprint ' . $theme . $language . '"><code>' . $code . '</code></pre>';
@@ -242,7 +251,7 @@ class Element_Code extends Element {
 	}
 
 	public function convert_element_settings_to_block( $settings ) {
-		if ( $settings['executeCode'] ) {
+		if ( isset( $settings['executeCode'] ) ) {
 			return;
 		}
 

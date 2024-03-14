@@ -7,7 +7,6 @@ class Element_Post_Meta extends Element {
 	public $category = 'single';
 	public $name     = 'post-meta';
 	public $icon     = 'ti-receipt';
-	// public $deprecated = true; // TODO: When to deprecate?
 
 	public function get_label() {
 		return esc_html__( 'Meta Data', 'bricks' );
@@ -42,23 +41,21 @@ class Element_Post_Meta extends Element {
 		];
 
 		$this->controls['direction'] = [
-			'tab'         => 'content',
-			'label'       => esc_html__( 'Direction', 'bricks' ),
-			'type'        => 'direction',
-			'direction'   => 'row',
-			'css'         => [
+			'tab'    => 'content',
+			'label'  => esc_html__( 'Direction', 'bricks' ),
+			'type'   => 'direction',
+			'css'    => [
 				[
 					'property' => 'flex-direction',
 					'selector' => '',
 				],
 			],
-			'inline'      => true,
-			'placeholder' => esc_html__( 'Horizontal', 'bricks' ),
+			'inline' => true,
 		];
 
 		$this->controls['gutter'] = [
 			'tab'         => 'content',
-			'label'       => esc_html__( 'Spacing', 'bricks' ),
+			'label'       => esc_html__( 'Gap', 'bricks' ),
 			'type'        => 'number',
 			'units'       => true,
 			'css'         => [
@@ -113,8 +110,8 @@ class Element_Post_Meta extends Element {
 		foreach ( $settings['meta'] as $index => $meta ) {
 			$meta_html = '<span class="item">';
 
-			if ( isset( $meta['dynamicData'] ) && ! empty( $meta['dynamicData'] ) ) {
-				$meta_html .= Integrations\Dynamic_Data\Providers::render_content( $meta['dynamicData'], $post_id );
+			if ( ! empty( $meta['dynamicData'] ) ) {
+				$meta_html .= bricks_render_dynamic_data( $meta['dynamicData'], $post_id );
 			}
 
 			$meta_html .= '</span>';

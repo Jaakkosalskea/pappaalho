@@ -1,78 +1,61 @@
 <?php
 ob_start();
-?>
-<div class="brxe-container">
-	<?php
-	if ( have_posts() ) {
-		global $wp_query;
 
-		$post_type = is_home() ? 'post' : 'any';
+echo '<div class="brxe-container">';
 
-		// Default search results page: Exclude Bricks templates
-		if ( is_search() ) {
-			$searchable_post_types = get_post_types( [ 'exclude_from_search' => false ] );
+if ( have_posts() ) {
+	$settings = [
+		'settings' => [
+			'layout'          => 'grid',
+			'columns'         => 2,
+			'gutter'          => 30,
+			'imageLink'       => true,
+			'fields'          => [
+				[
+					'dynamicData' => '{post_title:link}',
+					'tag'         => 'h3',
+				],
+				[
+					'dynamicData' => '{post_date}',
+				],
+				[
+					'dynamicData' => '{post_excerpt:20}',
+				],
+			],
+			'postsNavigation' => true,
+		]
+	];
 
-			if ( is_array( $searchable_post_types ) && in_array( BRICKS_DB_TEMPLATE_SLUG, $searchable_post_types ) ) {
-				unset( $searchable_post_types[ BRICKS_DB_TEMPLATE_SLUG ] );
-			}
-
-			$post_type = $searchable_post_types;
-		}
-
-		$query_vars              = $wp_query->query_vars;
-		$query_vars['post_type'] = $post_type;
-
-		$current_page = $query_vars['paged'];
-
-		$post_content = new Bricks\Element_Posts(
-			[
-				'settings' => [
-					'query'           => $query_vars,
-					'layout'          => 'grid',
-					'columns'         => 2,
-					'gutter'          => 30,
-					'imageLink'       => true,
-					'fields'          => [
-						[
-							'dynamicData' => '{post_title:link}',
-							'tag'         => 'h3',
-						],
-						[
-							'dynamicData' => '{post_date}',
-						],
-						[
-							'dynamicData' => '{post_excerpt:20}',
-						],
-					],
-					'postsNavigation' => true,
-				]
-			]
-		);
-
-		$post_content->load();
-		$post_content->init();
+	// Set is_archive_main_query for search page so it will use main query result (@since 1.9.1)
+	if ( is_search() ) {
+		$settings['settings']['query']['is_archive_main_query'] = true;
 	}
 
-	// No posts
-	else {
-		$no_posts_html = '<div class="bricks-no-posts-wrapper">';
+	$post_content = new Bricks\Element_Posts( $settings );
+	$post_content->load();
+	$post_content->init();
+}
 
-		$no_posts_html .= '<h3 class="title">' . esc_html__( 'Nothing found.', 'bricks' ) . '</h3>';
+// No posts
+else {
+	$no_posts_html = '<div class="bricks-no-posts-wrapper">';
 
-		if ( current_user_can( 'publish_posts' ) ) {
-			$no_posts_html .= '<p>';
-			$no_posts_html .= esc_html__( 'Ready to publish your first post?', 'bricks' );
-			$no_posts_html .= ' <a href="' . admin_url( 'post-new.php' ) . '">' . esc_html__( 'Get started here', 'bricks' ) . '</a>.';
-			$no_posts_html .= '</p>';
-		}
+	$no_posts_html .= '<h3 class="title">' . esc_html__( 'Nothing found.', 'bricks' ) . '</h3>';
 
-		$no_posts_html .= '</div>';
-
-		echo $no_posts_html;
+	if ( current_user_can( 'publish_posts' ) ) {
+		$no_posts_html .= '<p>';
+		$no_posts_html .= esc_html__( 'Ready to publish your first post?', 'bricks' );
+		$no_posts_html .= ' <a href="' . admin_url( 'post-new.php' ) . '">' . esc_html__( 'Get started here', 'bricks' ) . '</a>.';
+		$no_posts_html .= '</p>';
 	}
-	?>
-</div>
-<?php
+
+	$no_posts_html .= '</div>';
+
+	echo $no_posts_html;
+}
+
+echo '</div>';
+
 $attributes = [ 'class' => 'layout-default' ];
 
 $html = ob_get_clean();

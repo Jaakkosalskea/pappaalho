@@ -5,7 +5,15 @@
  * @since 1.0
  */
 function bricks_list_comments( $comment, $args, $depth ) {
-	$GLOBALS['comment'] = $comment;
+	$GLOBALS['comment'] = $comment; // phpcs:ignore
+
+	// Comment is unapproved & the user is not an admin
+	if ( $comment->comment_approved == '0' && ! current_user_can( 'manage_options' ) ) {
+		// Return: Not logged in OR logged-in, but not the comment author (@since 1.9.2)
+		if ( ! get_current_user_id() || get_current_user_id() != $comment->user_id ) {
+			return;
+		}
+	}
 
 	if ( $args['style'] === 'div' ) {
 		$tag       = 'div';
@@ -17,7 +25,6 @@ function bricks_list_comments( $comment, $args, $depth ) {
 	?>
 
 	<<?php echo esc_html( $tag ); ?> <?php comment_class( empty( $args['has_children'] ) ? '' : 'parent' ); ?> id="comment-<?php comment_ID(); ?>">
-
 		<?php if ( $args['style'] !== 'div' ) { ?>
 		<div id="div-comment-<?php comment_ID(); ?>" class="comment-body">
 		<?php } ?>
@@ -50,28 +57,46 @@ function bricks_list_comments( $comment, $args, $depth ) {
 					<h5 class="fn"><?php echo get_comment_author_link(); ?></h5>
 
 					<?php if ( $comment->comment_approved == '0' ) { ?>
-					<em class="comment-awaiting-moderation"><?php esc_html_e( 'Your comment is awaiting moderation.', 'bricks' ); ?></em><br />
+						<?php
+						if ( get_current_user_id() == $comment->user_id ) {
+							?>
+							<em class="comment-awaiting-moderation"><?php esc_html_e( 'Your comment is awaiting moderation. This is a preview; your comment will be visible after it has been approved.', 'bricks' ); ?></em><br />
+							<?php
+						} elseif ( current_user_can( 'manage_options' ) || current_user_can( 'edit_posts' ) ) {
+							?>
+							<em class="comment-awaiting-moderation"><?php esc_html_e( 'This comment is awaiting moderation.', 'bricks' ); ?></em><br />
+							<?php
+						}
+						?>
 					<?php } ?>
 
 					<div class="comment-meta">
-					<?php echo '<a href="' . get_comment_link() . '"><span>' . human_time_diff( get_comment_time( 'U' ), current_time( 'timestamp' ) ) . ' ' . esc_html__( 'ago', 'bricks' ) . '</span></a>'; ?>
-
-					<?php if ( comments_open() ) { ?>
-					<span class="reply">
 						<?php
-						comment_reply_link(
-							array_merge(
-								$args,
-								[
-									'add_below' => $add_below,
-									'depth'     => $depth,
-									'max_depth' => $args['max_depth']
-								]
-							)
-						);
+						// translators: %s: Human time diff
+						$timestamp = sprintf( __( '%s ago', 'bricks' ), human_time_diff( get_comment_time( 'U' ), current_time( 'timestamp' ) ) );
+
+						// NOTE: Undocumented
+						$timestamp = apply_filters( 'bricks/comments/timestamp', $timestamp, $comment );
+
+						echo '<a href="' . get_comment_link() . '"><span>' . $timestamp . '</span></a>';
 						?>
-					</span>
-					<?php } ?>
+
+						<?php if ( comments_open() ) { ?>
+						<span class="reply">
+							<?php
+							comment_reply_link(
+								array_merge(
+									$args,
+									[
+										'add_below' => $add_below,
+										'depth'     => $depth,
+										'max_depth' => $args['max_depth']
+									]
+								)
+							);
+							?>
+						</span>
+						<?php } ?>
 					</div>
 				</div>
 

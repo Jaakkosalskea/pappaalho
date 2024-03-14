@@ -17,37 +17,39 @@ class Element_Icon extends Element {
 			'tab'     => 'content',
 			'label'   => esc_html__( 'Icon', 'bricks' ),
 			'type'    => 'icon',
+			'root'    => true, // To target 'svg' root
 			'default' => [
 				'library' => 'themify',
 				'icon'    => 'ti-star',
 			],
-			'root'    => true, // To target 'svg' root
 		];
 
 		$this->controls['iconColor'] = [
 			'tab'      => 'content',
 			'label'    => esc_html__( 'Color', 'bricks' ),
 			'type'     => 'color',
+			'required' => [ 'icon.icon', '!=', '' ],
 			'css'      => [
 				[
 					'property' => 'color',
 				],
+				[
+					'property' => 'fill',
+				],
 			],
-			'required' => [ 'icon.icon', '!=', '' ],
 		];
 
 		$this->controls['iconSize'] = [
-			'tab'         => 'content',
-			'label'       => esc_html__( 'Size', 'bricks' ),
-			'type'        => 'number',
-			'units'       => true,
-			'css'         => [
+			'tab'      => 'content',
+			'label'    => esc_html__( 'Size', 'bricks' ),
+			'type'     => 'number',
+			'units'    => true,
+			'required' => [ 'icon.icon', '!=', '' ],
+			'css'      => [
 				[
 					'property' => 'font-size',
 				],
 			],
-			'placeholder' => '60px',
-			'required'    => [ 'icon.icon', '!=', '' ],
 		];
 
 		$this->controls['link'] = [
@@ -55,16 +57,14 @@ class Element_Icon extends Element {
 			'label' => esc_html__( 'Link', 'bricks' ),
 			'type'  => 'link',
 		];
-
-		$this->controls['_typography']['placeholder']['font-size']   = 60;
-		$this->controls['_typography']['placeholder']['line-height'] = 1;
 	}
 
 	public function render() {
 		$settings = $this->settings;
-		$is_svg   = ! empty( $settings['icon']['svg'] );
+		$icon     = $settings['icon'] ?? false;
+		$link     = $settings['link'] ?? false;
 
-		if ( empty( $settings['icon'] ) ) {
+		if ( ! $icon ) {
 			return $this->render_element_placeholder(
 				[
 					'title' => esc_html__( 'No icon selected.', 'bricks' ),
@@ -72,16 +72,37 @@ class Element_Icon extends Element {
 			);
 		}
 
-		if ( ! empty( $settings['link'] ) ) {
-			$this->set_attribute( '_root', 'class', $is_svg ? 'svg' : 'i' );
+		// Linked icon: Remove custom attributes from root to add to the link (@since 1.7)
+		if ( $link ) {
+			$custom_attributes = $this->get_custom_attributes( $settings );
 
-			$this->set_link_attributes( '_root', $settings['link'] );
+			if ( is_array( $custom_attributes ) ) {
+				foreach ( $custom_attributes as $key => $value ) {
+					if ( isset( $this->attributes['_root'][ $key ] ) ) {
+						unset( $this->attributes['_root'][ $key ] );
+					}
+				}
+			}
+		}
 
-			$icon = self::render_icon( $settings['icon'], [] );
+		// Support dynamic data color in loop (@since 1.8)
+		if ( isset( $settings['iconColor']['raw'] ) && Query::is_looping() ) {
+			if ( strpos( $settings['iconColor']['raw'], '{' ) !== false ) {
+				$this->attributes['_root']['data-query-loop-index'] = Query::get_loop_index();
+			}
+		}
 
-			echo "<a {$this->render_attributes( '_root' )}>{$icon}</a>";
+		$icon = self::render_icon( $icon, $this->attributes['_root'] );
+
+		if ( $link ) {
+			$this->set_link_attributes( 'link', $link );
+
+			// ADD custom attributes to the link instead of the icon (@since 1.7)
+			echo "<a {$this->render_attributes( 'link', true )}>";
+			echo $icon;
+			echo '</a>';
 		} else {
-			echo self::render_icon( $settings['icon'], $this->attributes['_root'] );
+			echo $icon;
 		}
 	}
 }

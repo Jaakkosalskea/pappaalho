@@ -9,7 +9,7 @@ class Woocommerce_Breadcrumbs extends Element {
 	public $icon     = 'ti-line-dashed';
 
 	public function get_label() {
-		return esc_html__( 'Breadcrumbs', 'bricks' );
+		return esc_html__( 'Breadcrumbs', 'bricks' ) . ' (WooCommerce)';
 	}
 
 	public function set_control_groups() {
@@ -29,7 +29,7 @@ class Woocommerce_Breadcrumbs extends Element {
 
 		$this->controls['homeLabel'] = [
 			'tab'         => 'content',
-			'label'       => esc_html__( 'Home Label', 'bricks' ),
+			'label'       => esc_html__( 'Label', 'bricks' ) . ': ' . esc_html__( 'Home', 'bricks' ),
 			'type'        => 'text',
 			'inline'      => true,
 			'placeholder' => esc_html__( 'Home', 'bricks' ),
@@ -113,7 +113,7 @@ class Woocommerce_Breadcrumbs extends Element {
 			'tab'         => 'content',
 			'group'       => 'separator',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'css'         => [
 				[
 					'property' => 'margin',
@@ -133,7 +133,9 @@ class Woocommerce_Breadcrumbs extends Element {
 		// TODO: Render to "Home" only whenever you change a breadcrumb setting in the builder
 		$settings = $this->settings;
 
-		if ( ! empty( $settings['separatorIcon'] ) ) {
+		$separator_type = ! empty( $settings['separatorType'] ) ? $settings['separatorType'] : 'text';
+
+		if ( $separator_type === 'icon' && ! empty( $settings['separatorIcon'] ) ) {
 			$separator = self::render_icon( $settings['separatorIcon'], [ 'separator' ] );
 		} elseif ( ! empty( $settings['separatorText'] ) ) {
 			$separator = '<span class="separator">' . esc_html( $settings['separatorText'] ) . '</span>';

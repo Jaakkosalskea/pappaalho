@@ -3,7 +3,7 @@ $controls = [];
 
 $controls['margin'] = [
 	'label' => esc_html__( 'Widget margin', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'margin',

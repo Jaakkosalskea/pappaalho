@@ -12,11 +12,13 @@
   color: var(--color-white);
   overflow: hidden;
   padding: 0;
-  text-align: center;
-
-  .footer {
-    background-color: var(--color-footer);
-  }
+  text-align: start;
+  margin-left: auto;
+  margin-right: auto;
+  padding-bottom: var(--padding-site-header-vertical);
+  padding-left: var(--padding-container-horizontal);
+  padding-right: var(--padding-container-horizontal);
+  padding-top: var(--padding-site-header-vertical);
 
   p,
   span {
@@ -102,5 +104,14 @@
     i {
       margin: 0 5px;
     }
+  }
+}
+
+.footer-background {
+  background: rgb(34,34,34);
+  background: linear-gradient(0deg, rgba(34,34,34,1) 0%, rgba(39,38,38,1) 50%, rgba(51,51,51,1) 100%);
+
+  h3 {
+    color: var(--color-highlight);
   }
 }

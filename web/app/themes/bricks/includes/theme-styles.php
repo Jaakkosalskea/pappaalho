@@ -77,157 +77,65 @@ class Theme_Styles {
 			'title' => esc_html__( 'Typography', 'bricks' ),
 		];
 
-		// LAYOUT ELEMENTS
+		// POPUPS (@since 1.6)
 
-		$control_groups['section'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Section', 'bricks' ),
-		];
-
-		$control_groups['container'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Container', 'bricks' ),
-		];
-
-		$control_groups['block'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Block', 'bricks' ),
-		];
-
-		$control_groups['div'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . 'Div',
+		$control_groups['popup'] = [
+			'title' => esc_html__( 'Popup', 'bricks' ),
 		];
 
 		// ELEMENT STYLES
-
-		$control_groups['accordion'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Accordion', 'bricks' ),
+		$element_control_groups = [
+			'section',
+			'container',
+			'block',
+			'div',
+			'accordion',
+			'alert',
+			'button',
+			'carousel',
+			'code',
+			'counter',
+			'divider',
+			'form',
+			'heading',
+			'icon-box',
+			'social-icons',
+			'image',
+			'image-gallery',
+			'list',
+			'nav-menu',
+			'post-content',
+			'post-meta',
+			'post-navigation',
+			'related-posts',
+			'post-taxonomy',
+			'post-title',
+			'pricing-tables',
+			'progress-bar',
+			'search',
+			'sidebar',
+			'slider',
+			'svg',
+			'tabs',
+			'team-members',
+			'testimonials',
+			'text',
+			'video',
+			'wordpress',
 		];
 
-		$control_groups['alert'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Alert', 'bricks' ),
-		];
+		foreach ( $element_control_groups as $element_name ) {
+			$element = ! empty( Elements::$elements[ $element_name ] ) ? Elements::$elements[ $element_name ] : false;
 
-		$control_groups['button'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Button', 'bricks' ),
-		];
+			// Element is registered: Load it in theme styles panel (@since 1.5.1)
+			if ( $element ) {
+				$element_label = ! empty( $element['label'] ) ? $element['label'] : str_replace( '-', ' ', $element_name );
 
-		$control_groups['carousel'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Carousel', 'bricks' ),
-		];
-
-		$control_groups['code'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Code', 'bricks' ),
-		];
-
-		$control_groups['counter'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Counter', 'bricks' ),
-		];
-
-		$control_groups['divider'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Divider', 'bricks' ),
-		];
-
-		$control_groups['form'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Form', 'bricks' ),
-		];
-
-		$control_groups['heading'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Heading', 'bricks' ),
-		];
-
-		$control_groups['icon-box'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Icon Box', 'bricks' ),
-		];
-
-		$control_groups['image'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Image', 'bricks' ),
-		];
-
-		$control_groups['image-gallery'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Image gallery', 'bricks' ),
-		];
-
-		$control_groups['list'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'List', 'bricks' ),
-		];
-
-		$control_groups['nav-menu'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Nav Menu', 'bricks' ),
-		];
-
-		$control_groups['post-content'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Post content', 'bricks' ),
-		];
-
-		$control_groups['post-meta'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Meta data', 'bricks' ),
-		];
-
-		$control_groups['post-navigation'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Post navigation', 'bricks' ),
-		];
-
-		$control_groups['related-posts'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Related posts', 'bricks' ),
-		];
-
-		$control_groups['post-taxonomy'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Taxonomy', 'bricks' ),
-		];
-
-		$control_groups['post-title'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Post title', 'bricks' ),
-		];
-
-		$control_groups['pricing-tables'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Pricing tables', 'bricks' ),
-		];
-
-		$control_groups['progress-bar'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Progress bar', 'bricks' ),
-		];
-
-		$control_groups['search'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Search', 'bricks' ),
-		];
-
-		$control_groups['sidebar'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Sidebar', 'bricks' ),
-		];
-
-		$control_groups['slider'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Slider', 'bricks' ),
-		];
-
-		$control_groups['social-icons'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Icon list', 'bricks' ),
-		];
-
-		$control_groups['svg'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - SVG',
-		];
-
-		$control_groups['tabs'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Tabs', 'bricks' ),
-		];
-
-		$control_groups['team-members'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Team members', 'bricks' ),
-		];
-
-		$control_groups['testimonials'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Testimonials', 'bricks' ),
-		];
-
-		$control_groups['text'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Text', 'bricks' ),
-		];
-
-		$control_groups['video'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'Video', 'bricks' ),
-		];
-
-		$control_groups['wordpress'] = [
-			'title' => esc_html__( 'Element', 'bricks' ) . ' - ' . esc_html__( 'WordPress', 'bricks' ),
-		];
+				$control_groups[ $element_name ] = [
+					'title' => esc_html__( 'Element', 'bricks' ) . " - $element_label",
+				];
+			}
+		}
 
 		$control_groups = apply_filters( 'bricks/theme_styles/control_groups', $control_groups );
 
@@ -243,6 +151,18 @@ class Theme_Styles {
 		foreach ( glob( BRICKS_PATH . 'includes/theme-styles/controls/*.php' ) as $file ) {
 			if ( ! is_readable( $file ) ) {
 				continue;
+			}
+
+			$file_name = basename( $file, '.php' );
+
+			// Is theme style for an element (starts with 'element-') (@since 1.5.1)
+			if ( strpos( $file_name, 'element-' ) === 0 ) {
+				$element_name = str_replace( 'element-', '', $file_name );
+
+				// Element not registered: Skip loading it in theme styles panel
+				if ( ! isset( Elements::$elements[ $element_name ] ) ) {
+					continue;
+				}
 			}
 
 			$element          = require_once $file;
@@ -300,7 +220,13 @@ class Theme_Styles {
 	 * Create new styles (create new one or import styles from file)
 	 */
 	public function create_styles() {
-		Ajax::verify_request();
+		// @since 1.5.4
+		Ajax::verify_nonce();
+
+		// Only Full Access users can create new theme styles (@since 1.5.4)
+		if ( ! Capabilities::current_user_has_full_access() ) {
+			wp_send_json_error( 'verify_request: Sorry, you are not allowed to perform this action.' );
+		}
 
 		if ( ! isset( $_POST['styles'] ) ) {
 			wp_send_json_success();
@@ -339,13 +265,20 @@ class Theme_Styles {
 	 * Delete custom style from db (by style ID)
 	 */
 	public function delete_style() {
-		Ajax::verify_request();
+		// @since 1.5.4
+		Ajax::verify_nonce();
+
+		// Only Full Access users can delete theme styles (@since 1.5.4)
+		if ( ! Capabilities::current_user_has_full_access() ) {
+			wp_send_json_error( 'verify_request: Sorry, you are not allowed to perform this action.' );
+		}
 
 		$custom_styles = get_option( BRICKS_DB_THEME_STYLES, [] );
+		$style_id      = $_POST['styleId'] ?? '';
 
 		// Remove reset from custom styles
-		if ( array_key_exists( $_POST['styleId'], $custom_styles ) ) {
-			unset( $custom_styles[ $_POST['styleId'] ] );
+		if ( $style_id && array_key_exists( $style_id, $custom_styles ) ) {
+			unset( $custom_styles[ $style_id ] );
 		}
 
 		// Save custom style in db option table
@@ -357,8 +290,8 @@ class Theme_Styles {
 	/**
 	 * Get active theme style according to theme style conditions
 	 *
-	 * @param integer $post_id Template ID.
-	 * @param boolean $return_id Set to true to return active theme style ID for this template (needed on template import)
+	 * @param int     $post_id Template ID.
+	 * @param boolean $return_id Set to true to return active theme style ID for this template (needed on template import).
 	 */
 	public static function set_active_style( $post_id = 0, $return_id = false ) {
 		$styles = get_option( BRICKS_DB_THEME_STYLES, [] );

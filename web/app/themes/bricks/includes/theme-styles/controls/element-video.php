@@ -1,6 +1,12 @@
 <?php
 $controls = [];
 
+$controls['previewImageFallback'] = [
+	'label'       => esc_html__( 'Fallback preview image', 'bricks' ),
+	'type'        => 'image',
+	'description' => esc_html__( 'Used if default or custom preview image can\'t be loaded.', 'bricks' ),
+];
+
 $controls['boxShadow'] = [
 	'label' => esc_html__( 'Box shadow', 'bricks' ),
 	'type'  => 'box-shadow',
@@ -15,12 +21,7 @@ $controls['boxShadow'] = [
 $controls['overlay'] = [
 	'label'   => esc_html__( 'Overlay', 'bricks' ),
 	'type'    => 'background',
-	'exclude' => [
-		'parallax',
-		'videoUrl',
-		'videoScale',
-		'videoAspectRatio',
-	],
+	'exclude' => 'video',
 	'css'     => [
 		[
 			'property' => 'background',
@@ -32,6 +33,11 @@ $controls['overlay'] = [
 $controls['overlayIcon'] = [
 	'label' => esc_html__( 'Icon', 'bricks' ),
 	'type'  => 'icon',
+	'css'   => [
+		[
+			'selector' => '.bricks-video-overlay-icon',
+		],
+	],
 ];
 
 $controls['overlayIconTypography'] = [
@@ -56,11 +62,17 @@ $controls['overlayIconTypography'] = [
 	'required' => [ 'overlayIcon.icon', '!=', '' ],
 ];
 
+$controls['customPlayerSeparator'] = [
+	'type'        => 'separator',
+	'label'       => esc_html__( 'Custom video player', 'bricks' ),
+	'description' => esc_html__( 'The custom video player is only applicable to "Media" or "File URL" video source.', 'bricks' ),
+];
+
 // Custom player (plyr.io)
 $controls['customPlayer'] = [
 	'type'        => 'checkbox',
-	'label'       => esc_html__( 'Enable custom video player', 'bricks' ),
-	'description' => esc_html__( 'If enabled an additional JS & CSS file is loaded.', 'bricks' ),
+	'label'       => esc_html__( 'Custom video player', 'bricks' ),
+	'description' => esc_html__( 'If enabled an additional JS & CSS file is loaded.', 'bricks' ) . ' (' . esc_html__( 'Learn more', 'bricks' ) . ': <a href="https://plyr.io/" target="_blank" rel="noopener">plyr.io</a>)',
 ];
 
 $controls['fileRestart'] = [

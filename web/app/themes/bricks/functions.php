@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  *
  * @since 1.0
  */
-define( 'BRICKS_VERSION', '1.5' );
+define( 'BRICKS_VERSION', '1.9.6.1' );
 define( 'BRICKS_NAME', 'Bricks' );
 define( 'BRICKS_TEMP_DIR', 'bricks-temp' ); // Template import/export (JSON & ZIP)
 define( 'BRICKS_PATH', trailingslashit( get_template_directory() ) );    // require_once files
@@ -24,18 +24,24 @@ define( 'BRICKS_DB_PANEL_WIDTH', 'bricks_panel_width' );
 define( 'BRICKS_DB_BUILDER_SCALE_OFF', 'bricks_builder_scale_off' );
 define( 'BRICKS_DB_BUILDER_WIDTH_LOCKED', 'bricks_builder_width_locked' );
 
+define( 'BRICKS_DB_COLOR_PALETTE', 'bricks_color_palette' );
+define( 'BRICKS_DB_BREAKPOINTS', 'bricks_breakpoints' );
 define( 'BRICKS_DB_GLOBAL_SETTINGS', 'bricks_global_settings' );
 define( 'BRICKS_DB_GLOBAL_ELEMENTS', 'bricks_global_elements' );
-define( 'BRICKS_DB_PINNED_ELEMENTS', 'bricks_pinned_elements' );
-define( 'BRICKS_DB_COLOR_PALETTE', 'bricks_color_palette' );
 define( 'BRICKS_DB_GLOBAL_CLASSES', 'bricks_global_classes' );
+define( 'BRICKS_DB_GLOBAL_CLASSES_CATEGORIES', 'bricks_global_classes_categories' );
 define( 'BRICKS_DB_GLOBAL_CLASSES_LOCKED', 'bricks_global_classes_locked' );
 define( 'BRICKS_DB_PSEUDO_CLASSES', 'bricks_global_pseudo_classes' );
+define( 'BRICKS_DB_PINNED_ELEMENTS', 'bricks_pinned_elements' );
 define( 'BRICKS_DB_SIDEBARS', 'bricks_sidebars' );
 define( 'BRICKS_DB_THEME_STYLES', 'bricks_theme_styles' );
+define( 'BRICKS_DB_ADOBE_FONTS', 'bricks_adobe_fonts' );
 
 define( 'BRICKS_DB_EDITOR_MODE', '_bricks_editor_mode' );
+define( 'BRICKS_BREAKPOINTS_LAST_GENERATED', 'bricks_breakpoints_last_generated' );
 define( 'BRICKS_CSS_FILES_LAST_GENERATED', 'bricks_css_files_last_generated' );
+define( 'BRICKS_CSS_FILES_LAST_GENERATED_TIMESTAMP', 'bricks_css_files_last_generated_timestamp' );
+define( 'BRICKS_CSS_FILES_ADMIN_NOTICE', 'bricks_css_files_admin_notice' );
 
 /**
  * Syntax since 1.2 (container element)
@@ -56,6 +62,7 @@ define( 'BRICKS_DB_TEMPLATE_SETTINGS', '_bricks_template_settings' );
 
 define( 'BRICKS_DB_CUSTOM_FONTS', 'bricks_fonts' );
 define( 'BRICKS_DB_CUSTOM_FONT_FACES', 'bricks_font_faces' );
+define( 'BRICKS_DB_CUSTOM_FONT_FACE_RULES', 'bricks_font_face_rules' ); // @since 1.7.2
 
 define( 'BRICKS_EXPORT_TEMPLATES', 'brick_export_templates' );
 
@@ -87,6 +94,11 @@ if ( ! defined( 'BRICKS_MULTISITE_USE_MAIN_SITE_CLASSES' ) ) {
 	define( 'BRICKS_MULTISITE_USE_MAIN_SITE_CLASSES', false );
 }
 
+// Global data: Global classes categories
+if ( ! defined( 'BRICKS_MULTISITE_USE_MAIN_SITE_CLASSES_CATEGORIES' ) ) {
+	define( 'BRICKS_MULTISITE_USE_MAIN_SITE_CLASSES_CATEGORIES', false );
+}
+
 // Global data: Global elements
 if ( ! defined( 'BRICKS_MULTISITE_USE_MAIN_SITE_GLOBAL_ELEMENTS' ) ) {
 	define( 'BRICKS_MULTISITE_USE_MAIN_SITE_GLOBAL_ELEMENTS', false );
@@ -116,6 +128,7 @@ if ( version_compare( PHP_VERSION, '5.4', '>=' ) ) {
 	add_action(
 		'admin_notices',
 		function() {
+			// translators: %s: PHP version number
 			$message = sprintf( esc_html__( 'Bricks requires PHP version %s+.', 'bricks' ), '5.4' );
 			$html    = sprintf( '<div class="error">%s</div>', wpautop( $message ) );
 			echo wp_kses_post( $html );
@@ -168,5 +181,30 @@ function bricks_is_rest_call() {
  * @since 1.5
  */
 function bricks_is_builder_call() {
-	return bricks_is_ajax_call() || bricks_is_rest_call();
+	// Use PHP constant BRICKS_IS_BUILDER @since 1.5.5 to perform builder check logic only once
+	if ( ! defined( 'BRICKS_IS_BUILDER' ) ) {
+		define( 'BRICKS_IS_BUILDER', \Bricks\Builder::is_builder_call() );
+	}
+
+	return BRICKS_IS_BUILDER;
+}
+
+
+/**
+ * Render dynamic data tags inside of a content string
+ *
+ * Example: Inside an executing Code element, custom plugin, etc.
+ *
+ * Academy: https://academy.bricksbuilder.io/article/function-bricks_render_dynamic_data/
+ *
+ * @since 1.5.5
+ *
+ * @param string $content The content (including dynamic data tags).
+ * @param int    $post_id The post ID.
+ * @param string $context text, image, link, etc.
+ *
+ * @return string
+ */
+function bricks_render_dynamic_data( $content, $post_id = 0, $context = 'text' ) {
+	return \Bricks\Integrations\Dynamic_Data\Providers::render_content( $content, $post_id, $context );
 }

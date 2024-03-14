@@ -14,19 +14,17 @@ class Product_Short_Description extends Element {
 
 	public function set_controls() {
 		$edit_link = Helpers::get_preview_post_link( get_the_ID() );
-
-		$label = esc_html__( 'Edit product short description in WordPress.', 'bricks' );
+		$label     = esc_html__( 'Edit product short description in WordPress.', 'bricks' );
 
 		$this->controls['info'] = [
 			'tab'     => 'content',
 			'type'    => 'info',
-			'content' => $edit_link ? sprintf( '<a href="' . $edit_link . '" target="_blank">%s</a>', $label ) : $label,
+			'content' => $edit_link ? '<a href="' . esc_url( $edit_link ) . '" target="_blank">' . $label . '</a>' : $label,
 		];
 	}
 
 	public function render() {
 		global $post;
-
 		$post = get_post( $this->post_id );
 
 		if ( empty( $post ) || $post->post_type !== 'product' ) {

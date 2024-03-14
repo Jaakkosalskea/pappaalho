@@ -1,5 +1,5 @@
 <?php
-$swiper_controls = \Bricks\Element::get_swiper_controls();
+$swiper_controls = \Bricks\Element_Carousel::get_swiper_controls();
 $controls        = [];
 
 // ARROWS
@@ -50,9 +50,9 @@ $controls['dotsRight']       = $swiper_controls['dotsRight'];
 $controls['dotsBottom']      = $swiper_controls['dotsBottom'];
 $controls['dotsLeft']        = $swiper_controls['dotsLeft'];
 $controls['dotsBorder']      = $swiper_controls['dotsBorder'];
-$controls['dotsSpacing']     = $swiper_controls['dotsSpacing'];
 $controls['dotsColor']       = $swiper_controls['dotsColor'];
 $controls['dotsActiveColor'] = $swiper_controls['dotsActiveColor'];
+$controls['dotsSpacing']     = $swiper_controls['dotsSpacing'];
 
 foreach ( $controls as $key => $control ) {
 	unset( $controls[ $key ]['group'] );

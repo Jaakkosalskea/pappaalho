@@ -8,6 +8,8 @@ class Element_Nav_Menu extends Element {
 	public $name              = 'nav-menu';
 	public $icon              = 'ti-menu';
 	public $custom_attributes = false;
+	public $scripts           = [ 'bricksSubmenuListeners', 'bricksSubmenuPosition' ];
+	public $wp_nav_menu_items = [];
 
 	public function get_label() {
 		return esc_html__( 'Nav Menu', 'bricks' );
@@ -15,18 +17,23 @@ class Element_Nav_Menu extends Element {
 
 	public function set_control_groups() {
 		$this->control_groups['menu'] = [
-			'title' => esc_html__( 'Top level menu', 'bricks' ),
-			'tab'   => 'content',
+			'title' => esc_html__( 'Top level', 'bricks' ),
 		];
 
 		$this->control_groups['sub-menu'] = [
 			'title' => esc_html__( 'Sub menu', 'bricks' ),
-			'tab'   => 'content',
 		];
 
 		$this->control_groups['mobile-menu'] = [
 			'title' => esc_html__( 'Mobile menu', 'bricks' ),
-			'tab'   => 'content',
+		];
+
+		$this->control_groups['megamenu'] = [
+			'title' => esc_html__( 'Mega menu', 'bricks' ),
+		];
+
+		$this->control_groups['multilevel'] = [
+			'title' => esc_html__( 'Multilevel', 'bricks' ),
 		];
 	}
 
@@ -56,79 +63,87 @@ class Element_Nav_Menu extends Element {
 		}
 
 		$this->controls['menu'] = [
-			'tab'         => 'content',
-			'label'       => esc_html__( 'Nav Menu', 'bricks' ),
+			'label'       => esc_html__( 'Menu', 'bricks' ) . ' (WordPress)',
 			'type'        => 'select',
 			'options'     => $nav_menus,
 			'placeholder' => esc_html__( 'Select nav menu', 'bricks' ),
 			'description' => sprintf( '<a href="' . admin_url( 'nav-menus.php' ) . '" target="_blank">' . esc_html__( 'Manage my menus in WordPress.', 'bricks' ) . '</a>' ),
 		];
 
-		$this->controls['mobileMenu'] = [
-			'tab'         => 'content',
-			'label'       => esc_html__( 'Show mobile menu toggle', 'bricks' ),
-			'type'        => 'select',
-			'options'     => [
-				'tablet_portrait'  => esc_html__( 'Tablet portrait', 'bricks' ) . ' (< 992px)',
-				'mobile_landscape' => esc_html__( 'Mobile landscape', 'bricks' ) . ' (< 768px)',
-				'mobile_portrait'  => esc_html__( 'Mobile portrait', 'bricks' ) . ' (<= 478px)',
-				'always'           => esc_html__( 'Always', 'bricks' ),
-				'never'            => esc_html__( 'Never', 'bricks' ),
-			],
-			'placeholder' => esc_html__( 'Mobile landscape', 'bricks' ),
-		];
-
 		$this->controls['menuAlignment'] = [
-			'tab'         => 'content',
-			'label'       => esc_html__( 'Alignment', 'bricks' ),
-			'type'        => 'direction',
-			'direction'   => 'row',
-			'css'         => [
+			'label'  => esc_html__( 'Alignment', 'bricks' ),
+			'type'   => 'direction',
+			'css'    => [
 				[
 					'property' => 'flex-direction',
 					'selector' => '.bricks-nav-menu',
 				],
 			],
-			'inline'      => true,
-			'placeholder' => esc_html__( 'Horizontal', 'bricks' ),
+			'inline' => true,
 		];
 
-		// Group: Top level menu
+		// TOP LEVEL
+
+		$this->controls['menuJustifyContent'] = [
+			'group'   => 'menu',
+			'label'   => esc_html__( 'Justify content', 'bricks' ),
+			'type'    => 'justify-content',
+			'inline'  => true,
+			'exclude' => 'space',
+			'css'     => [
+				[
+					'property' => 'justify-content',
+					'selector' => '.bricks-nav-menu > li > a',
+				],
+				[
+					'property' => 'justify-content',
+					'selector' => '.bricks-nav-menu > li > .brx-submenu-toggle',
+				],
+			],
+		];
+
+		$this->controls['menuGap'] = [
+			'group' => 'menu',
+			'label' => esc_html__( 'Gap', 'bricks' ),
+			'type'  => 'number',
+			'units' => true,
+			'css'   => [
+				[
+					'property' => 'gap',
+					'selector' => '.bricks-nav-menu',
+				]
+			],
+		];
 
 		$this->controls['menuMargin'] = [
-			'tab'         => 'content',
-			'group'       => 'menu',
-			'label'       => esc_html__( 'Margin', 'bricks' ),
-			'type'        => 'dimensions',
-			'css'         => [
+			'group' => 'menu',
+			'label' => esc_html__( 'Margin', 'bricks' ),
+			'type'  => 'spacing',
+			'css'   => [
 				[
 					'property' => 'margin',
 					'selector' => '.bricks-nav-menu > li',
 				]
 			],
-			'placeholder' => [
-				'top'    => 0,
-				'right'  => 0,
-				'bottom' => 0,
-				'left'   => 30,
-			],
 		];
 
 		$this->controls['menuPadding'] = [
-			'tab'   => 'content',
 			'group' => 'menu',
 			'label' => esc_html__( 'Padding', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'padding',
-					'selector' => '.bricks-nav-menu > li a',
-				]
+					'selector' => '.bricks-nav-menu > li > a',
+				],
+				[
+					'property' => 'padding',
+					'selector' => '.bricks-nav-menu > li > .brx-submenu-toggle > *',
+				],
 			],
 		];
 
 		$this->controls['menuBackground'] = [
-			'tab'   => 'content',
 			'group' => 'menu',
 			'type'  => 'background',
 			'label' => esc_html__( 'Background', 'bricks' ),
@@ -137,11 +152,14 @@ class Element_Nav_Menu extends Element {
 					'property' => 'background',
 					'selector' => '.bricks-nav-menu > li > a',
 				],
+				[
+					'property' => 'background',
+					'selector' => '.bricks-nav-menu > li > .brx-submenu-toggle',
+				],
 			],
 		];
 
 		$this->controls['menuBorder'] = [
-			'tab'   => 'content',
 			'group' => 'menu',
 			'type'  => 'border',
 			'label' => esc_html__( 'Border', 'bricks' ),
@@ -150,87 +168,192 @@ class Element_Nav_Menu extends Element {
 					'property' => 'border',
 					'selector' => '.bricks-nav-menu > li > a',
 				],
+				[
+					'property' => 'border',
+					'selector' => '.bricks-nav-menu > li > .brx-submenu-toggle',
+				],
 			],
 		];
 
 		$this->controls['menuTypography'] = [
-			'tab'   => 'content',
 			'group' => 'menu',
 			'type'  => 'typography',
 			'label' => esc_html__( 'Typography', 'bricks' ),
 			'css'   => [
 				[
 					'property' => 'font',
-					'selector' => '.bricks-nav-menu > li > a',
+					'selector' => '.bricks-nav-menu > li{pseudo} > a',
+				],
+				[
+					'property' => 'font',
+					'selector' => '.bricks-nav-menu > li{pseudo} > .brx-submenu-toggle > *',
 				],
 			],
 		];
 
+		$this->controls['menuActiveSep'] = [
+			'group' => 'menu',
+			'type'  => 'separator',
+			'label' => esc_html__( 'Active', 'bricks' ),
+		];
+
 		$this->controls['menuActiveBackground'] = [
-			'tab'   => 'content',
 			'group' => 'menu',
 			'label' => esc_html__( 'Active background', 'bricks' ),
 			'type'  => 'background',
 			'css'   => [
 				[
 					'property' => 'background',
-					'selector' => '.bricks-nav-menu > .current-menu-item > a, .bricks-nav-menu > .current-menu-ancestor > a, .bricks-nav-menu > .current-menu-parent > a',
+					'selector' => '.bricks-nav-menu > .current-menu-item > a',
+				],
+				[
+					'property' => 'background',
+					'selector' => '.bricks-nav-menu > .current-menu-item > .brx-submenu-toggle',
+				],
+				// Submenu is current page: Apply top-level active state
+				[
+					'property' => 'background',
+					'selector' => '.bricks-nav-menu > .current-menu-parent > a',
+				],
+				[
+					'property' => 'background',
+					'selector' => '.bricks-nav-menu > .current-menu-parent > .brx-submenu-toggle',
+				],
+				// Sub-submenu is current page: Apply top-level active state
+				[
+					'property' => 'background',
+					'selector' => '.bricks-nav-menu > .current-menu-ancestor > a',
+				],
+				[
+					'property' => 'background',
+					'selector' => '.bricks-nav-menu > .current-menu-ancestor > .brx-submenu-toggle',
 				],
 			],
 		];
 
 		$this->controls['menuActiveBorder'] = [
-			'tab'   => 'content',
 			'group' => 'menu',
 			'label' => esc_html__( 'Active border', 'bricks' ),
 			'type'  => 'border',
 			'css'   => [
 				[
 					'property' => 'border',
-					'selector' => '.bricks-nav-menu > .current-menu-item > a, .bricks-nav-menu > .current-menu-ancestor > a, .bricks-nav-menu > .current-menu-parent > a',
+					'selector' => '.bricks-nav-menu .current-menu-item > a',
+				],
+				[
+					'property' => 'border',
+					'selector' => '.bricks-nav-menu .current-menu-item > .brx-submenu-toggle',
+				],
+				// Submenu is current page: Apply top-level active state
+				[
+					'property' => 'border',
+					'selector' => '.bricks-nav-menu > .current-menu-parent > a',
+				],
+				[
+					'property' => 'border',
+					'selector' => '.bricks-nav-menu > .current-menu-parent > .brx-submenu-toggle',
+				],
+				// Sub-submenu is current page: Apply top-level active state
+				[
+					'property' => 'border',
+					'selector' => '.bricks-nav-menu > .current-menu-ancestor > a',
+				],
+				[
+					'property' => 'border',
+					'selector' => '.bricks-nav-menu > .current-menu-ancestor > .brx-submenu-toggle',
 				],
 			],
 		];
 
 		$this->controls['menuActiveTypography'] = [
-			'tab'   => 'content',
 			'group' => 'menu',
 			'label' => esc_html__( 'Active typography', 'bricks' ),
 			'type'  => 'typography',
 			'css'   => [
 				[
 					'property' => 'font',
-					'selector' => '.bricks-nav-menu > .current-menu-item > a, .bricks-nav-menu > .current-menu-ancestor > a, .bricks-nav-menu > .current-menu-parent > a',
+					'selector' => '.bricks-nav-menu .current-menu-item > a',
+				],
+				[
+					'property' => 'font',
+					'selector' => '.bricks-nav-menu .current-menu-item > .brx-submenu-toggle > *',
+				],
+				// Submenu is current page: Apply top-level active state
+				[
+					'property' => 'font',
+					'selector' => '.bricks-nav-menu > .current-menu-parent > a',
+				],
+				[
+					'property' => 'font',
+					'selector' => '.bricks-nav-menu > .current-menu-parent > .brx-submenu-toggle > *',
+				],
+				// Sub-submenu is current page: Apply top-level active state
+				[
+					'property' => 'font',
+					'selector' => '.bricks-nav-menu > .current-menu-ancestor > a',
+				],
+				[
+					'property' => 'font',
+					'selector' => '.bricks-nav-menu > .current-menu-ancestor > .brx-submenu-toggle > *',
 				],
 			],
+		];
+
+		// ICON
+
+		$this->controls['menuIconSep'] = [
+			'group' => 'menu',
+			'type'  => 'separator',
+			'label' => esc_html__( 'Icon', 'bricks' ),
 		];
 
 		$this->controls['menuIcon'] = [
-			'tab'         => 'content',
-			'group'       => 'menu',
-			'label'       => esc_html__( 'Icon', 'bricks' ),
-			'type'        => 'icon',
-			'css'         => [
+			'group'    => 'menu',
+			'label'    => esc_html__( 'Icon', 'bricks' ) . ' (' . esc_html__( 'Sub menu', 'bricks' ) . ')',
+			'type'     => 'icon',
+			'rerender' => true,
+			'css'      => [
 				[
-					'selector' => '.menu-icon-svg',
+					'selector' => 'button',
 				],
 			],
-			'rerender'    => true,
-			'description' => esc_html__( 'Shows if item has a sub menu.', 'bricks' ),
+		];
+
+		$this->controls['menuIconTransform'] = [
+			'group' => 'menu',
+			'label' => esc_html__( 'Icon transform', 'bricks' ),
+			'type'  => 'transform',
+			'css'   => [
+				[
+					'property' => 'transform',
+					'selector' => '.bricks-nav-menu button[aria-expanded="false"] > *',
+				],
+			],
+		];
+
+		$this->controls['menuIconTransformOpen'] = [
+			'group' => 'menu',
+			'label' => esc_html__( 'Icon transform', 'bricks' ) . ' (' . esc_html__( 'Open', 'bricks' ) . ')',
+			'type'  => 'transform',
+			'css'   => [
+				[
+					'property' => 'transform',
+					'selector' => '.bricks-nav-menu button[aria-expanded="true"] > *',
+				],
+			],
 		];
 
 		$this->controls['menuIconTypography'] = [
-			'tab'      => 'content',
-			'group'    => 'menu',
-			'label'    => esc_html__( 'Icon typography', 'bricks' ),
-			'type'     => 'typography',
-			'css'      => [
+			'group'   => 'menu',
+			'label'   => esc_html__( 'Icon typography', 'bricks' ),
+			'type'    => 'typography',
+			'css'     => [
 				[
 					'property' => 'font',
-					'selector' => '.bricks-nav-menu > li.menu-item-has-children > a > i',
+					'selector' => '.bricks-nav-menu > li.menu-item-has-children > .brx-submenu-toggle{pseudo} button[aria-expanded]',
 				],
 			],
-			'exclude'  => [
+			'exclude' => [
 				'font-family',
 				'font-weight',
 				'font-style',
@@ -239,47 +362,63 @@ class Element_Nav_Menu extends Element {
 				'text-transform',
 				'letter-spacing',
 			],
-			'required' => [ 'menuIcon.icon', '!=', '' ],
 		];
 
 		$this->controls['menuIconPosition'] = [
-			'tab'         => 'content',
 			'group'       => 'menu',
 			'label'       => esc_html__( 'Icon position', 'bricks' ),
 			'type'        => 'select',
 			'options'     => $this->control_options['iconPosition'],
 			'inline'      => true,
 			'placeholder' => esc_html__( 'Right', 'bricks' ),
-			'required'    => [ 'menuIcon', '!=', '' ],
 		];
 
 		$this->controls['menuIconMargin'] = [
-			'tab'      => 'content',
-			'group'    => 'menu',
-			'label'    => esc_html__( 'Icon margin', 'bricks' ),
-			'type'     => 'dimensions',
-			'css'      => [
+			'group' => 'menu',
+			'label' => esc_html__( 'Icon margin', 'bricks' ),
+			'type'  => 'spacing',
+			'css'   => [
 				[
 					'property' => 'margin',
-					'selector' => 'li.menu-item-has-children > a .icon-right',
-				],
-				[
-					'property' => 'margin',
-					'selector' => 'li.menu-item-has-children > a .icon-left',
+					'selector' => '.bricks-nav-menu .brx-submenu-toggle button',
 				],
 			],
-			'required' => [ 'menuIcon', '!=', '' ],
 		];
 
-		// Group: 'sub menu'
-
-		// @since 1.4 to apply default nav menu background to 'ul', not 'li'
-		$this->controls['subMenuBackgroundList'] = [
-			'tab'   => 'content',
-			'group' => 'sub-menu',
-			'type'  => 'background',
-			'label' => esc_html__( 'Background', 'bricks' ),
+		$this->controls['menuIconPadding'] = [
+			'group' => 'menu',
+			'label' => esc_html__( 'Icon padding', 'bricks' ),
+			'type'  => 'spacing',
 			'css'   => [
+				[
+					'property' => 'padding',
+					'selector' => '.bricks-nav-menu .brx-submenu-toggle button',
+				],
+			],
+		];
+
+		// SUB MENU
+
+		$this->controls['submenuStatic'] = [
+			'group'       => 'sub-menu',
+			'label'       => esc_html__( 'Position', 'bricks' ) . ': ' . esc_html__( 'Static', 'bricks' ),
+			'type'        => 'checkbox',
+			'description' => esc_html__( 'Enable to position in document flow (e.g. inside offcanvas).', 'bricks' ),
+		];
+
+		$this->controls['submenuStaticInfo'] = [
+			'group'    => 'sub-menu',
+			'type'     => 'info',
+			'content'  => esc_html__( 'Static dropdown content always toggles on click, not hover.', 'bricks' ),
+			'required' => [ 'submenuStatic', '!=', '' ],
+		];
+
+		$this->controls['subMenuBackgroundList'] = [
+			'group'   => 'sub-menu',
+			'type'    => 'background',
+			'label'   => esc_html__( 'Background', 'bricks' ),
+			'exclude' => 'video',
+			'css'     => [
 				[
 					'property' => 'background',
 					'selector' => '.bricks-nav-menu .sub-menu',
@@ -288,7 +427,6 @@ class Element_Nav_Menu extends Element {
 		];
 
 		$this->controls['subMenuBorder'] = [
-			'tab'   => 'content',
 			'group' => 'sub-menu',
 			'label' => esc_html__( 'Border', 'bricks' ),
 			'type'  => 'border',
@@ -301,7 +439,6 @@ class Element_Nav_Menu extends Element {
 		];
 
 		$this->controls['subMenuBoxShadow'] = [
-			'tab'   => 'content',
 			'group' => 'sub-menu',
 			'label' => esc_html__( 'Box shadow', 'bricks' ),
 			'type'  => 'box-shadow',
@@ -313,55 +450,155 @@ class Element_Nav_Menu extends Element {
 			],
 		];
 
-		// Sub menu - Item
-		$this->controls['subMenuItemSeparator'] = [
-			'tab'   => 'content',
+		$this->controls['subMenuTransform'] = [
 			'group' => 'sub-menu',
-			'label' => esc_html__( 'Sub menu', 'bricks' ) . ' - ' . esc_html__( 'Item', 'bricks' ),
+			'label' => esc_html__( 'Transform', 'bricks' ),
+			'type'  => 'transform',
+			'css'   => [
+				[
+					'property' => 'transform',
+					'selector' => '.bricks-nav-menu > li > .sub-menu',
+				],
+				[
+					'property' => 'transform',
+					'selector' => '.bricks-nav-menu > li > .brx-megamenu',
+				],
+			],
+		];
+
+		$this->controls['subMenuTransformOpen'] = [
+			'group' => 'sub-menu',
+			'label' => esc_html__( 'Transform', 'bricks' ) . ' (' . esc_html__( 'Open', 'bricks' ) . ')',
+			'type'  => 'transform',
+			'css'   => [
+				[
+					'property' => 'transform',
+					'selector' => '.bricks-nav-menu > li.open > .sub-menu',
+				],
+				[
+					'property' => 'transform',
+					'selector' => '.bricks-nav-menu > li.open > .brx-megamenu',
+				],
+			],
+		];
+
+		// CARET (add .caret to first-level submenu)
+		$caret_selector = '.bricks-nav-menu > li > .sub-menu.caret::before';
+
+		$this->controls['caretSep'] = [
+			'group' => 'sub-menu',
+			'label' => esc_html__( 'Caret', 'bricks' ),
 			'type'  => 'separator',
 		];
 
-		$this->controls['subMenuPadding'] = [
-			'tab'   => 'content',
+		// 'caretSize' adds class .caret to first-level submenu
+		$this->controls['caretSize'] = [
+			'group'    => 'sub-menu',
+			'type'     => 'number',
+			'units'    => true,
+			'rerender' => true,
+			'label'    => esc_html__( 'Size', 'bricks' ),
+			'css'      => [
+				[
+					'property' => 'border-width',
+					'selector' => $caret_selector,
+				],
+			],
+		];
+
+		$this->controls['caretColor'] = [
+			'group'    => 'sub-menu',
+			'type'     => 'color',
+			'label'    => esc_html__( 'Color', 'bricks' ),
+			'css'      => [
+				[
+					'property' => 'border-bottom-color',
+					'selector' => $caret_selector,
+				],
+			],
+			'required' => [ 'caretSize', '!=', 0 ],
+		];
+
+		$this->controls['caretTransform'] = [
+			'group'    => 'sub-menu',
+			'label'    => esc_html__( 'Transform', 'bricks' ),
+			'type'     => 'transform',
+			'css'      => [
+				[
+					'property' => 'transform',
+					'selector' => $caret_selector,
+				],
+			],
+			'required' => [ 'caretSize', '!=', 0 ],
+		];
+
+		$this->controls['caretPosition'] = [
+			'group'    => 'sub-menu',
+			'label'    => esc_html__( 'Position', 'bricks' ),
+			'type'     => 'dimensions',
+			'css'      => [
+				[
+					'selector' => $caret_selector,
+				],
+			],
+			'required' => [ 'caretSize', '!=', 0 ],
+		];
+
+		// ITEM
+
+		$this->controls['subMenuItemSep'] = [
 			'group' => 'sub-menu',
-			'type'  => 'dimensions',
+			'label' => esc_html__( 'Item', 'bricks' ),
+			'type'  => 'separator',
+		];
+
+		$this->controls['subMenuJustifyContent'] = [
+			'group'   => 'sub-menu',
+			'label'   => esc_html__( 'Justify content', 'bricks' ),
+			'type'    => 'justify-content',
+			'inline'  => true,
+			'exclude' => 'space',
+			'css'     => [
+				[
+					'property' => 'justify-content',
+					'selector' => '.bricks-nav-menu .sub-menu a',
+				],
+				[
+					'property' => 'justify-content',
+					'selector' => '.bricks-nav-menu .sub-menu button',
+				],
+			],
+		];
+
+		$this->controls['subMenuPadding'] = [
+			'group' => 'sub-menu',
+			'type'  => 'spacing',
 			'label' => esc_html__( 'Padding', 'bricks' ),
 			'css'   => [
 				[
 					'property' => 'padding',
-					'selector' => '.bricks-nav-menu .sub-menu > li.menu-item > a',
+					'selector' => '.bricks-nav-menu .sub-menu a',
+				],
+				[
+					'property' => 'padding',
+					'selector' => '.bricks-nav-menu .sub-menu button',
 				],
 			],
 		];
 
 		$this->controls['subMenuBackground'] = [
-			'tab'   => 'content',
 			'group' => 'sub-menu',
 			'type'  => 'background',
 			'label' => esc_html__( 'Background', 'bricks' ),
 			'css'   => [
 				[
 					'property' => 'background',
-					'selector' => '.bricks-nav-menu .sub-menu li.menu-item',
-				]
-			],
-		];
-
-		$this->controls['subMenuActiveBackground'] = [
-			'tab'   => 'content',
-			'group' => 'sub-menu',
-			'type'  => 'background',
-			'label' => esc_html__( 'Active background', 'bricks' ),
-			'css'   => [
-				[
-					'property' => 'background',
-					'selector' => '.bricks-nav-menu .sub-menu > li.current-menu-item',
+					'selector' => '.bricks-nav-menu .sub-menu .menu-item',
 				]
 			],
 		];
 
 		$this->controls['subMenuItemBorder'] = [
-			'tab'   => 'content',
 			'group' => 'sub-menu',
 			'label' => esc_html__( 'Border', 'bricks' ),
 			'type'  => 'border',
@@ -374,20 +611,80 @@ class Element_Nav_Menu extends Element {
 		];
 
 		$this->controls['subMenuTypography'] = [
-			'tab'   => 'content',
 			'group' => 'sub-menu',
 			'type'  => 'typography',
 			'label' => esc_html__( 'Typography', 'bricks' ),
 			'css'   => [
 				[
 					'property' => 'font',
-					'selector' => '.bricks-nav-menu .sub-menu > li.menu-item > a',
+					'selector' => '.bricks-nav-menu .sub-menu > li{pseudo} > a',
+				],
+				[
+					'property' => 'font',
+					'selector' => '.bricks-nav-menu .sub-menu > li{pseudo} > .brx-submenu-toggle > *',
+				],
+			],
+		];
+
+		// ACTIVE
+
+		$this->controls['subMenuActiveSep'] = [
+			'group' => 'sub-menu',
+			'type'  => 'separator',
+			'label' => esc_html__( 'Active', 'bricks' ),
+		];
+
+		$this->controls['subMenuActiveBackground'] = [
+			'group' => 'sub-menu',
+			'type'  => 'background',
+			'label' => esc_html__( 'Active background', 'bricks' ),
+			'css'   => [
+				[
+					'property' => 'background',
+					'selector' => '.bricks-nav-menu .sub-menu > .current-menu-item > a',
+				],
+				[
+					'property' => 'background',
+					'selector' => '.bricks-nav-menu .sub-menu > .current-menu-item > .brx-submenu-toggle',
+				],
+				// Sub-submenu is current page: Apply top-level active state
+				[
+					'property' => 'background',
+					'selector' => '.bricks-nav-menu .sub-menu > .current-menu-ancestor > a',
+				],
+				[
+					'property' => 'background',
+					'selector' => '.bricks-nav-menu .sub-menu > .current-menu-ancestor > .brx-submenu-toggle',
+				],
+			],
+		];
+
+		$this->controls['subMenuActiveBorder'] = [
+			'group' => 'sub-menu',
+			'type'  => 'border',
+			'label' => esc_html__( 'Active border', 'bricks' ),
+			'css'   => [
+				[
+					'property' => 'border',
+					'selector' => '.bricks-nav-menu .sub-menu > .current-menu-item > a',
+				],
+				[
+					'property' => 'border',
+					'selector' => '.bricks-nav-menu .sub-menu > .current-menu-item > .brx-submenu-toggle',
+				],
+				// Sub-submenu is current page: Apply top-level active state
+				[
+					'property' => 'border',
+					'selector' => '.bricks-nav-menu .sub-menu > .current-menu-ancestor > a',
+				],
+				[
+					'property' => 'border',
+					'selector' => '.bricks-nav-menu .sub-menu > .current-menu-ancestor > .brx-submenu-toggle',
 				],
 			],
 		];
 
 		$this->controls['subMenuActiveTypography'] = [
-			'tab'   => 'content',
 			'group' => 'sub-menu',
 			'label' => esc_html__( 'Active typography', 'bricks' ),
 			'type'  => 'typography',
@@ -396,35 +693,98 @@ class Element_Nav_Menu extends Element {
 					'property' => 'font',
 					'selector' => '.bricks-nav-menu .sub-menu > .current-menu-item > a',
 				],
+				[
+					'property' => 'font',
+					'selector' => '.bricks-nav-menu .sub-menu > .current-menu-item > .brx-submenu-toggle > *',
+				],
+				// Sub-submenu is current page: Apply top-level active state
+				[
+					'property' => 'font',
+					'selector' => '.bricks-nav-menu .sub-menu > .current-menu-ancestor > a',
+				],
+				[
+					'property' => 'font',
+					'selector' => '.bricks-nav-menu .sub-menu > .current-menu-ancestor > .brx-submenu-toggle > *',
+				],
 			],
+		];
+
+		// ICON
+
+		$this->controls['subMenuIconSep'] = [
+			'group' => 'sub-menu',
+			'type'  => 'separator',
+			'label' => esc_html__( 'Icon', 'bricks' ),
 		];
 
 		$this->controls['subMenuIcon'] = [
-			'tab'         => 'content',
-			'group'       => 'sub-menu',
-			'label'       => esc_html__( 'Icon', 'bricks' ),
-			'type'        => 'icon',
-			'css'         => [
+			'group'    => 'sub-menu',
+			'label'    => esc_html__( 'Icon', 'bricks' ),
+			'type'     => 'icon',
+			'rerender' => true,
+			'css'      => [
 				[
-					'selector' => '.sub-menu-icon-svg',
+					'selector' => '.bricks-nav-menu .sub-menu .brx-submenu-toggle{pseudo} button',
 				],
 			],
-			'rerender'    => true,
-			'description' => esc_html__( 'Shows if item has a sub menu.', 'bricks' ),
+		];
+
+		$this->controls['subMenuIconSize'] = [
+			'group' => 'sub-menu',
+			'label' => esc_html__( 'Icon size', 'bricks' ),
+			'type'  => 'number',
+			'units' => true,
+			'css'   => [
+				[
+					'property' => 'height',
+					'selector' => '.bricks-nav-menu .sub-menu .brx-submenu-toggle svg',
+				],
+				[
+					'property' => 'width',
+					'selector' => '.bricks-nav-menu .sub-menu .brx-submenu-toggle svg',
+				],
+				[
+					'property' => 'font-size',
+					'selector' => '.bricks-nav-menu .sub-menu .brx-submenu-toggle i',
+				],
+			],
+		];
+
+		$this->controls['subMenuIconTransform'] = [
+			'group' => 'sub-menu',
+			'label' => esc_html__( 'Icon transform', 'bricks' ),
+			'type'  => 'transform',
+			'css'   => [
+				[
+					'property' => 'transform',
+					'selector' => '.bricks-nav-menu .sub-menu button > *',
+				],
+			],
+		];
+
+		$this->controls['subMenuIconTransformOpen'] = [
+			'group' => 'sub-menu',
+			'label' => esc_html__( 'Icon transform', 'bricks' ) . ' (' . esc_html__( 'Open', 'bricks' ) . ')',
+			'type'  => 'transform',
+			'css'   => [
+				[
+					'property' => 'transform',
+					'selector' => '.bricks-nav-menu .sub-menu button[aria-expanded="true"] > *',
+				],
+			],
 		];
 
 		$this->controls['subMenuIconTypography'] = [
-			'tab'      => 'content',
-			'group'    => 'sub-menu',
-			'label'    => esc_html__( 'Icon typography', 'bricks' ),
-			'type'     => 'typography',
-			'css'      => [
+			'group'   => 'sub-menu',
+			'label'   => esc_html__( 'Icon typography', 'bricks' ),
+			'type'    => 'typography',
+			'css'     => [
 				[
 					'property' => 'font',
-					'selector' => '.bricks-nav-menu .sub-menu li.menu-item-has-children > a > i',
+					'selector' => '.bricks-nav-menu .sub-menu .brx-submenu-toggle > a{pseudo} + button',
 				],
 			],
-			'exclude'  => [
+			'exclude' => [
 				'font-family',
 				'font-weight',
 				'font-style',
@@ -433,45 +793,70 @@ class Element_Nav_Menu extends Element {
 				'text-transform',
 				'letter-spacing',
 			],
-			'required' => [ 'subMenuIcon.icon', '!=', '' ],
 		];
 
 		$this->controls['subMenuIconPosition'] = [
-			'tab'         => 'content',
 			'group'       => 'sub-menu',
 			'label'       => esc_html__( 'Icon position', 'bricks' ),
 			'type'        => 'select',
 			'options'     => $this->control_options['iconPosition'],
 			'inline'      => true,
 			'placeholder' => esc_html__( 'Right', 'bricks' ),
-			'required'    => [ 'subMenuIcon', '!=', '' ],
 		];
 
 		$this->controls['subMenuIconMargin'] = [
-			'tab'      => 'content',
-			'group'    => 'sub-menu',
-			'label'    => esc_html__( 'Icon margin', 'bricks' ),
-			'type'     => 'dimensions',
-			'css'      => [
+			'group' => 'sub-menu',
+			'label' => esc_html__( 'Icon margin', 'bricks' ),
+			'type'  => 'spacing',
+			'css'   => [
 				[
 					'property' => 'margin',
-					'selector' => '.bricks-nav-menu .sub-menu li.menu-item-has-children > a .icon-right',
-				],
-				[
-					'property' => 'margin',
-					'selector' => '.bricks-nav-menu .sub-menu li.menu-item-has-children > a .icon-left',
+					'selector' => '.bricks-nav-menu .sub-menu .brx-submenu-toggle button',
 				],
 			],
-			'required' => [ 'subMenuIcon', '!=', '' ],
 		];
 
-		// Group: 'mobile menu'
+		$this->controls['subMenuIconPadding'] = [
+			'group' => 'sub-menu',
+			'label' => esc_html__( 'Icon padding', 'bricks' ),
+			'type'  => 'spacing',
+			'css'   => [
+				[
+					'property' => 'padding',
+					'selector' => '.bricks-nav-menu .sub-menu .brx-submenu-toggle button',
+				],
+			],
+		];
+
+		// MOBILE MENU
+
+		// Get all breakpoints except base (@since 1.5.1)
+		$breakpoints        = Breakpoints::$breakpoints;
+		$breakpoint_options = [];
+
+		foreach ( $breakpoints as $index => $breakpoint ) {
+			if ( ! isset( $breakpoint['base'] ) ) {
+				$breakpoint_options[ $breakpoint['key'] ] = $breakpoint['label'];
+			}
+		}
+
+		$breakpoint_options['always'] = esc_html__( 'Always', 'bricks' );
+		$breakpoint_options['never']  = esc_html__( 'Never', 'bricks' );
+
+		$this->controls['mobileMenu'] = [
+			'group'       => 'mobile-menu',
+			'label'       => Breakpoints::$is_mobile_first ? esc_html__( 'Hide at breakpoint', 'bricks' ) : esc_html__( 'Show at breakpoint', 'bricks' ),
+			'type'        => 'select',
+			'options'     => $breakpoint_options,
+			'rerender'    => true,
+			'placeholder' => esc_html__( 'Mobile landscape', 'bricks' ),
+		];
 
 		$this->controls['mobileMenuPosition'] = [
-			'tab'         => 'content',
 			'group'       => 'mobile-menu',
 			'label'       => esc_html__( 'Position', 'bricks' ),
 			'type'        => 'select',
+			'small'       => true,
 			'options'     => [
 				'right' => esc_html__( 'Right', 'bricks' ),
 				'left'  => esc_html__( 'Left', 'bricks' ),
@@ -480,53 +865,26 @@ class Element_Nav_Menu extends Element {
 			'placeholder' => esc_html__( 'Left', 'bricks' ),
 		];
 
-		$this->controls['mobileMenuFadeIn'] = [
-			'tab'   => 'content',
+		$this->controls['mobileMenuTop'] = [
 			'group' => 'mobile-menu',
-			'label' => esc_html__( 'Fade in', 'bricks' ),
-			'type'  => 'checkbox',
-		];
-
-		$this->controls['mobileMenuAlignment'] = [
-			'tab'          => 'content',
-			'group'        => 'mobile-menu',
-			'label'        => esc_html__( 'Vertical', 'bricks' ),
-			'type'         => 'justify-content',
-			'isHorizontal' => false,
-			'exclude'      => 'space',
-			'css'          => [
+			'label' => esc_html__( 'Top', 'bricks' ),
+			'type'  => 'number',
+			'units' => true,
+			'large' => true,
+			'css'   => [
 				[
-					'property' => 'justify-content',
 					'selector' => '.bricks-mobile-menu-wrapper',
-				]
+					'property' => 'top',
+				],
 			],
-			'inline'       => true,
-			'placeholder'  => esc_html__( 'Top', 'bricks' ),
-		];
-
-		$this->controls['mobileMenuAlignItems'] = [
-			'tab'          => 'content',
-			'group'        => 'mobile-menu',
-			'label'        => esc_html__( 'Horizontal', 'bricks' ),
-			'type'         => 'align-items',
-			'isHorizontal' => false,
-			'exclude'      => 'stretch',
-			'css'          => [
-				[
-					'property' => 'align-items',
-					'selector' => '.bricks-mobile-menu-wrapper',
-				]
-			],
-			'inline'       => true,
-			'placeholder'  => esc_html__( 'Top', 'bricks' ),
 		];
 
 		$this->controls['mobileMenuWidth'] = [
-			'tab'         => 'content',
 			'group'       => 'mobile-menu',
 			'label'       => esc_html__( 'Width', 'bricks' ),
 			'type'        => 'number',
 			'units'       => true,
+			'large'       => true,
 			'css'         => [
 				[
 					'property' => 'width',
@@ -536,8 +894,79 @@ class Element_Nav_Menu extends Element {
 			'placeholder' => '300px',
 		];
 
+		$this->controls['mobileMenuHeight'] = [
+			'group' => 'mobile-menu',
+			'label' => esc_html__( 'Height', 'bricks' ),
+			'type'  => 'number',
+			'units' => true,
+			'large' => true,
+			'css'   => [
+				[
+					'property' => 'height',
+					'selector' => '.bricks-mobile-menu-wrapper',
+				],
+			],
+		];
+
+		$this->controls['mobileMenuFadeIn'] = [
+			'group' => 'mobile-menu',
+			'label' => esc_html__( 'Fade in', 'bricks' ),
+			'type'  => 'checkbox',
+		];
+
+		$this->controls['mobileMenuAlignment'] = [
+			'group'       => 'mobile-menu',
+			'label'       => esc_html__( 'Vertical', 'bricks' ),
+			'type'        => 'justify-content',
+			'exclude'     => 'space',
+			'css'         => [
+				[
+					'property' => 'justify-content',
+					'selector' => '.bricks-mobile-menu-wrapper',
+				]
+			],
+			'inline'      => true,
+			'placeholder' => esc_html__( 'Top', 'bricks' ),
+		];
+
+		$this->controls['mobileMenuAlignItems'] = [
+			'group'       => 'mobile-menu',
+			'label'       => esc_html__( 'Horizontal', 'bricks' ),
+			'type'        => 'align-items',
+			'exclude'     => 'stretch',
+			'css'         => [
+				[
+					'property' => 'align-items',
+					'selector' => '.bricks-mobile-menu-wrapper',
+				],
+				[
+					'property' => 'justify-content',
+					'selector' => '.bricks-mobile-menu-wrapper .brx-submenu-toggle',
+				],
+				[
+					'property' => 'width',
+					'selector' => '.bricks-mobile-menu-wrapper a',
+					'value'    => 'auto',
+				],
+			],
+			'inline'      => true,
+			'placeholder' => esc_html__( 'Top', 'bricks' ),
+		];
+
+		$this->controls['mobileMenuTextAlign'] = [
+			'group'  => 'mobile-menu',
+			'type'   => 'text-align',
+			'label'  => esc_html__( 'Text align', 'bricks' ),
+			'inline' => true,
+			'css'    => [
+				[
+					'property' => 'text-align',
+					'selector' => '.bricks-mobile-menu-wrapper',
+				]
+			],
+		];
+
 		$this->controls['mobileMenuBackground'] = [
-			'tab'   => 'content',
 			'group' => 'mobile-menu',
 			'type'  => 'background',
 			'label' => esc_html__( 'Background', 'bricks' ),
@@ -550,7 +979,6 @@ class Element_Nav_Menu extends Element {
 		];
 
 		$this->controls['mobileMenuBackgroundFilters'] = [
-			'tab'           => 'content',
 			'group'         => 'mobile-menu',
 			'label'         => esc_html__( 'Background filters', 'bricks' ),
 			'titleProperty' => 'type',
@@ -566,7 +994,6 @@ class Element_Nav_Menu extends Element {
 		];
 
 		$this->controls['mobileMenuBoxShadow'] = [
-			'tab'   => 'content',
 			'group' => 'mobile-menu',
 			'label' => esc_html__( 'Box shadow', 'bricks' ),
 			'type'  => 'box-shadow',
@@ -578,24 +1005,39 @@ class Element_Nav_Menu extends Element {
 			],
 		];
 
-		// Top level mobile menu
+		$this->controls['mobileMenuOverlay'] = [
+			'group'   => 'mobile-menu',
+			'label'   => esc_html__( 'Overlay', 'bricks' ),
+			'type'    => 'background',
+			'exclude' => 'video',
+			'css'     => [
+				[
+					'property' => 'background',
+					'selector' => '.bricks-mobile-menu-overlay',
+				],
+			],
+		];
 
-		$this->controls['_topMenuSeparator'] = [
-			'tab'   => 'content',
+		// MOBILE MENU: TOP LEVEL
+
+		$this->controls['mobileMenuTopLevelSep'] = [
 			'group' => 'mobile-menu',
 			'type'  => 'separator',
-			'label' => esc_html__( 'Top level menu', 'bricks' ),
+			'label' => esc_html__( 'Top level', 'bricks' ),
 		];
 
 		$this->controls['mobileMenuPadding'] = [
-			'tab'         => 'content',
 			'group'       => 'mobile-menu',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
 			'css'         => [
 				[
 					'property' => 'padding',
 					'selector' => '.bricks-mobile-menu > li > a',
+				],
+				[
+					'property' => 'padding',
+					'selector' => '.bricks-mobile-menu > li > .brx-submenu-toggle > *',
 				],
 			],
 			'placeholder' => [
@@ -606,85 +1048,142 @@ class Element_Nav_Menu extends Element {
 			],
 		];
 
+		$this->controls['mobileMenuItemBackground'] = [
+			'group' => 'mobile-menu',
+			'label' => esc_html__( 'Background', 'bricks' ),
+			'type'  => 'color',
+			'css'   => [
+				[
+					'property' => 'background-color',
+					'selector' => '.bricks-mobile-menu > li > a',
+				],
+				[
+					'property' => 'background-color',
+					'selector' => '.bricks-mobile-menu > li > .brx-submenu-toggle',
+				],
+			],
+		];
+
+		$this->controls['mobileMenuItemBackgroundActive'] = [
+			'group' => 'mobile-menu',
+			'label' => esc_html__( 'Background', 'bricks' ) . ' (' . esc_html__( 'Active', 'bricks' ) . ')',
+			'type'  => 'color',
+			'css'   => [
+				[
+					'property' => 'background-color',
+					'selector' => '.bricks-mobile-menu > li > a[aria-current="page"]',
+				],
+				[
+					'property' => 'background-color',
+					'selector' => '.bricks-mobile-menu > .current-menu-item > .brx-submenu-toggle',
+				],
+			],
+		];
+
 		$this->controls['mobileMenuBorder'] = [
-			'tab'   => 'content',
 			'group' => 'mobile-menu',
 			'label' => esc_html__( 'Border', 'bricks' ),
 			'type'  => 'border',
 			'css'   => [
 				[
 					'property' => 'border',
-					'selector' => '.bricks-mobile-menu > li',
+					'selector' => '.bricks-mobile-menu > li > a',
+				],
+				[
+					'property' => 'background-color',
+					'selector' => '.bricks-mobile-menu > li > .brx-submenu-toggle',
 				],
 			],
 		];
 
 		$this->controls['mobileMenuTypography'] = [
-			'tab'   => 'content',
-			'group' => 'mobile-menu',
-			'type'  => 'typography',
-			'label' => esc_html__( 'Typography', 'bricks' ),
-			'css'   => [
+			'group'   => 'mobile-menu',
+			'type'    => 'typography',
+			'label'   => esc_html__( 'Typography', 'bricks' ),
+			'css'     => [
 				[
 					'property' => 'font',
 					'selector' => '.bricks-mobile-menu > li > a',
 				],
+				[
+					'property' => 'font',
+					'selector' => '.bricks-mobile-menu > li > .brx-submenu-toggle > *',
+				],
 			],
+			'exclude' => [ 'text-align' ],
 		];
 
 		$this->controls['mobileMenuActiveTypography'] = [
-			'tab'   => 'content',
-			'group' => 'mobile-menu',
-			'type'  => 'typography',
-			'label' => esc_html__( 'Active typography', 'bricks' ),
-			'css'   => [
+			'group'   => 'mobile-menu',
+			'type'    => 'typography',
+			'label'   => esc_html__( 'Typography', 'bricks' ) . ' (' . esc_html__( 'Active', 'bricks' ) . ')',
+			'css'     => [
+				[
+					'property' => 'font',
+					'selector' => '.bricks-mobile-menu [aria-current="page"]',
+				],
+				[
+					'property' => 'font',
+					'selector' => '.bricks-mobile-menu [aria-current="page"] + button',
+				],
 				[
 					'property' => 'font',
 					'selector' => '.bricks-mobile-menu > .current-menu-item > a',
 				],
+				[
+					'property' => 'font',
+					'selector' => '.bricks-mobile-menu > .current-menu-parent > a',
+				],
+				[
+					'property' => 'font',
+					'selector' => '.bricks-mobile-menu > .current-menu-item > .brx-submenu-toggle > *',
+				],
+				[
+					'property' => 'font',
+					'selector' => '.bricks-mobile-menu > .current-menu-parent > .brx-submenu-toggle > *',
+				],
 			],
+			'exclude' => [ 'text-align' ],
 		];
 
 		// Toggle sub menu
 		$this->controls['mobileMenuIcon'] = [
-			'tab'         => 'content',
-			'group'       => 'mobile-menu',
-			'label'       => esc_html__( 'Icon', 'bricks' ),
-			'type'        => 'icon',
-			'css'         => [
+			'group'    => 'mobile-menu',
+			'label'    => esc_html__( 'Icon', 'bricks' ) . ' (' . esc_html__( 'Sub menu', 'bricks' ) . ')',
+			'type'     => 'icon',
+			'rerender' => true,
+			'css'      => [
 				[
-					'selector' => '.mobile-menu-icon-svg',
+					'selector' => '.bricks-mobile-menu-wrapper .brx-submenu-toggle svg',
 				],
 			],
-			'rerender'    => true,
-			'description' => esc_html__( 'Shows if item has a sub menu.', 'bricks' ),
 		];
 
 		// Toggle sub menu
 		$this->controls['mobileMenuCloseIcon'] = [
-			'tab'         => 'content',
-			'group'       => 'mobile-menu',
-			'label'       => esc_html__( 'Close icon', 'bricks' ),
-			'type'        => 'icon',
-			'css'         => [
+			'group'    => 'mobile-menu',
+			'label'    => esc_html__( 'Close icon', 'bricks' ) . ' (' . esc_html__( 'Sub menu', 'bricks' ) . ')',
+			'type'     => 'icon',
+			'rerender' => true,
+			'required' => [ 'mobileMenuIcon', '!=', '' ],
+			'css'      => [
 				[
-					'selector' => '.mobile-menu-icon-svg',
+					'selector' => '.bricks-mobile-menu-wrapper .brx-submenu-toggle svg.close',
 				],
 			],
-			'rerender'    => true,
-			'description' => esc_html__( 'Shows if item has a sub menu.', 'bricks' ),
-			'required'    => [ 'mobileMenuIcon', '!=', '' ],
 		];
 
 		$this->controls['mobileMenuIconTypography'] = [
-			'tab'      => 'content',
 			'group'    => 'mobile-menu',
 			'label'    => esc_html__( 'Icon typography', 'bricks' ),
 			'type'     => 'typography',
+			'inline'   => true,
+			'small'    => true,
+			'required' => [ 'mobileMenuIcon.icon', '!=', '' ],
 			'css'      => [
 				[
 					'property' => 'font',
-					'selector' => '.bricks-mobile-menu > li.menu-item-has-children button > i',
+					'selector' => '.bricks-mobile-menu > .menu-item-has-children .brx-submenu-toggle button',
 				],
 			],
 			'exclude'  => [
@@ -696,115 +1195,141 @@ class Element_Nav_Menu extends Element {
 				'text-transform',
 				'letter-spacing',
 			],
-			'inline'   => true,
-			'small'    => true,
-			'required' => [ 'mobileMenuIcon.icon', '!=', '' ],
 		];
 
 		$this->controls['mobileMenuIconPosition'] = [
-			'tab'         => 'content',
 			'group'       => 'mobile-menu',
 			'label'       => esc_html__( 'Icon position', 'bricks' ),
 			'type'        => 'select',
 			'options'     => $this->control_options['iconPosition'],
 			'inline'      => true,
 			'placeholder' => esc_html__( 'Right', 'bricks' ),
-			'required'    => [ 'mobileMenuIcon', '!=', '' ],
 		];
 
 		$this->controls['mobileMenuIconMargin'] = [
-			'tab'      => 'content',
-			'group'    => 'mobile-menu',
-			'label'    => esc_html__( 'Icon margin', 'bricks' ),
-			'type'     => 'dimensions',
-			'css'      => [
+			'group' => 'mobile-menu',
+			'label' => esc_html__( 'Icon margin', 'bricks' ),
+			'type'  => 'spacing',
+			'css'   => [
 				[
 					'property' => 'margin',
-					'selector' => '.bricks-mobile-menu li.menu-item-has-children button.bricks-mobile-submenu-toggle',
+					'selector' => '.bricks-mobile-menu .menu-item-has-children .brx-submenu-toggle button',
 				]
 			],
-			'required' => [ 'mobileMenuIcon', '!=', '' ],
 		];
 
-		// Mobile menu: Sub menu
+		// MOBILE MENU: SUB MENU
 
-		$this->controls['_subMenuSeparator'] = [
-			'tab'         => 'content',
+		$this->controls['subMenuSep'] = [
 			'group'       => 'mobile-menu',
 			'type'        => 'separator',
 			'label'       => esc_html__( 'Sub menu', 'bricks' ),
-			'description' => esc_html__( 'Always shows in builder for you to style.', 'bricks' ),
+			'description' => esc_html__( 'Keep open while styling', 'bricks' ),
 		];
 
 		$this->controls['mobileSubMenuPadding'] = [
-			'tab'         => 'content',
-			'group'       => 'mobile-menu',
-			'type'        => 'dimensions',
-			'label'       => esc_html__( 'Padding', 'bricks' ),
-			'css'         => [
+			'group' => 'mobile-menu',
+			'type'  => 'spacing',
+			'label' => esc_html__( 'Padding', 'bricks' ),
+			'css'   => [
 				[
 					'property' => 'padding',
-					'selector' => '.bricks-mobile-menu .sub-menu > li.menu-item > a',
+					'selector' => '.bricks-mobile-menu .sub-menu > .menu-item > a',
+				],
+				[
+					'property' => 'padding',
+					'selector' => '.bricks-mobile-menu .sub-menu > .menu-item > .brx-submenu-toggle > *',
 				],
 			],
-			'placeholder' => [
-				'top'    => 0,
-				'right'  => 45,
-				'bottom' => 0,
-				'left'   => 45,
+		];
+
+		$this->controls['mobileSubMenuItemBackground'] = [
+			'group' => 'mobile-menu',
+			'label' => esc_html__( 'Background', 'bricks' ),
+			'type'  => 'color',
+			'css'   => [
+				[
+					'property' => 'background-color',
+					'selector' => '.bricks-mobile-menu .sub-menu > .menu-item > a',
+				],
+				[
+					'property' => 'background-color',
+					'selector' => '.bricks-mobile-menu .sub-menu > .menu-item > .brx-submenu-toggle',
+				],
+			],
+		];
+
+		$this->controls['mobileSubMenuItemBackgroundActive'] = [
+			'group' => 'mobile-menu',
+			'label' => esc_html__( 'Background', 'bricks' ) . ' (' . esc_html__( 'Active', 'bricks' ) . ')',
+			'type'  => 'color',
+			'css'   => [
+				[
+					'property' => 'background-color',
+					'selector' => '.bricks-mobile-menu .sub-menu > .menu-item > a[aria-current="page"]',
+				],
+				[
+					'property' => 'background-color',
+					'selector' => '.bricks-mobile-menu  .sub-menu .current-menu-item > .brx-submenu-toggle',
+				],
 			],
 		];
 
 		$this->controls['mobileSubMenuBorder'] = [
-			'tab'   => 'content',
 			'group' => 'mobile-menu',
 			'label' => esc_html__( 'Border', 'bricks' ),
 			'type'  => 'border',
 			'css'   => [
 				[
 					'property' => 'border',
-					'selector' => '.bricks-mobile-menu .sub-menu > li.menu-item',
+					'selector' => '.bricks-mobile-menu .sub-menu > .menu-item',
 				],
 			],
 		];
 
 		$this->controls['mobileSubMenuTypography'] = [
-			'tab'   => 'content',
-			'group' => 'mobile-menu',
-			'type'  => 'typography',
-			'label' => esc_html__( 'Typography', 'bricks' ),
-			'css'   => [
+			'group'   => 'mobile-menu',
+			'type'    => 'typography',
+			'label'   => esc_html__( 'Typography', 'bricks' ),
+			'css'     => [
 				[
 					'property' => 'font',
-					'selector' => '.bricks-mobile-menu .sub-menu > li.menu-item > a',
+					'selector' => '.bricks-mobile-menu .sub-menu > li > a',
+				],
+				[
+					'property' => 'font',
+					'selector' => '.bricks-mobile-menu .sub-menu > li > .brx-submenu-toggle > *',
 				],
 			],
+			'exclude' => [ 'text-align' ],
 		];
 
 		$this->controls['mobileSubMenuActiveTypography'] = [
-			'tab'   => 'content',
-			'group' => 'mobile-menu',
-			'type'  => 'typography',
-			'label' => esc_html__( 'Active typography', 'bricks' ),
-			'css'   => [
+			'group'   => 'mobile-menu',
+			'type'    => 'typography',
+			'label'   => esc_html__( 'Active typography', 'bricks' ),
+			'css'     => [
 				[
 					'property' => 'font',
 					'selector' => '.bricks-mobile-menu .sub-menu > .current-menu-item > a',
 				],
+				[
+					'property' => 'font',
+					'selector' => '.bricks-mobile-menu .sub-menu > .current-menu-item > .brx-submenu-toggle > *',
+				],
 			],
+			'exclude' => [ 'text-align' ],
 		];
 
 		// Hamburger toggle
 
-		$this->controls['_toggleSeparator'] = [
-			'tab'   => 'content',
+		$this->controls['mobileMenuToggleSep'] = [
 			'group' => 'mobile-menu',
 			'type'  => 'separator',
 			'label' => esc_html__( 'Hamburger toggle', 'bricks' ),
 		];
 
 		$this->controls['mobileMenuToggleWidth'] = [
-			'tab'   => 'content',
 			'group' => 'mobile-menu',
 			'type'  => 'number',
 			'units' => true,
@@ -834,7 +1359,6 @@ class Element_Nav_Menu extends Element {
 		];
 
 		$this->controls['mobileMenuToggleColor'] = [
-			'tab'   => 'content',
 			'group' => 'mobile-menu',
 			'type'  => 'color',
 			'label' => esc_html__( 'Color', 'bricks' ),
@@ -847,7 +1371,6 @@ class Element_Nav_Menu extends Element {
 		];
 
 		$this->controls['mobileMenuToggleHide'] = [
-			'tab'   => 'content',
 			'group' => 'mobile-menu',
 			'type'  => 'checkbox',
 			'label' => esc_html__( 'Hide close', 'bricks' ),
@@ -862,7 +1385,6 @@ class Element_Nav_Menu extends Element {
 		];
 
 		$this->controls['mobileMenuToggleColorClose'] = [
-			'tab'   => 'content',
 			'group' => 'mobile-menu',
 			'type'  => 'color',
 			'label' => esc_html__( 'Color close', 'bricks' ),
@@ -876,7 +1398,6 @@ class Element_Nav_Menu extends Element {
 		];
 
 		$this->controls['mobileMenuToggleClosePosition'] = [
-			'tab'   => 'content',
 			'group' => 'mobile-menu',
 			'type'  => 'dimensions',
 			'label' => esc_html__( 'Close position', 'bricks' ),
@@ -887,12 +1408,295 @@ class Element_Nav_Menu extends Element {
 				],
 			],
 		];
+
+		// MEGA MENU
+
+		$this->controls['megaMenu'] = [
+			'group' => 'megamenu',
+			'type'  => 'checkbox',
+			'label' => esc_html__( 'Enable', 'bricks' ),
+		];
+
+		$this->controls['megaMenuInfo'] = [
+			'group'    => 'megamenu',
+			'type'     => 'info',
+			'content'  => '<a href="' . admin_url( 'nav-menus.php' ) . '" target="_blank">' . esc_html__( 'Edit your WordPress menu item to set a Bricks mega menu template.', 'bricks' ) . '</a>',
+			'required' => [ 'megaMenu', '!=', '' ],
+		];
+
+		$this->controls['megaMenuSelector'] = [
+			'group'       => 'megamenu',
+			'label'       => esc_html__( 'CSS selector', 'bricks' ),
+			'type'        => 'text',
+			'inline'      => true,
+			'description' => esc_html__( 'Use width & horizontal position of target node.', 'bricks' ),
+			'required'    => [ 'megaMenu', '=', true ],
+		];
+
+		$this->controls['megaMenuToggleOn'] = [
+			'group'       => 'megamenu',
+			'label'       => esc_html__( 'Toggle on', 'bricks' ),
+			'type'        => 'select',
+			'inline'      => true,
+			'options'     => [
+				'click' => esc_html__( 'Click', 'bricks' ),
+				'hover' => esc_html__( 'Hover', 'bricks' ),
+				'both'  => esc_html__( 'Click or hover', 'bricks' ),
+			],
+			'placeholder' => esc_html__( 'Hover', 'bricks' ),
+			'required'    => [ 'megaMenu', '!=', '' ],
+		];
+
+		$this->controls['megaMenuTransition'] = [
+			'group'          => 'megamenu',
+			'label'          => esc_html__( 'Transition', 'bricks' ),
+			'type'           => 'text',
+			'hasDynamicData' => false,
+			'inline'         => true,
+			'required'       => [ 'megaMenu', '=', true ],
+			'css'            => [
+				[
+					'property' => 'transition',
+					'selector' => '.brx-megamenu',
+				],
+			],
+		];
+
+		$this->controls['megaMenuTransform'] = [
+			'group'    => 'megamenu',
+			'type'     => 'transform',
+			'label'    => esc_html__( 'Transform', 'bricks' ),
+			'inline'   => true,
+			'small'    => true,
+			'required' => [ 'megaMenu', '=', true ],
+			'css'      => [
+				[
+					'property' => 'transform',
+					'selector' => '.bricks-nav-menu > .brx-has-megamenu > .brx-megamenu',
+				],
+			],
+		];
+
+		$this->controls['megaMenuTransformOpen'] = [
+			'group'    => 'megamenu',
+			'type'     => 'transform',
+			'label'    => esc_html__( 'Transform', 'bricks' ) . ' (' . esc_html__( 'Open', 'bricks' ) . ')',
+			'inline'   => true,
+			'small'    => true,
+			'required' => [ 'megaMenu', '=', true ],
+			'css'      => [
+				[
+					'property' => 'transform',
+					'selector' => '.bricks-nav-menu > .brx-has-megamenu.open > .brx-megamenu',
+				],
+				[
+					'property' => 'transform',
+					'selector' => '.bricks-nav-menu > .brx-has-megamenu.open > .brx-megamenu',
+				],
+			],
+		];
+
+		// MULTILEVEL
+
+		$this->controls['multiLevel'] = [
+			'group' => 'multilevel',
+			'label' => esc_html__( 'Enable', 'bricks' ),
+			'type'  => 'checkbox',
+		];
+
+		$this->controls['multiLevelInfo'] = [
+			'group'    => 'multilevel',
+			'type'     => 'info',
+			'content'  => '<a href="' . admin_url( 'nav-menus.php' ) . '" target="_blank">' . esc_html__( 'Edit your WordPress menu item to enable multilevel functionality.', 'bricks' ) . '</a>',
+			'required' => [ 'multiLevel', '!=', '' ],
+		];
+
+		$this->controls['multiLevelBackText'] = [
+			'group'    => 'multilevel',
+			'label'    => esc_html__( 'Back', 'bricks' ) . ': ' . esc_html__( 'Text', 'bricks' ),
+			'type'     => 'text',
+			'inline'   => true,
+			'required' => [ 'multiLevel', '=', true ],
+		];
+
+		$this->controls['multiLevelBackTypography'] = [
+			'group'    => 'multilevel',
+			'label'    => esc_html__( 'Back', 'bricks' ) . ': ' . esc_html__( 'Typography', 'bricks' ),
+			'type'     => 'typography',
+			'inline'   => true,
+			'required' => [ 'multiLevel', '=', true ],
+			'css'      => [
+				[
+					'property' => 'font',
+					'selector' => '.brx-multilevel-back',
+				],
+			],
+		];
+
+		$this->controls['multiLevelBackground'] = [
+			'group'    => 'multilevel',
+			'label'    => esc_html__( 'Back', 'bricks' ) . ': ' . esc_html__( 'Background', 'bricks' ),
+			'type'     => 'color',
+			'inline'   => true,
+			'required' => [ 'multiLevel', '=', true ],
+			'css'      => [
+				[
+					'property' => 'background-color',
+					'selector' => '.brx-multilevel-back',
+				],
+			],
+		];
+	}
+
+	/**
+	 * Render menu item & their sub menus recursively
+	 *
+	 * When using Nav menu inside dropdown content.
+	 *
+	 * @since 1.8
+	 */
+	public function render_menu_items_of_parent_id( $parent_id ) {
+		$menu_items = $this->wp_nav_menu_items;
+
+		if ( ! is_array( $menu_items ) || empty( $menu_items ) ) {
+			return;
+		}
+
+		$output = '';
+
+		// Find the menu item with menu_item_parent = $parent_id (@since 1.8.4)
+		$populating_menu_items = array_filter(
+			$menu_items,
+			function( $menu_item ) use ( $parent_id ) {
+				return $menu_item->menu_item_parent == $parent_id;
+			}
+		);
+
+		foreach ( $populating_menu_items as $menu_item ) {
+			$menu_item_settings = [
+				'text' => $menu_item->title,
+				'link' => [
+					'type' => 'external',
+					'url'  => $menu_item->url,
+				],
+			];
+
+			/**
+			 * Add advanced menu properties to text links
+			 *
+			 * New tab, CSS classes, rel, title attribute
+			 *
+			 * @since 1.9.5
+			 */
+			if ( $menu_item->target && $menu_item->target === '_blank' ) {
+				$menu_item_settings['link']['newTab'] = true;
+			}
+
+			if ( ! empty( $menu_item->classes ) ) {
+				$menu_item_settings['_cssClasses'] = is_array( $menu_item->classes ) ? implode( ' ', $menu_item->classes ) : $menu_item->classes;
+			}
+
+			if ( ! empty( $menu_item->xfn ) ) {
+				$menu_item_settings['link']['rel'] = $menu_item->xfn;
+			}
+
+			if ( ! empty( $menu_item->attr_title ) ) {
+				$menu_item_settings['_attributes'] = [
+					[
+						'name'  => 'title',
+						'value' => $menu_item->attr_title,
+					],
+				];
+			}
+
+			// Render menu item link
+			$menu_item_link = Frontend::render_element(
+				[
+					'name'     => 'text-link',
+					'settings' => $menu_item_settings,
+				]
+			);
+
+			$sub_menu_html = '';
+
+			// Find sub menu items of current menu item (@since 1.8.4)
+			$sub_menu_items = array_filter(
+				$menu_items,
+				function( $sub_menu_item ) use ( $menu_item ) {
+					return $sub_menu_item->menu_item_parent == $menu_item->ID;
+				}
+			);
+
+			// Render sub menu items - Recursion (@since 1.8.4)
+			if ( ! empty( $sub_menu_items ) ) {
+				$sub_menu_html = $this->render_menu_items_of_parent_id( $menu_item->ID );
+			}
+
+			// Render dropdown for sub menu
+			if ( $sub_menu_html ) {
+				$dropdown = Frontend::render_element(
+					[
+						'name'     => 'dropdown',
+						'settings' => [
+							'tag' => 'li',
+						],
+					]
+				);
+
+				// Insert menu item link before dropdown button
+				$dropdown_button_start = strpos( $dropdown, '<button' );
+				$dropdown              = substr_replace( $dropdown, $menu_item_link, $dropdown_button_start, 0 );
+
+				// Insert sub menu items after dropdown button
+				$sub_menu_html  = '<ul class="brx-dropdown-content">' . $sub_menu_html . '</ul>';
+				$sub_menu_start = strlen( $dropdown ) - 5; // Before closing .dropdown </li>
+				$dropdown       = substr_replace( $dropdown, $sub_menu_html, $sub_menu_start, 0 );
+
+				$output .= $dropdown;
+			}
+
+			// Render menu item inside 'li' HTML tag
+			else {
+				$output .= '<li class="menu-item">' . $menu_item_link . '</li>';
+			}
+		}
+
+		return $output;
 	}
 
 	public function render() {
 		$settings = $this->settings;
-		$menu     = ! empty( $settings['menu'] ) ? $settings['menu'] : '';
 
+		// Get menu (term ID)
+		$menu                    = ! empty( $settings['menu'] ) ? $settings['menu'] : '';
+		$this->wp_nav_menu_items = wp_get_nav_menu_items( $menu );
+
+		// STEP: Check: Nav menu is inside dropdown content (@since 1.8)
+		$parent_id                  = ! empty( $this->element['parent'] ) ? $this->element['parent'] : false;
+		$parent_element             = $parent_id && ! empty( Frontend::$elements[ $parent_id ] ) ? Frontend::$elements[ $parent_id ] : false;
+		$parent_element_classes     = $parent_element && ! empty( $parent_element['settings']['_hidden']['_cssClasses'] ) ? $parent_element['settings']['_hidden']['_cssClasses'] : '';
+		$builder_is_inside_dropdown = isset( $this->element['insideDropdown'] );
+
+		// Parent element is dropdown content: Render WP menu inside dropdown content
+		if (
+			$parent_element_classes === 'brx-dropdown-content' || // Frontend
+			$builder_is_inside_dropdown // Builder (@see BricksElementPHP.vue)
+		) {
+			$menu_html = $this->render_menu_items_of_parent_id( 0 );
+
+			// Builder render (BricksElementPHP.vue) requires one single rootNode
+			if ( bricks_is_builder_call() && $builder_is_inside_dropdown ) {
+				echo '<div class="brx-render-child-nodes">';
+				echo $menu_html;
+				echo '</div>';
+			} else {
+				echo $menu_html;
+			}
+
+			return;
+		}
+
+		// No nav menu selected: Use first registered menu
 		if ( ! $menu || ! is_nav_menu( $menu ) ) {
 			// Use first registered menu
 			foreach ( wp_get_nav_menus() as $menu ) {
@@ -905,44 +1709,102 @@ class Element_Nav_Menu extends Element {
 						'title' => esc_html__( 'No nav menu found.', 'bricks' ),
 					]
 				);
+			} else {
+				$this->wp_nav_menu_items = wp_get_nav_menu_items( $menu );
 			}
 		}
 
+		// Return: Nav menu has no menu items
+		if ( empty( $this->wp_nav_menu_items ) ) {
+			return $this->render_element_placeholder(
+				[
+					'title' => esc_html__( 'Nav Menu', 'bricks' ) . ': ' . esc_html__( 'No menu items', 'bricks' )
+				]
+			);
+		}
+
 		// Hooks
-		add_filter( 'nav_menu_item_title', [ $this, 'nav_menu_item_title' ], 10, 4 );
+		add_filter( 'nav_menu_css_class', [ $this, 'nav_menu_css_class' ], 10, 4 );
 		add_filter( 'walker_nav_menu_start_el', [ $this, 'walker_nav_menu_start_el' ], 10, 4 );
 
+		// Render
 		echo "<div {$this->render_attributes( '_root' )}>";
 
-		$mobile_menu_visibility = isset( $settings['mobileMenu'] ) ? $settings['mobileMenu'] : 'mobile_landscape';
+		// STEP: Multilevel: Pass data attributes to nav menu walked class to add to <li.menu-item>
+		$multilevel_atts = [];
 
-		if ( $mobile_menu_visibility !== 'always' ) {
-			$this->set_attribute( 'nav', 'class', [ 'bricks-nav-menu-wrapper', $mobile_menu_visibility ] );
+		if ( isset( $settings['multiLevel'] ) ) {
+			$multilevel_atts['data-toggle']    = 'click';
+			$multilevel_atts['data-back-text'] = ! empty( $settings['multiLevelBackText'] ) ? $settings['multiLevelBackText'] : esc_html__( 'Back', 'bricks' );
+		}
+
+		// STEP: Megamenu: Pass data attributes to nav menu walked class to add to <li.menu-item>
+		$megamenu_atts = [];
+
+		if ( isset( $settings['megaMenu'] ) ) {
+			$megamenu_atts['data-toggle'] = ! empty( $settings['megaMenuToggleOn'] ) ? esc_attr( $settings['megaMenuToggleOn'] ) : 'hover';
+
+			if ( ! empty( $settings['megaMenuSelector'] ) ) {
+				$megamenu_atts['data-mega-menu'] = $settings['megaMenuSelector'];
+			}
+		}
+
+		$show_menu_toggle_at = isset( $settings['mobileMenu'] ) ? $settings['mobileMenu'] : 'mobile_landscape';
+
+		// Is mobile-first: Swap always <> never
+		if ( Breakpoints::$is_mobile_first ) {
+			if ( $show_menu_toggle_at === 'always' ) {
+				$show_menu_toggle_at = 'never';
+			} elseif ( $show_menu_toggle_at === 'never' ) {
+				$show_menu_toggle_at = 'always';
+			}
+		}
+
+		if ( $show_menu_toggle_at !== 'always' ) {
+			$this->set_attribute( 'nav', 'class', [ 'bricks-nav-menu-wrapper', $show_menu_toggle_at ] );
 
 			echo "<nav {$this->render_attributes( 'nav', true )}>";
 
 			wp_nav_menu(
 				[
 					'container'  => false,
-					'menu_class' => join( ' ', [ 'bricks-nav-menu', $mobile_menu_visibility ] ),
+					'menu_class' => 'bricks-nav-menu',
 					'menu'       => $menu,
-					'items_wrap' => '<ul id="%1$s" class="%2$s" role="menubar">%3$s</ul>',
+					'items_wrap' => '<ul id="%1$s" class="%2$s">%3$s</ul>',
 					'walker'     => new \Aria_Walker_Nav_Menu(),
+					'bricks'     => [
+						'multiLevel'    => $multilevel_atts,
+						'megaMenu'      => $megamenu_atts,
+						'caret'         => isset( $settings['caretSize'] ),
+						'submenuStatic' => isset( $settings['submenuStatic'] ),
+					],
 				]
 			);
+
+			// Builder: Add nav menu & mobile menu visibility via inline style
+			if ( bricks_is_builder() || bricks_is_builder_call() ) {
+				$breakpoint          = Breakpoints::get_breakpoint_by( 'key', $show_menu_toggle_at );
+				$nav_menu_inline_css = $this->generate_mobile_menu_inline_css( $settings, $breakpoint );
+
+				echo "<style>$nav_menu_inline_css</style>";
+			}
 
 			echo '</nav>';
 		}
 
-		$mobile_menu_toggle_classes = [ 'bricks-mobile-menu-toggle', $mobile_menu_visibility ];
+		$mobile_menu_toggle_classes = [ 'bricks-mobile-menu-toggle' ];
 
 		if ( ! empty( $settings['mobileMenuToggleClosePosition'] ) ) {
 			$mobile_menu_toggle_classes[] = 'fixed';
 		}
 
-		if ( $mobile_menu_visibility !== 'never' ) {
+		if ( $show_menu_toggle_at === 'always' ) {
+			$mobile_menu_toggle_classes[] = 'always';
+		}
+
+		if ( $show_menu_toggle_at !== 'never' ) {
 			?>
-			<button class="<?php echo join( ' ', $mobile_menu_toggle_classes ); ?>" aria-haspopup="true" aria-label="<?php esc_attr_e( 'Mobile menu', 'bricks' ); ?>" aria-pressed="false">
+			<button class="<?php echo join( ' ', $mobile_menu_toggle_classes ); ?>" aria-haspopup="true" aria-label="<?php esc_attr_e( 'Mobile menu', 'bricks' ); ?>" aria-expanded="false">
 				<span class="bar-top"></span>
 				<span class="bar-center"></span>
 				<span class="bar-bottom"></span>
@@ -967,8 +1829,14 @@ class Element_Nav_Menu extends Element {
 					'container'  => false,
 					'menu_class' => 'bricks-mobile-menu',
 					'menu'       => $menu,
-					'items_wrap' => '<ul id="%1$s" class="%2$s" role="menubar">%3$s</ul>',
+					'items_wrap' => '<ul id="%1$s" class="%2$s">%3$s</ul>',
 					'walker'     => new \Aria_Walker_Nav_Menu(),
+					'bricks'     => [
+						'multiLevel'    => $multilevel_atts,
+						'megaMenu'      => $megamenu_atts,
+						'caret'         => isset( $settings['caretSize'] ),
+						'submenuStatic' => isset( $settings['submenuStatic'] ),
+					],
 				]
 			);
 
@@ -979,90 +1847,158 @@ class Element_Nav_Menu extends Element {
 
 		echo '</div>'; // Closing '_root'
 
-		// Remove the filter after rending this element to prevent conflicts with other Nav Menu elements in the same page
-		remove_filter( 'nav_menu_item_title', [ $this, 'nav_menu_item_title' ], 10, 4 );
+		// STEP: Remove filters after element render to prevent possbile conflicts with other nav menus
+		remove_filter( 'nav_menu_css_class', [ $this, 'nav_menu_css_class' ], 10, 4 );
 		remove_filter( 'walker_nav_menu_start_el', [ $this, 'walker_nav_menu_start_el' ], 10, 4 );
 	}
 
 	/**
-	 * Add icon to mobile menu items with children (to toggle the submenu)
+	 * Add submenu toggle icon
+	 * Render mega menu (desktop menu)
 	 */
 	public function walker_nav_menu_start_el( $output, $item, $depth, $args ) {
-		$classes = empty( $item->classes ) ? [] : (array) $item->classes;
+		$mega_menu_template_id = $this->get_mega_menu_template_id( $item->ID );
 
-		if ( $depth !== 0 || ! in_array( 'menu-item-has-children', $classes ) || $args->menu_class !== 'bricks-mobile-menu' ) {
+		// Return: Menu item has no children (submenu)
+		if ( is_array( $item->classes ) && ! in_array( 'menu-item-has-children', $item->classes ) && ! $mega_menu_template_id ) {
 			return $output;
 		}
 
-		$settings = $this->settings;
+		// STEP: Render submenu toggle icon (mobile menu, desktop menu (top level, submenu))
+		$settings        = $this->settings;
+		$icon            = '';
+		$icon_position   = 'right';
+		$is_desktop_menu = isset( $args->menu_class ) && $args->menu_class === 'bricks-nav-menu';
 
-		$menu_icon_position = isset( $settings['mobileMenuIconPosition'] ) ? $settings['mobileMenuIconPosition'] : 'right';
-		$menu_icon_html     = isset( $settings['mobileMenuIcon'] ) ? self::render_icon( $settings['mobileMenuIcon'], [ 'mobile-menu-icon-svg open' ] ) : false;
-		$close_icon_html    = isset( $settings['mobileMenuCloseIcon'] ) ? self::render_icon( $settings['mobileMenuCloseIcon'], [ 'mobile-menu-icon-svg close' ] ) : '';
+		// STEP: Desktop menu
 
-		if ( $menu_icon_html ) {
-			$menu_icon_html = '<button class="bricks-mobile-submenu-toggle icon-' . $menu_icon_position . '">' . $close_icon_html . $menu_icon_html . '</button>';
+		// Desktop menu (li.bricks-nav-menu)
+		if ( $is_desktop_menu ) {
+			// Top level
+			if ( $depth === 0 ) {
+				if ( ! empty( $settings['menuIcon'] ) ) {
+					$icon = self::render_icon( $settings['menuIcon'], [ 'menu-item-icon' ] );
+				}
 
-			if ( $menu_icon_position === 'right' ) {
-				$output = $output . $menu_icon_html;
-			} else {
-				$output = $menu_icon_html . $output;
+				$icon_position = ! empty( $settings['menuIconPosition'] ) ? $settings['menuIconPosition'] : 'right';
 			}
+
+			// Submenu
+			else {
+				if ( ! empty( $settings['subMenuIcon'] ) ) {
+					$icon = self::render_icon( $settings['subMenuIcon'], [ 'menu-item-icon' ] );
+				}
+
+				$icon_position = ! empty( $settings['subMenuIconPosition'] ) ? $settings['subMenuIconPosition'] : 'right';
+			}
+		}
+
+		// Mobile menu (li.bricks-mobile-menu)
+		else {
+			if ( ! empty( $settings['mobileMenuIcon'] ) ) {
+				$icon = self::render_icon( $settings['mobileMenuIcon'], [ 'open' ] );
+			}
+
+			// Close submenu toggle icon
+			if ( ! empty( $settings['mobileMenuCloseIcon'] ) ) {
+				$icon .= self::render_icon( $settings['mobileMenuCloseIcon'], [ 'close' ] );
+			}
+
+			$icon_position = ! empty( $settings['mobileMenuIconPosition'] ) ? $settings['mobileMenuIconPosition'] : 'right';
+		}
+
+		// Default toggle SVG (@since 1.8)
+		if ( ! $icon ) {
+			$icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" fill="none" class="menu-item-icon"><path d="M1.50002 4L6.00002 8L10.5 4" stroke-width="1.5"></path></svg>';
+		}
+
+		if ( $output && strpos( $output, 'brx-submenu-toggle' ) === false ) {
+			// Add icon HTML after menu item link
+			// https://www.accessibility-developer-guide.com/examples/widgets/dropdown/
+			$aria_label = $item->title . ' ' . esc_html__( 'Sub menu', 'bricks' );
+			$icon       = '<button aria-expanded="false" aria-label="' . esc_attr( $aria_label ) . '">' . $icon . '</button>';
+			$output     = '<div class="brx-submenu-toggle icon-' . $icon_position . '">' . $output . $icon . '</div>';
+		}
+
+		// STEP: Append mega menu template HTML to menu item (@since 1.8)
+		if ( $mega_menu_template_id ) {
+			$output .= '<div class="brx-megamenu" data-menu-id="' . $item->ID . '">';
+			// TODO NEXT (1.8.1): Global class styles missing (https://app.clickup.com/t/863gy6rjb)
+			$output .= do_shortcode( "[bricks_template id=\"$mega_menu_template_id\"]" );
+			$output .= '</div>';
 		}
 
 		return $output;
 	}
 
 	/**
-	 * Add icon to nav menu items with children
+	 * Mega menu:  Add .brx-has-megamenu && .menu-item-has-children
+	 * Multilevel: Add .brx-has-multilevel && .menu-item-has-children
+	 * Builder:    Add .current-menu-item
+	 *
+	 * @since 1.5.3
 	 */
-	public function nav_menu_item_title( $title, $item, $args, $depth ) {
-		// Return if icon for title is already set
-		if ( strpos( $title, '<i class=' ) !== false || strpos( $title, '<svg' ) !== false ) {
-			return $title;
-		}
+	public function nav_menu_css_class( $classes, $menu_item, $args, $depth ) {
+		if ( isset( $args->menu_class ) && $args->menu_class === 'bricks-nav-menu' ) {
+			// STEP: Mega menu (desktop menu only)
+			$mega_menu_template_id = $this->get_mega_menu_template_id( $menu_item->ID );
 
-		// Leave if mobile menu
-		if ( $args->menu_class === 'bricks-mobile-menu' ) {
-			return $title;
-		}
-
-		$settings = $this->settings;
-
-		$classes = empty( $item->classes ) ? [] : (array) $item->classes;
-
-		if ( $depth === 0 ) {
-			// Top level menu item
-			if ( in_array( 'menu-item-has-children', $classes ) ) {
-				$menu_icon_position = isset( $settings['menuIconPosition'] ) ? $settings['menuIconPosition'] : 'right';
-				$menu_icon_html     = isset( $settings['menuIcon'] ) ? self::render_icon( $settings['menuIcon'], [ "icon-{$menu_icon_position}", 'menu-icon-svg' ] ) : false;
-
-				if ( $menu_icon_html ) {
-					if ( $menu_icon_position === 'right' ) {
-						$title = $title . $menu_icon_html;
-					} else {
-						$title = $menu_icon_html . $title;
-					}
+			if ( $mega_menu_template_id ) {
+				if ( ! in_array( 'menu-item-has-children', $classes ) ) {
+					$classes[] = 'menu-item-has-children';
 				}
+
+				$classes[] = 'brx-has-megamenu';
+			}
+
+			// STEP: Mega menu (desktop menu only)
+			$is_multilevel = $this->is_multilevel( $menu_item->ID );
+
+			if ( $is_multilevel ) {
+				if ( ! in_array( 'menu-item-has-children', $classes ) ) {
+					$classes[] = 'menu-item-has-children';
+				}
+
+				$classes[] = 'brx-has-multilevel';
 			}
 		}
 
-		// Sub menu item
-		else {
-			if ( in_array( 'menu-item-has-children', $classes ) ) {
-				$sub_menu_icon_position = isset( $settings['subMenuIconPosition'] ) ? $settings['subMenuIconPosition'] : 'right';
-				$sub_menu_icon_html     = isset( $settings['subMenuIcon'] ) ? self::render_icon( $settings['subMenuIcon'], [ "icon-{$sub_menu_icon_position}", 'sub-menu-icon-svg' ] ) : false;
-
-				if ( $sub_menu_icon_html ) {
-					if ( $sub_menu_icon_position === 'right' ) {
-						$title = $title . $sub_menu_icon_html;
-					} else {
-						$title = $sub_menu_icon_html . $title;
-					}
-				}
-			}
+		if ( ! bricks_is_builder() && ! bricks_is_builder_call() ) {
+			return $classes;
 		}
 
-		return $title;
+		if ( isset( $menu_item->object_id ) && $menu_item->object_id == $this->post_id ) {
+			$classes[] = 'current-menu-item';
+		}
+
+		return $classes;
+	}
+
+	/**
+	 * Return template ID of mega menu
+	 *
+	 * @since 1.8
+	 */
+	public function get_mega_menu_template_id( $menu_item_id ) {
+		// Return: Mega menu not enabled
+		if ( ! isset( $this->settings['megaMenu'] ) ) {
+			return;
+		}
+
+		return get_post_meta( $menu_item_id, '_bricks_mega_menu_template_id', true );
+	}
+
+	/**
+	 * Return true if multilevel is enabled
+	 *
+	 * @since 1.8
+	 */
+	public function is_multilevel( $menu_item_id ) {
+		// Return: Multilevel not enabled
+		if ( ! isset( $this->settings['multiLevel'] ) ) {
+			return;
+		}
+
+		return get_post_meta( $menu_item_id, '_bricks_multilevel', true );
 	}
 }

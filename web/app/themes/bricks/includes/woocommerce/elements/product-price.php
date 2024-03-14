@@ -32,7 +32,7 @@ class Product_Price extends Element {
 			'type'  => 'typography',
 			'css'   => [
 				[
-					'selector' => '.price del',
+					'selector' => '.price del, .price > span',
 					'property' => 'font',
 				],
 			],

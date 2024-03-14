@@ -10,13 +10,11 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  *
  * @since 1.0
  */
-
 class Custom_Fonts {
-	public static $fonts = [];
+	public static $fonts           = false;
+	public static $font_face_rules = '';
 
 	public function __construct() {
-		self::get_custom_fonts();
-
 		add_filter( 'init', [ $this, 'register_post_type' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_enqueue_scripts' ] );
 
@@ -29,54 +27,171 @@ class Custom_Fonts {
 		add_filter( 'upload_mimes', [ $this, 'upload_mimes' ] );
 
 		add_action( 'wp_ajax_bricks_save_font_faces', [ $this, 'save_font_faces' ], 10, 2 );
+
+		add_action( 'admin_enqueue_scripts', [ $this, 'add_inline_style_font_face_rules' ], 11 );
+		add_action( 'wp_enqueue_scripts', [ $this, 'add_inline_style_font_face_rules' ], 11 );
+	}
+
+	/**
+	 * Generate custom font-face rules when viewing/editing "Custom fonts" in admin area
+	 *
+	 * @since 1.7.2
+	 */
+	public function generate_custom_font_face_rules() {
+		$current_screen = get_current_screen();
+
+		$fonts = self::get_custom_fonts();
+
+		$font_face_rules = self::$font_face_rules;
+
+		if ( $font_face_rules ) {
+			update_option( BRICKS_DB_CUSTOM_FONT_FACE_RULES, $font_face_rules );
+		} else {
+			delete_option( BRICKS_DB_CUSTOM_FONT_FACE_RULES );
+		}
+	}
+
+	/**
+	 * Add inline style for custom @font-face rules
+	 *
+	 * @since 1.7.2
+	 */
+	public function add_inline_style_font_face_rules() {
+		$font_face_rules = get_option( BRICKS_DB_CUSTOM_FONT_FACE_RULES, false );
+
+		// Generate custom font-face rules if not exist while in wp-admin
+		if ( ! $font_face_rules && is_admin() ) {
+			$fonts = self::get_custom_fonts();
+
+			$font_face_rules = self::$font_face_rules;
+
+			if ( $font_face_rules ) {
+				update_option( BRICKS_DB_CUSTOM_FONT_FACE_RULES, $font_face_rules );
+			}
+		}
+
+		// Add inline style for custom @font-face rules
+		if ( $font_face_rules ) {
+			wp_add_inline_style( is_admin() ? 'bricks-admin' : 'bricks-frontend', $font_face_rules );
+		}
 	}
 
 	/**
 	 * Get all custom fonts (in-builder & assets generation)
 	 */
 	public static function get_custom_fonts() {
-		$custom_font_ids = get_posts(
+		// Return already generated fonts
+		if ( self::$fonts ) {
+			return self::$fonts;
+		}
+
+		$font_ids = get_posts(
 			[
 				'post_type'      => BRICKS_DB_CUSTOM_FONTS,
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
+				'no_found_rows'  => true, // Skip the 'found_posts' calculation
 			]
 		);
 
-		$custom_fonts = [];
+		$fonts = [];
 
-		foreach ( $custom_font_ids as $custom_font_id ) {
-			$font_faces = get_post_meta( $custom_font_id, BRICKS_DB_CUSTOM_FONT_FACES, true );
-
-			if ( ! $font_faces ) {
-				continue;
-			}
-
-			$css = [];
-
-			foreach ( $font_faces as $font_variant => $font_face ) {
-				$font_weight          = substr( $font_variant, 0, 3 );
-				$font_style           = substr( $font_variant, 3, strlen( $font_variant ) );
-				$css[ $font_variant ] = self::generate_font_face_inline_css( $custom_font_id, $font_weight, $font_style );
-			}
-
+		foreach ( $font_ids as $font_id ) {
 			// Add 'custom_font_' prefix for correct font order in ControlTypography.vue & to build @font-face from font ID
-			$custom_fonts[ "custom_font_{$custom_font_id}" ] = [
-				'id'     => "custom_font_{$custom_font_id}",
-				'family' => get_the_title( $custom_font_id ),
-				'css'    => $css,
+			$fonts[ "custom_font_{$font_id}" ] = [
+				'id'        => "custom_font_{$font_id}",
+				'family'    => get_the_title( $font_id ),
+				'fontFaces' => self::generate_font_face_rules( $font_id ),
 			];
 		}
 
-		self::$fonts = $custom_fonts;
+		self::$fonts = $fonts;
 
-		return $custom_fonts;
+		return $fonts;
+	}
+
+	/**
+	 * Generate custom font-face rules
+	 *
+	 * Load all font-faces. Otherwise always forced to select font-family + font-weight (@since 1.5)
+	 *
+	 * @param int $font_id Custom font ID.
+	 *
+	 * @return string Font-face rules for $font_id.
+	 */
+	public static function generate_font_face_rules( $font_id = 0 ) {
+		$font_faces = get_post_meta( $font_id, BRICKS_DB_CUSTOM_FONT_FACES, true );
+
+		if ( ! $font_faces ) {
+			return;
+		}
+
+		$font_family     = get_the_title( $font_id );
+		$font_face_rules = '';
+
+		// $key: font-weight + variant (e.g.: 700italic)
+		foreach ( $font_faces as $key => $font_face ) {
+			$font_weight = filter_var( $key, FILTER_SANITIZE_NUMBER_INT );
+			$font_style  = str_replace( $font_weight, '', $key );
+			$src         = [];
+
+			foreach ( $font_face as $format => $value ) {
+				$font_variant_url = wp_get_attachment_url( $font_face[ $format ] );
+
+				if ( $font_variant_url ) {
+					if ( $format === 'ttf' ) {
+						$format = 'truetype';
+					} elseif ( $format === 'otf' ) {
+						$format = 'opentype';
+					} elseif ( $format === 'eot' ) {
+						$format = 'embedded-opentype';
+					}
+
+					// Load woff2 first @since 1.4 (smaller file size, almost same support as 'woff')
+					if ( $format === 'woff2' ) {
+						array_unshift( $src, "url($font_variant_url) format(\"$format\")" );
+					} else {
+						array_push( $src, "url($font_variant_url) format(\"$format\")" );
+					}
+				}
+			}
+
+			if ( ! count( $src ) ) {
+				return;
+			}
+
+			$src = implode( ',', $src );
+
+			if ( $font_family && $src ) {
+				$font_face_rules .= '@font-face{';
+				$font_face_rules .= "font-family:\"$font_family\";";
+
+				if ( $font_weight ) {
+					$font_face_rules .= "font-weight:$font_weight;";
+				}
+
+				if ( $font_style ) {
+					$font_face_rules .= "font-style:$font_style;";
+				}
+
+				$font_face_rules .= 'font-display:swap;';
+				$font_face_rules .= "src:$src;";
+				$font_face_rules .= '}';
+			}
+		}
+
+		self::$font_face_rules .= "$font_face_rules\n";
+
+		return $font_face_rules;
 	}
 
 	public function admin_enqueue_scripts() {
 		$current_screen = get_current_screen();
 
 		if ( is_object( $current_screen ) && $current_screen->post_type === BRICKS_DB_CUSTOM_FONTS ) {
+			// Generate custom font-face rules on custom font edit page
+			$this->generate_custom_font_face_rules();
+
 			wp_enqueue_media();
 
 			wp_enqueue_script( 'bricks-custom-fonts', BRICKS_URL_ASSETS . 'js/custom-fonts.min.js', [], filemtime( BRICKS_PATH_ASSETS . 'js/custom-fonts.min.js' ), true );
@@ -125,81 +240,6 @@ class Custom_Fonts {
 		return apply_filters( 'bricks/custom_fonts/mime_types', $font_mime_types );
 	}
 
-	/**
-	 * Generate custom font-face declarations
-	 *
-	 * Load all font-faces to avoid having to select font-family too (@since 1.5)
-	 *
-	 * @param integer $font_id The custom font ID.
-	 * @param integer $font_weight 100 - 900 (obsolete @since 1.5)
-	 * @param string  $font_style italic, etc. (obsolete @since 1.5)
-	 */
-	public static function generate_font_face_inline_css( $font_id = 0, $font_weight = 400, $font_style = '' ) {
-		$font_id    = intval( trim( $font_id ) );
-		$font_faces = get_post_meta( $font_id, BRICKS_DB_CUSTOM_FONT_FACES, true );
-
-		if ( ! $font_faces ) {
-			return;
-		}
-
-		$custom_fonts         = Assets::$inline_css['custom_fonts'];
-		$font_face_inline_css = '';
-
-		// $key is weight + variant string (e.g.: '700italic')
-		foreach ( $font_faces as $key => $font_face ) {
-			$font_weight = filter_var( $key, FILTER_SANITIZE_NUMBER_INT );
-			$font_style  = str_replace( $font_weight, '', $key );
-			$src         = [];
-
-			foreach ( $font_face as $key => $value ) {
-				$font_variant_url = wp_get_attachment_url( $font_face[ $key ] );
-
-				// Skip if font variant URL has already been added to custom fonts inline CSS
-				if ( $custom_fonts && strpos( $custom_fonts, $font_variant_url ) ) {
-					continue;
-				}
-
-				if ( $font_variant_url ) {
-					$format = $key;
-
-					if ( $key === 'ttf' ) {
-						$format = 'truetype';
-					} elseif ( $key === 'otf' ) {
-						$format = 'opentype';
-					} elseif ( $key === 'eot' ) {
-						$format = 'embedded-opentype';
-					}
-
-					// Load woff2 first @since 1.4 (smaller file size, almost same support as 'woff')
-					if ( $format === 'woff2' ) {
-						array_unshift( $src, 'url(' . $font_variant_url . ') format("' . $format . '")' );
-					} else {
-						array_push( $src, 'url(' . $font_variant_url . ') format("' . $format . '")' );
-					}
-				}
-			}
-
-			if ( ! count( $src ) ) {
-				return;
-			}
-
-			$src = implode( ",\n", $src );
-
-			// Use font family (builder & frontend)
-			// $font_name = bricks_is_builder() ? "custom_font_$font_id" : get_the_title( $font_id );
-			$font_name = get_the_title( $font_id );
-
-			$font_face_inline_css .= "@font-face {\n";
-			$font_face_inline_css .= "	font-family: \"$font_name\";\n";
-			$font_face_inline_css .= "	font-weight: $font_weight;\n";
-			$font_face_inline_css .= "	font-display: swap;\n";
-			$font_face_inline_css .= "	font-style: $font_style;\n";
-			$font_face_inline_css .= "	src: $src;\n}\n";
-		}
-
-		return $font_face_inline_css;
-	}
-
 	public function render_meta_boxes( $post ) {
 		echo '<h2 class="title">';
 		esc_html_e( 'Manage your custom font files', 'bricks' );
@@ -223,6 +263,8 @@ class Custom_Fonts {
 		$mime_types  = self::get_custom_fonts_mime_types();
 		$font_weight = substr( $font_variant, 0, 3 );
 		$font_style  = substr( $font_variant, 3, strlen( $font_variant ) );
+
+		ob_start();
 		?>
 		<div class="bricks-font-variant">
 			<div class="font-header">
@@ -259,21 +301,15 @@ class Custom_Fonts {
 					data-balloon="<?php esc_html_e( 'Font preview', 'bricks' ); ?>"
 					data-balloon-pos="top">
 					<?php
-					// @font-face
-					$custom_font_id          = get_the_ID();
-					$font_family             = get_the_title();
-					$font_variant_inline_css = self::generate_font_face_inline_css( $custom_font_id, $font_weight, $font_style );
-					$style                   = [];
+					$font_id     = get_the_ID();
+					$font_family = get_the_title();
+					$style       = [
+						'font-family: "' . $font_family . '"',
+						'font-weight: ' . $font_weight,
+					];
 
-					if ( $font_variant_inline_css ) {
-						echo '<style>' . $font_variant_inline_css . '</style>';
-
-						$style[] = 'font-family: "' . $font_family . '"';
-						$style[] = 'font-weight: ' . $font_weight;
-
-						if ( ! empty( $font_style ) ) {
-							$style[] = "font-style: $font_style";
-						}
+					if ( ! empty( $font_style ) ) {
+						$style[] = "font-style: $font_style";
 					}
 					?>
 					<div class="pangram" style='<?php echo implode( ';', $style ); ?>'><?php esc_html_e( 'The quick brown fox jumps over the lazy dog.', 'bricks ' ); ?></div>
@@ -313,7 +349,10 @@ class Custom_Fonts {
 							class="font-name"
 							data-balloon="<?php echo $file_size; ?>"
 							data-balloon-pos="top">
-							<?php printf( esc_html__( '%s file', 'bricks' ), strtoupper( $extension ) ); ?>
+							<?php
+							// translators: %s: Font file extension (e.g.: TTF, WOFF, WOFF2)
+							printf( esc_html__( '%s file', 'bricks' ), strtoupper( $extension ) );
+							?>
 						</div>
 					</label>
 
@@ -325,6 +364,7 @@ class Custom_Fonts {
 						class="button upload<?php echo $font_id ? ' hide' : ''; ?>"
 						data-mime-type="<?php echo esc_attr( $mime_type ); ?>"
 						data-extension="<?php echo esc_attr( $extension ); ?>"
+						<?php // translators: %s: Font file extension (e.g.: TTF, WOFF, WOFF2) ?>
 						data-title="<?php echo esc_attr( sprintf( esc_html__( 'Upload .%s file', 'bricks' ), $extension ) ); ?>"><?php esc_html_e( 'Upload', 'bricks' ); ?></button>
 					<button class="button remove<?php echo $font_id ? '' : ' hide'; ?>"><?php esc_html_e( 'Remove', 'bricks' ); ?></button>
 				</li>
@@ -350,6 +390,15 @@ class Custom_Fonts {
 			$updated = delete_post_meta( $post_id, BRICKS_DB_CUSTOM_FONT_FACES );
 		}
 
+		// Update font face rules in options table (@since 1.7.2)
+		if ( $updated ) {
+			$fonts = self::get_custom_fonts();
+
+			if ( is_string( self::$font_face_rules ) ) {
+				update_option( BRICKS_DB_CUSTOM_FONT_FACE_RULES, self::$font_face_rules );
+			}
+		}
+
 		wp_send_json_success(
 			[
 				'post_id'    => $post_id,
@@ -362,13 +411,14 @@ class Custom_Fonts {
 	public function manage_columns( $columns ) {
 		$columns = [
 			'cb'           => '<input type="checkbox" />',
-			'title'        => __( 'Font Family', 'bricks' ),
-			'font_preview' => __( 'Font Preview', 'bricks' ),
+			'title'        => esc_html__( 'Font Family', 'bricks' ),
+			'font_preview' => esc_html__( 'Font Preview', 'bricks' ),
 		];
 
 		$mime_types = self::get_custom_fonts_mime_types();
 
 		foreach ( $mime_types as $extension => $label ) {
+			// translators: %s: Font file extension (e.g.: TTF, WOFF, WOFF2)
 			$columns[ $extension ] = sprintf( esc_html__( '%s file', 'bricks' ), strtoupper( $extension ) );
 		}
 
@@ -377,24 +427,9 @@ class Custom_Fonts {
 
 	public function render_columns( $column, $post_id ) {
 		if ( $column === 'font_preview' ) {
-			$font_variant_inline_css = self::generate_font_face_inline_css( $post_id );
-			$font_family             = get_the_title( $post_id );
-			$style                   = '';
+			echo '<div class="pangram" style="font-family: \'' . get_the_title( $post_id ) . '\'; font-size: 18px">';
 
-			if ( $font_variant_inline_css ) {
-				echo '<style>' . $font_variant_inline_css . '</style>';
-
-				$style .= 'font-family: "' . $font_family . '";';
-				$style .= 'font-size: 18px';
-			}
-
-			echo '<div class="pangram" style=\'' . $style . '\'>';
-
-			if ( $style ) {
-				esc_html_e( 'The quick brown fox jumps over the lazy dog.', 'bricks ' );
-			} else {
-				echo '-';
-			}
+			esc_html_e( 'The quick brown fox jumps over the lazy dog.', 'bricks ' );
 
 			echo '</div>';
 		}

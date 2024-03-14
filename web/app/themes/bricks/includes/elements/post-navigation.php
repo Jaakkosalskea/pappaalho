@@ -40,17 +40,16 @@ class Element_Post_Navigation extends Element {
 		// LAYOUT
 
 		$this->controls['_direction'] = [
-			'tab'       => 'content',
-			'label'     => esc_html__( 'Direction', 'bricks' ),
-			'type'      => 'direction',
-			'direction' => 'row',
-			'css'       => [
+			'tab'      => 'content',
+			'label'    => esc_html__( 'Direction', 'bricks' ),
+			'type'     => 'direction',
+			'css'      => [
 				[
 					'property' => 'flex-direction',
 				],
 			],
-			'inline'    => true,
-			'rerender'  => false,
+			'inline'   => true,
+			'rerender' => false,
 		];
 
 		$this->controls['postWidth'] = [
@@ -151,16 +150,7 @@ class Element_Post_Navigation extends Element {
 			'tab'         => 'content',
 			'group'       => 'title',
 			'label'       => esc_html__( 'Title tag', 'bricks' ),
-			'type'        => 'select',
-			'options'     => [
-				'div' => 'div',
-				'p'   => 'p',
-				'h2'  => 'h2',
-				'h3'  => 'h3',
-				'h4'  => 'h4',
-				'h5'  => 'h5',
-				'h6'  => 'h6',
-			],
+			'type'        => 'text',
 			'inline'      => true,
 			'small'       => true,
 			'placeholder' => 'h5',
@@ -179,6 +169,34 @@ class Element_Post_Navigation extends Element {
 				],
 			],
 			'required' => [ 'title', '!=', '' ],
+		];
+
+		$this->controls['prevJustifyContent'] = [
+			'tab'     => 'content',
+			'group'   => 'title',
+			'label'   => esc_html__( 'Alignment', 'bricks' ) . ': ' . esc_html__( 'Previous post', 'bricks' ),
+			'type'    => 'justify-content',
+			'exclude' => [ 'space' ],
+			'css'     => [
+				[
+					'property' => 'justify-content',
+					'selector' => '.prev-post',
+				],
+			],
+		];
+
+		$this->controls['nextJustifyContent'] = [
+			'tab'     => 'content',
+			'group'   => 'title',
+			'label'   => esc_html__( 'Alignment', 'bricks' ) . ': ' . esc_html__( 'Next post', 'bricks' ),
+			'type'    => 'justify-content',
+			'exclude' => [ 'space' ],
+			'css'     => [
+				[
+					'property' => 'justify-content',
+					'selector' => '.next-post',
+				],
+			],
 		];
 
 		// ARROW

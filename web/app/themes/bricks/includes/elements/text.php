@@ -17,9 +17,17 @@ class Element_Text extends Element {
 		$this->controls['_background']['css'][0]['selector'] = '';
 		$this->controls['_border']['css'][0]['selector']     = '';
 
+		// Typography set in element should precede theme style link styles
 		$this->controls['_typography']['css'][] = [
 			'selector' => $this->css_selector . ' a',
 			'property' => 'font',
+		];
+
+		// Inherit font-size set in typograhy on links to prevent issue with units like 'em' (@since 1.9.6)
+		$this->controls['_typography']['css'][] = [
+			'selector' => $this->css_selector . ' a',
+			'property' => 'font-size',
+			'value'    => 'inherit',
 		];
 
 		$this->controls['text'] = [
@@ -51,13 +59,40 @@ class Element_Text extends Element {
 			'placeholder' => esc_html__( 'None', 'bricks' ),
 		];
 
+		$this->controls['wordsLimit'] = [
+			'tab'   => 'content',
+			'label' => esc_html__( 'Words limit', 'bricks' ),
+			'type'  => 'number',
+			'min'   => 1,
+		];
+
+		$this->controls['readMore'] = [
+			'tab'            => 'content',
+			'label'          => esc_html__( 'Read more', 'bricks' ),
+			'type'           => 'text',
+			'inline'         => true,
+			'hasDynamicData' => false,
+			'required'       => [ 'wordsLimit', '!=', '' ],
+		];
 	}
 
 	public function render() {
 		$settings = $this->settings;
 
-		if ( empty( $settings['text'] ) ) {
+		if ( ! isset( $settings['text'] ) ) {
 			return;
+		}
+
+		$content = $settings['text'];
+
+		$content = $this->render_dynamic_data( $content );
+
+		$content = Helpers::parse_editor_content( $content );
+
+		// Trimming the content to the specified number of words while handling HTML tags properly (@since 1.9.3)
+		if ( ! empty( $settings['wordsLimit'] ) && is_numeric( $settings['wordsLimit'] ) ) {
+			$more    = $settings['readMore'] ?? '';
+			$content = Helpers::trim_words( $content, $settings['wordsLimit'], $more, true );
 		}
 
 		if ( ! empty( $settings['type'] ) ) {
@@ -68,15 +103,12 @@ class Element_Text extends Element {
 			$this->set_attribute( '_root', 'class', "bricks-color-{$settings['style']}" );
 		}
 
-		$content = $this->render_dynamic_data( $settings['text'] );
-
-		echo "<div {$this->render_attributes( '_root' )}>" . apply_filters( 'the_content', $content ) . '</div>';
+		echo "<div {$this->render_attributes( '_root' )}>{$content}</div>";
 	}
 
 	public static function render_builder() { ?>
 		<script type="text/x-template" id="tmpl-bricks-element-text">
 			<contenteditable
-				:is="'div'"
 				:name="name"
 				controlKey="text"
 				toolbar="true"
@@ -96,11 +128,11 @@ class Element_Text extends Element {
 		$block['attrs']        = [];
 		$block['innerContent'] = [];
 
-		$text = isset( $settings['text'] ) ? trim( $settings['text'] ) : '';
-
-		if ( ! $text ) {
+		if ( ! isset( $settings['text'] ) ) {
 			return;
 		}
+
+		$text = trim( $settings['text'] );
 
 		// Get block type by HTML tag: <p>, <ul>, <ol>
 		preg_match_all( '#<(p|ul|ol)>(.*?)</\1>#is', $text, $matches );

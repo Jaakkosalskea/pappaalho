@@ -23,7 +23,7 @@ class Mailchimp extends Base {
 		// Basic HTTP authentication: Enter any string as your username and supply your API Key as the password
 		self::$args = [
 			'headers' => [
-				'Authorization' => 'Basic ' . base64_encode( 'user' . ':' . self::$api_key ),
+				'Authorization' => 'Basic ' . base64_encode( 'user:' . self::$api_key ),
 			],
 		];
 	}
@@ -41,7 +41,7 @@ class Mailchimp extends Base {
 	 * http://developer.mailchimp.com/documentation/mailchimp/guides/get-started-with-mailchimp-api-3/
 	 * http://developer.mailchimp.com/documentation/mailchimp/reference/overview/
 	 *
-	 * @param string $resource What kind of information to request (i.e. 'lists', 'groups' etc.)
+	 * @param string $resource What kind of information to request (i.e. 'lists', 'groups' etc.).
 	 *
 	 * @since 1.0
 	 */
@@ -92,21 +92,19 @@ class Mailchimp extends Base {
 	 * @since 1.0
 	 */
 	public static function sync_groups( $list_id ) {
-		$resource        = "lists/$list_id/interest-categories";
-		$response_groups = self::get_response_body( $resource );
+		$response_groups = self::get_response_body( "lists/$list_id/interest-categories" );
+		$categories      = isset( $response_groups['categories'] ) && is_array( $response_groups['categories'] ) ? $response_groups['categories'] : [];
 
 		// Get groups (i.e.: categories + interests)
 		$groups = [];
 
-		if ( isset( $response_groups['categories'] ) && is_array( $response_groups['categories'] ) ) {
-			foreach ( $response_groups['categories'] as $category ) {
-				$category_id        = $category['id'];
-				$resource           = "lists/$list_id/interest-categories/$category_id/interests";
-				$response_interests = self::get_response_body( $resource );
+		foreach ( $categories as $category ) {
+			$category_id   = $category['id'];
+			$response_body = self::get_response_body( "lists/$list_id/interest-categories/$category_id/interests" );
+			$interests     = isset( $response_body['interests'] ) && is_array( $response_body['interests'] ) ? $response_body['interests'] : [];
 
-				foreach ( $response_interests['interests'] as $interest ) {
-					$groups[ $interest['id'] ] = $category['title'] . ' - ' . $interest['name'];
-				}
+			foreach ( $interests as $interest ) {
+				$groups[ $interest['id'] ] = $category['title'] . ' - ' . $interest['name'];
 			}
 		}
 
@@ -129,7 +127,7 @@ class Mailchimp extends Base {
 			$form->set_result(
 				[
 					'action'  => $this->name,
-					'type'    => 'danger',
+					'type'    => 'error',
 					'message' => esc_html__( 'No email address provided.', 'bricks' )
 				]
 			);
@@ -156,7 +154,7 @@ class Mailchimp extends Base {
 			$new_subscriber['merge_fields']['LNAME'] = $form_fields[ "form-field-{$form_settings['mailchimpLastName']}" ];
 		}
 
-		if ( is_array( $form_settings['mailchimpGroups'] ) ) {
+		if ( isset( $form_settings['mailchimpGroups'] ) && is_array( $form_settings['mailchimpGroups'] ) ) {
 			foreach ( $form_settings['mailchimpGroups'] as $interest_id ) {
 				$new_subscriber['interests'][ $interest_id ] = true;
 			}
@@ -181,13 +179,13 @@ class Mailchimp extends Base {
 		// Success (subscribed)
 		elseif ( $response_code === 200 ) {
 			$type    = 'success';
-			$message = 'OK';
+			$message = '';
 			$body    = $response_body;
 		}
 
 		// Error
 		else {
-			$type    = 'danger';
+			$type    = 'error';
 			$message = isset( $form_settings['mailchimpErrorMessage'] ) ? $form_settings['mailchimpErrorMessage'] : '';
 			$body    = $response_body;
 		}

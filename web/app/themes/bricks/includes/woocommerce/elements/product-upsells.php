@@ -120,7 +120,7 @@ class Product_Upsells extends Element {
 			'tab'   => 'content',
 			'group' => 'button',
 			'label' => esc_html__( 'Padding', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'selector' => '.button',
@@ -203,10 +203,8 @@ class Product_Upsells extends Element {
 		$orderby        = isset( $settings['orderby'] ) ? $settings['orderby'] : 'rand';
 		$order          = isset( $settings['order'] ) ? $settings['order'] : 'DESC';
 
-		/**
-		 * @hook woocommerce_product_cross_sells_products_heading
-		 * @hook woocommerce_product_upsells_products_heading
-		 */
+		// @hook woocommerce_product_cross_sells_products_heading
+		// @hook woocommerce_product_upsells_products_heading
 		add_filter( "woocommerce_product_{$type}_products_heading", [ $this, 'render_heading' ] );
 
 		echo "<div {$this->render_attributes( '_root' )}>";
@@ -233,7 +231,7 @@ class Product_Upsells extends Element {
 	 *
 	 * @see woocommerce/includes/wc-template-functions.php
 	 *
-	 * @param  WP_Product $product (extra parameter)
+	 * @param  WP_Product $product (extra parameter).
 	 * @param  int        $limit (default: 2).
 	 * @param  int        $columns (default: 2).
 	 * @param  string     $orderby (default: 'rand').

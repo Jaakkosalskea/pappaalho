@@ -11,7 +11,6 @@ class Heartbeat {
 	 *
 	 * https://developer.wordpress.org/plugins/javascript/heartbeat-api/
 	 */
-
 	public function __construct() {
 		// Don't run on non-builder frontend (bricks_is_builder check in init.php not working)
 		if ( ! is_admin() && ! isset( $_GET[ BRICKS_BUILDER_PARAM ] ) ) {
@@ -47,7 +46,7 @@ class Heartbeat {
 			]
 		);
 
-		wp_enqueue_style( 'wp_auth_check', '/wp-includes/css/wp-auth-check.css', [ 'dashicons' ], null, 'all' );
+		wp_enqueue_style( 'wp_auth_check', '/wp-includes/css/wp-auth-check.css', [ 'dashicons' ], null, 'all' ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
 	}
 
 	/**
@@ -55,7 +54,7 @@ class Heartbeat {
 	 *
 	 * @since 1.0
 	 *
-	 * @param array Heartbeat settings
+	 * @param array $settings Heartbeat settings.
 	 */
 	public function heartbeat_settings( $settings ) {
 		$settings['interval'] = BRICKS_AUTH_CHECK_INTERVAL; // Default: 15

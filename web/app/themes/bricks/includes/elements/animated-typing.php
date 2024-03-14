@@ -77,68 +77,76 @@ class Element_Animated_Typing extends Element {
 					'type'  => 'text',
 				],
 			],
+			'reloadScripts' => true,
 		];
 
 		// SETTINGS
 
 		$this->controls['typeSpeed'] = [
-			'tab'     => 'content',
-			'group'   => 'settings',
-			'label'   => esc_html__( 'Type speed in ms', 'bricks' ),
-			'type'    => 'number',
-			'default' => 55,
-			'small'   => false,
+			'tab'           => 'content',
+			'group'         => 'settings',
+			'label'         => esc_html__( 'Type speed in ms', 'bricks' ),
+			'type'          => 'number',
+			'default'       => 55,
+			'small'         => false,
+			'reloadScripts' => true,
 		];
 
 		$this->controls['backSpeed'] = [
-			'tab'     => 'content',
-			'group'   => 'settings',
-			'label'   => esc_html__( 'Back speed in ms', 'bricks' ),
-			'type'    => 'number',
-			'small'   => false,
-			'default' => 30,
+			'tab'           => 'content',
+			'group'         => 'settings',
+			'label'         => esc_html__( 'Back speed in ms', 'bricks' ),
+			'type'          => 'number',
+			'small'         => false,
+			'default'       => 30,
+			'reloadScripts' => true,
 		];
 
 		$this->controls['startDelay'] = [
-			'tab'     => 'content',
-			'group'   => 'settings',
-			'label'   => esc_html__( 'Start delay in ms', 'bricks' ),
-			'type'    => 'number',
-			'small'   => false,
-			'default' => 500,
+			'tab'           => 'content',
+			'group'         => 'settings',
+			'label'         => esc_html__( 'Start delay in ms', 'bricks' ),
+			'type'          => 'number',
+			'small'         => false,
+			'default'       => 500,
+			'reloadScripts' => true,
 		];
 
 		$this->controls['backDelay'] = [
-			'tab'     => 'content',
-			'group'   => 'settings',
-			'label'   => esc_html__( 'Back delay in ms', 'bricks' ),
-			'type'    => 'number',
-			'small'   => false,
-			'default' => 500,
+			'tab'           => 'content',
+			'group'         => 'settings',
+			'label'         => esc_html__( 'Back delay in ms', 'bricks' ),
+			'type'          => 'number',
+			'small'         => false,
+			'default'       => 500,
+			'reloadScripts' => true,
 		];
 
 		$this->controls['cursorChar'] = [
-			'tab'     => 'content',
-			'group'   => 'settings',
-			'label'   => esc_html__( 'Cursor character', 'bricks' ),
-			'type'    => 'text',
-			'inline'  => true,
-			'default' => '|',
+			'tab'           => 'content',
+			'group'         => 'settings',
+			'label'         => esc_html__( 'Cursor character', 'bricks' ),
+			'type'          => 'text',
+			'inline'        => true,
+			'default'       => '|',
+			'reloadScripts' => true,
 		];
 
 		$this->controls['loop'] = [
-			'tab'     => 'content',
-			'group'   => 'settings',
-			'label'   => esc_html__( 'Loop', 'bricks' ),
-			'type'    => 'checkbox',
-			'default' => true,
+			'tab'           => 'content',
+			'group'         => 'settings',
+			'label'         => esc_html__( 'Loop', 'bricks' ),
+			'type'          => 'checkbox',
+			'default'       => true,
+			'reloadScripts' => true,
 		];
 
 		$this->controls['shuffle'] = [
-			'tab'   => 'content',
-			'group' => 'settings',
-			'label' => esc_html__( 'Shuffle', 'bricks' ),
-			'type'  => 'checkbox',
+			'tab'           => 'content',
+			'group'         => 'settings',
+			'label'         => esc_html__( 'Shuffle', 'bricks' ),
+			'type'          => 'checkbox',
+			'reloadScripts' => true,
 		];
 
 	}

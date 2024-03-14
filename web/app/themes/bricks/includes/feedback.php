@@ -45,6 +45,7 @@ class Feedback {
 					'how_to_use'          => [
 						'label' => esc_html__( 'I don\'t know how to use this Bricks', 'bricks' ),
 						'text'  => sprintf(
+							// translators: %1$s: Bricks Academy link, %2$s: email link
 							esc_html__( 'Did you explore the %1$s? Or get in touch with me via %2$s?', 'bricks' ),
 							'<a href="https://academy.bricksbuilder.io" target="_blank" rel="noopener">' . esc_html__( 'Bricks Academy', 'bricks' ) . '</a>',
 							'<a href="https://bricksbuilder.io/contact/" target="_blank" rel="noopener">' . esc_html__( 'email', 'bricks' ) . '</a>'
@@ -76,17 +77,17 @@ class Feedback {
 
 					<?php if ( isset( $value['text'] ) ) { ?>
 				<p class="bricks_reason_<?php echo esc_attr( $key ); ?>"><?php echo ( $value['text'] ); ?></p>
-							<?php } ?>
+				<?php } ?>
 
-							<?php if ( isset( $value['textarea'] ) ) { ?>
+					<?php if ( isset( $value['textarea'] ) ) { ?>
 				<textarea class="bricks_reason_<?php echo esc_attr( $key ); ?>" rows="3" name="bricks_reason_<?php echo esc_attr( $key ); ?>" placeholder="<?php echo esc_attr( $value['textarea'] ); ?>"></textarea>
 				<?php } ?>
 				</fieldset>
 				<?php } ?>
 
 				<div id="bricks-feedback-form-sumbit-wrapper">
-					<button class="button button-primary" id="bricks-feedback-submit"><?php _e( 'Submit & Deactivate', 'bricks' ); ?></button>
-					<button class="button button-secondary" id="bricks-feedback-skip"><?php _e( 'Skip & Deactivate', 'bricks' ); ?></button>
+					<button class="button button-primary" id="bricks-feedback-submit"><?php esc_html_e( 'Submit & Deactivate', 'bricks' ); ?></button>
+					<button class="button button-secondary" id="bricks-feedback-skip"><?php esc_html_e( 'Skip & Deactivate', 'bricks' ); ?></button>
 					<input type="hidden" name="referer" value="<?php echo get_site_url(); ?>">
 					<input type="hidden" name="version" value="<?php echo BRICKS_VERSION; ?>">
 				</div>

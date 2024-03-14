@@ -165,23 +165,13 @@ class Element_Slider extends Element {
 				'background'       => [
 					'label'   => esc_html__( 'Background', 'bricks' ),
 					'type'    => 'background',
-					'exclude' => [
-						'parallax',
-						'videoUrl',
-						'videoScale',
-						'videoAspectRatio',
-					],
+					'exclude' => 'video',
 				],
 
 				'overlay'          => [
 					'label'   => esc_html__( 'Overlay', 'bricks' ),
 					'type'    => 'color',
-					'exclude' => [
-						'parallax',
-						'videoUrl',
-						'videoScale',
-						'videoAspectRatio',
-					],
+					'exclude' => 'video',
 					'css'     => [
 						[
 							'property' => 'background-color',
@@ -220,21 +210,9 @@ class Element_Slider extends Element {
 			],
 		];
 
-		// NOTE: Have to set slider background-image via inline style as lazy_load here has no reference to the element settings
-		// No lazy load: Set slider background via inline CSS to allow for different background images per breakpoint
-		// if ( ! $this->lazy_load() ) {
-		// $this->controls['items']['fields']['background']['css'] = [
-		// [
-		// 'property' => 'background',
-		// 'selector' => '.image',
-		// ],
-		// ];
-		// }
-
 		$this->controls = array_replace_recursive( $this->controls, $this->get_loop_builder_controls() );
 
 		// SETTINGS
-
 		$swiper_controls = self::get_swiper_controls();
 
 		$this->controls['slidesToShow']                 = $swiper_controls['slidesToShow'];
@@ -244,18 +222,13 @@ class Element_Slider extends Element {
 		$this->controls['height']['label']              = esc_html__( 'Min. height', 'bricks' );
 		$this->controls['height']['placeholder']        = '50vh';
 		$this->controls['height']['css'][0]['property'] = 'min-height';
-
-		$this->controls['effect'] = $swiper_controls['effect'];
-
-		if ( isset( $this->controls['effect']['info'] ) ) {
-			unset( $this->controls['effect']['info'] );
-		}
-
-		$this->controls['speed']           = $swiper_controls['speed'];
-		$this->controls['disableLazyLoad'] = $swiper_controls['disableLazyLoad'];
-		$this->controls['autoplay']        = $swiper_controls['autoplay'];
-		$this->controls['pauseOnHover']    = $swiper_controls['pauseOnHover'];
-		$this->controls['autoplaySpeed']   = $swiper_controls['autoplaySpeed'];
+		$this->controls['effect']                       = $swiper_controls['effect'];
+		$this->controls['swiperLoop']                   = $swiper_controls['swiperLoop'];
+		$this->controls['speed']                        = $swiper_controls['speed'];
+		$this->controls['disableLazyLoad']              = $swiper_controls['disableLazyLoad'];
+		$this->controls['autoplay']                     = $swiper_controls['autoplay'];
+		$this->controls['pauseOnHover']                 = $swiper_controls['pauseOnHover'];
+		$this->controls['autoplaySpeed']                = $swiper_controls['autoplaySpeed'];
 
 		// Title
 
@@ -270,7 +243,7 @@ class Element_Slider extends Element {
 			'tab'   => 'content',
 			'group' => 'settings',
 			'label' => esc_html__( 'Title margin', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'margin',
@@ -345,7 +318,7 @@ class Element_Slider extends Element {
 			'tab'   => 'content',
 			'group' => 'settings',
 			'label' => esc_html__( 'Content margin', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'margin',
@@ -358,7 +331,7 @@ class Element_Slider extends Element {
 			'tab'         => 'content',
 			'group'       => 'settings',
 			'label'       => esc_html__( 'Content padding', 'bricks' ),
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'css'         => [
 				[
 					'property' => 'padding',
@@ -374,47 +347,44 @@ class Element_Slider extends Element {
 		];
 
 		$this->controls['contentAlignHorizontal'] = [
-			'tab'         => 'content',
-			'group'       => 'settings',
-			'label'       => esc_html__( 'Content align horizontal', 'bricks' ),
-			'type'        => 'justify-content',
-			'exclude'     => 'space',
-			'css'         => [
+			'tab'     => 'content',
+			'group'   => 'settings',
+			'label'   => esc_html__( 'Content align horizontal', 'bricks' ),
+			'type'    => 'justify-content',
+			'exclude' => 'space',
+			'css'     => [
 				[
 					'property' => 'justify-content',
 					'selector' => '.swiper-slide',
 				],
 			],
-			'placeholder' => esc_html__( 'Center', 'bricks' ),
 		];
 
 		$this->controls['contentAlignVertical'] = [
-			'tab'         => 'content',
-			'group'       => 'settings',
-			'label'       => esc_html__( 'Content align vertical', 'bricks' ),
-			'type'        => 'align-items',
-			'exclude'     => 'stretch',
-			'css'         => [
+			'tab'     => 'content',
+			'group'   => 'settings',
+			'label'   => esc_html__( 'Content align vertical', 'bricks' ),
+			'type'    => 'align-items',
+			'exclude' => 'stretch',
+			'css'     => [
 				[
 					'property' => 'align-items',
 					'selector' => '.swiper-slide',
 				],
 			],
-			'placeholder' => esc_html__( 'Center', 'bricks' ),
 		];
 
 		$this->controls['contentTextAlign'] = [
-			'tab'         => 'content',
-			'group'       => 'settings',
-			'type'        => 'text-align',
-			'label'       => esc_html__( 'Content text align', 'bricks' ),
-			'css'         => [
+			'tab'   => 'content',
+			'group' => 'settings',
+			'type'  => 'text-align',
+			'label' => esc_html__( 'Content text align', 'bricks' ),
+			'css'   => [
 				[
 					'property' => 'text-align',
 					'selector' => '.slider-content',
 				],
 			],
-			'placeholder' => esc_html__( 'Center', 'bricks' ),
 		];
 
 		// Button
@@ -590,6 +560,7 @@ class Element_Slider extends Element {
 		$this->controls['prevArrowRight']     = $swiper_controls['prevArrowRight'];
 		$this->controls['prevArrowBottom']    = $swiper_controls['prevArrowBottom'];
 		$this->controls['prevArrowLeft']      = $swiper_controls['prevArrowLeft'];
+		$this->controls['prevArrowTransform'] = $swiper_controls['prevArrowTransform'];
 
 		$this->controls['nextArrowSeparator'] = $swiper_controls['nextArrowSeparator'];
 		$this->controls['nextArrow']          = $swiper_controls['nextArrow'];
@@ -597,6 +568,7 @@ class Element_Slider extends Element {
 		$this->controls['nextArrowRight']     = $swiper_controls['nextArrowRight'];
 		$this->controls['nextArrowBottom']    = $swiper_controls['nextArrowBottom'];
 		$this->controls['nextArrowLeft']      = $swiper_controls['nextArrowLeft'];
+		$this->controls['nextArrowTransform'] = $swiper_controls['nextArrowTransform'];
 
 		// Dots
 
@@ -610,9 +582,9 @@ class Element_Slider extends Element {
 		$this->controls['dotsBottom']      = $swiper_controls['dotsBottom'];
 		$this->controls['dotsLeft']        = $swiper_controls['dotsLeft'];
 		$this->controls['dotsBorder']      = $swiper_controls['dotsBorder'];
-		$this->controls['dotsSpacing']     = $swiper_controls['dotsSpacing'];
 		$this->controls['dotsColor']       = $swiper_controls['dotsColor'];
 		$this->controls['dotsActiveColor'] = $swiper_controls['dotsActiveColor'];
+		$this->controls['dotsSpacing']     = $swiper_controls['dotsSpacing'];
 	}
 
 	public function render() {
@@ -630,29 +602,22 @@ class Element_Slider extends Element {
 			'effect'         => isset( $settings['effect'] ) ? $settings['effect'] : 'slide',
 			'spaceBetween'   => isset( $settings['gutter'] ) ? intval( $settings['gutter'] ) : 0,
 			'initialSlide'   => isset( $settings['initialSlide'] ) ? intval( $settings['initialSlide'] ) : 0,
-			'loop'           => true, // Required for slide-index to define styles per slide
+			'loop'           => isset( $settings['swiperLoop'] ) && $settings['swiperLoop'] === 'disable' ? false : true,
 			'centeredSlides' => isset( $settings['centerMode'] ),
 		];
 
 		$breakpoint_options = Helpers::generate_swiper_breakpoint_data_options( $settings );
 
-		// Has slidesPerView/slidesPerGroup set on non-base breakpoints
-		if ( is_array( $breakpoint_options ) && count( $breakpoint_options ) > 1 ) {
+		// Has slidesPerView/slidesPerGroup set on non-desktop breakpoints
+		if ( count( $breakpoint_options ) > 1 ) {
 			unset( $options['slidesPerView'] );
 			unset( $options['slidesPerGroup'] );
+
 			$options['breakpoints'] = $breakpoint_options;
 		}
 
 		if ( isset( $settings['autoplay'] ) ) {
-			$options['autoplay'] = [
-				'delay'                => isset( $settings['autoplaySpeed'] ) ? intval( $settings['autoplaySpeed'] ) : 3000,
-
-				// Set to false if pauseOnHover is true, otherwise it stops after the first hover
-				'disableOnInteraction' => ! isset( $settings['pauseOnHover'] ),
-
-				// Pause autoplay on mouse enter (new in v6.6: autoplay.pauseOnMouseEnter)
-				'pauseOnMouseEnter'    => isset( $settings['pauseOnHover'] ),
-			];
+			$options['autoplay'] = Helpers::generate_swiper_autoplay_options( $settings );
 		}
 
 		// Arrow navigation
@@ -706,6 +671,8 @@ class Element_Slider extends Element {
 
 				echo $query->render( [ $this, 'render_repeater_item' ], compact( 'slide' ) );
 
+				// Destroy query to explicitly remove it from the global store
+				$query->destroy();
 				unset( $query );
 			}
 
@@ -787,7 +754,7 @@ class Element_Slider extends Element {
 		if ( $this->lazy_load() ) {
 			$lazy_load_background = true;
 
-			foreach ( Setup::$breakpoints as $breakpoint ) {
+			foreach ( Breakpoints::$breakpoints as $breakpoint ) {
 				$key = $breakpoint['key'];
 
 				if ( isset( $slide[ "background:$key" ] ) ) {
@@ -838,7 +805,7 @@ class Element_Slider extends Element {
 		ob_start();
 		?>
 
-		<div class="repeater-item swiper-slide">
+		<div class="repeater-item swiper-slide" data-brx-swiper-index="<?php echo $index; ?>">
 			<div class="slider-content">
 				<?php
 				if ( isset( $slide['title'] ) && ! empty( $slide['title'] ) ) {
@@ -850,12 +817,14 @@ class Element_Slider extends Element {
 					echo "<{$this->render_attributes( "title-{$index}" )}>{$slide['title']}</{$tag}>";
 				}
 
-				if ( isset( $slide['content'] ) && ! empty( $slide['content'] ) ) {
+				$content = ! empty( $slide['content'] ) ? $slide['content'] : false;
+
+				if ( $content ) {
 					$this->set_attribute( "content-$index", 'class', [ 'content' ] );
 
-					$content = $this->render_dynamic_data( $slide['content'] );
+					$content = $this->render_dynamic_data( $content );
 
-					echo "<div {$this->render_attributes( "content-{$index}" )}>" . apply_filters( 'the_content', $content ) . '</div>';
+					echo "<div {$this->render_attributes( "content-{$index}" )}>" . Helpers::parse_editor_content( $content ) . '</div>';
 				}
 
 				if ( isset( $slide['buttonText'] ) && ! empty( $slide['buttonText'] ) ) {

@@ -90,7 +90,7 @@ class Element_Pricing_Tables extends Element {
 
 				'headerPadding'            => [
 					'label' => esc_html__( 'Padding', 'bricks' ),
-					'type'  => 'dimensions',
+					'type'  => 'spacing',
 					'css'   => [
 						[
 							'property' => 'padding',
@@ -152,7 +152,7 @@ class Element_Pricing_Tables extends Element {
 
 				'pricePadding'             => [
 					'label' => esc_html__( 'Padding', 'bricks' ),
-					'type'  => 'dimensions',
+					'type'  => 'spacing',
 					'css'   => [
 						[
 							'property' => 'padding',
@@ -265,7 +265,7 @@ class Element_Pricing_Tables extends Element {
 
 				'featuresPadding'          => [
 					'label'       => esc_html__( 'Padding', 'bricks' ),
-					'type'        => 'dimensions',
+					'type'        => 'spacing',
 					'css'         => [
 						[
 							'property' => 'padding',
@@ -384,7 +384,7 @@ class Element_Pricing_Tables extends Element {
 
 				'footerPadding'            => [
 					'label' => esc_html__( 'Padding', 'bricks' ),
-					'type'  => 'dimensions',
+					'type'  => 'spacing',
 					'css'   => [
 						[
 							'property' => 'padding',
@@ -431,7 +431,7 @@ class Element_Pricing_Tables extends Element {
 					'label'       => esc_html__( 'Link', 'bricks' ),
 					'type'        => 'link',
 					'popup'       => false, // NOTE: Undocumented
-					'placeholder' => 'http://yoursite.com',
+					'placeholder' => 'https://yoursite.com',
 					'required'    => [ 'buttonText', '!=', '' ],
 				],
 
@@ -637,7 +637,6 @@ class Element_Pricing_Tables extends Element {
 					'selector' => '.pricing-tables',
 				],
 			],
-			'inline'      => true,
 			'placeholder' => esc_html__( 'Stretch', 'bricks' ),
 		];
 
@@ -703,7 +702,7 @@ class Element_Pricing_Tables extends Element {
 			'tab'      => 'content',
 			'group'    => 'tabs',
 			'label'    => esc_html__( 'Margin', 'bricks' ),
-			'type'     => 'dimensions',
+			'type'     => 'spacing',
 			'css'      => [
 				[
 					'property' => 'margin',
@@ -784,7 +783,7 @@ class Element_Pricing_Tables extends Element {
 			'tab'      => 'content',
 			'group'    => 'tabs',
 			'label'    => esc_html__( 'Margin', 'bricks' ),
-			'type'     => 'dimensions',
+			'type'     => 'spacing',
 			'css'      => [
 				[
 					'property' => 'margin',
@@ -798,7 +797,7 @@ class Element_Pricing_Tables extends Element {
 			'tab'      => 'content',
 			'group'    => 'tabs',
 			'label'    => esc_html__( 'Padding', 'bricks' ),
-			'type'     => 'dimensions',
+			'type'     => 'spacing',
 			'css'      => [
 				[
 					'property' => 'padding',
@@ -1010,7 +1009,7 @@ class Element_Pricing_Tables extends Element {
 				$this->set_attribute( "ribbon-text-$index", 'class', 'pricing-table-ribbon-title' );
 
 				echo "<div {$this->render_attributes( "ribbon-wrapper-$index" )}>";
-				echo "<div {$this->render_attributes( "ribbon-text-$index" )}>{$table['ribbonText']}</div>";
+				echo "<div {$this->render_attributes( "ribbon-text-$index" )}>{$this->render_dynamic_data( $table['ribbonText'] )}</div>";
 				echo '</div>';
 			}
 
@@ -1021,21 +1020,21 @@ class Element_Pricing_Tables extends Element {
 				if ( isset( $table['title'] ) ) {
 					$this->set_attribute( "title-$index", 'class', 'pricing-table-title' );
 
-					echo "<h3 {$this->render_attributes( "title-$index" )}>{$table['title']}</h3>";
+					echo "<div {$this->render_attributes( "title-$index" )}>{$this->render_dynamic_data( $table['title'] )}</div>";
 				}
 
 				if ( isset( $table['subtitle'] ) ) {
 					if ( isset( $table['subtitle'] ) ) {
 						$this->set_attribute( "subtitle-$index", 'class', 'pricing-table-subtitle' );
 
-						echo "<span {$this->render_attributes( "subtitle-$index" )}>{$table['subtitle']}</span>";
+						echo "<span {$this->render_attributes( "subtitle-$index" )}>{$this->render_dynamic_data( $table['subtitle'] )}</span>";
 					}
 				}
 
 				echo '</div>';
 			}
 
-			if ( ! empty( $table['price'] ) ) {
+			if ( isset( $table['price'] ) ) {
 				echo '<div class="pricing-table-pricing">';
 
 				echo '<div class="pricing-table-price-wrapper">';
@@ -1043,25 +1042,25 @@ class Element_Pricing_Tables extends Element {
 				if ( isset( $table['priceOriginal'] ) ) {
 					$this->set_attribute( "original-price-$index", 'class', 'pricing-table-original-price' );
 
-					echo "<span {$this->render_attributes( "original-price-$index" )}>{$table['priceOriginal']}</span>";
+					echo "<span {$this->render_attributes( "original-price-$index" )}>{$this->render_dynamic_data( $table['priceOriginal'] )}</span>";
 				}
 
 				if ( isset( $table['pricePrefix'] ) ) {
 					$this->set_attribute( "price-prefix-$index", 'class', 'pricing-table-price-prefix' );
 
-					echo "<span {$this->render_attributes( "price-prefix-$index" )}>{$table['pricePrefix']}</span>";
+					echo "<span {$this->render_attributes( "price-prefix-$index" )}>{$this->render_dynamic_data( $table['pricePrefix'] )}</span>";
 				}
 
 				if ( isset( $table['price'] ) ) {
 					$this->set_attribute( "price-$index", 'class', 'pricing-table-price' );
 
-					echo "<span {$this->render_attributes( "price-$index" )}>{$table['price']}</span>";
+					echo "<span {$this->render_attributes( "price-$index" )}>{$this->render_dynamic_data( $table['price'] )}</span>";
 				}
 
 				if ( isset( $table['priceSuffix'] ) ) {
 					$this->set_attribute( "price-suffix-$index", 'class', 'pricing-table-price-suffix' );
 
-					echo "<span {$this->render_attributes( "price-suffix-$index" )}>{$table['priceSuffix']}</span>";
+					echo "<span {$this->render_attributes( "price-suffix-$index" )}>{$this->render_dynamic_data( $table['priceSuffix'] )}</span>";
 				}
 
 				echo '</div>';
@@ -1069,7 +1068,7 @@ class Element_Pricing_Tables extends Element {
 				if ( isset( $table['priceMeta'] ) ) {
 					$this->set_attribute( "price-meta-$index", 'class', 'pricing-table-price-meta' );
 
-					echo "<span {$this->render_attributes( "price-meta-$index" )}>{$table['priceMeta']}</span>";
+					echo "<span {$this->render_attributes( "price-meta-$index" )}>{$this->render_dynamic_data( $table['priceMeta'] )}</span>";
 				}
 
 				echo '</div>';
@@ -1078,7 +1077,7 @@ class Element_Pricing_Tables extends Element {
 			// Features
 			if ( ! empty( $table['features'] ) ) {
 				echo '<ul class="pricing-table-features">';
-					$features               = explode( "\n", $table['features'] );
+					$features               = Helpers::parse_textarea_options( $table['features'] );
 					$features_icon          = isset( $table['featuresIcon'] ) ? self::render_icon( $table['featuresIcon'] ) : false;
 					$features_icon_position = isset( $table['featuresIconPosition'] ) ? $table['featuresIconPosition'] : 'left';
 
@@ -1126,21 +1125,17 @@ class Element_Pricing_Tables extends Element {
 						$this->set_link_attributes( "button-$index", $table['buttonLink'] );
 					}
 
-					if ( isset( $table['buttonWidth'] ) ) {
-						$button_classes[] = "bricks-col-{$table['buttonWidth']}";
-					}
-
 					$this->set_attribute( "button-$index", 'class', $button_classes );
 
 					echo '<div class="pricing-table-button-text">';
-					echo "<a {$this->render_attributes( "button-$index" )}>{$table['buttonText']}</a>";
+					echo "<a {$this->render_attributes( "button-$index" )}>{$this->render_dynamic_data( $table['buttonText'] )}</a>";
 					echo '</div>';
 				}
 
 				if ( isset( $table['additionalInfo'] ) && ! empty( $table['additionalInfo'] ) ) {
 					$this->set_attribute( "additional-info-$index", 'class', [ 'pricing-table-additional-info' ] );
 
-					echo "<div {$this->render_attributes( "additional-info-$index" )}>{$table['additionalInfo']}</div>";
+					echo "<div {$this->render_attributes( "additional-info-$index" )}>{$this->render_dynamic_data( $table['additionalInfo'] )}</div>";
 				}
 
 				echo '</div>';

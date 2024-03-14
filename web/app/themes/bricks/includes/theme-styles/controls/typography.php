@@ -12,7 +12,7 @@ $controls['typographyHtml'] = [
 		],
 	],
 	'placeholder' => '62.5%',
-	'info'        => '62.5% html font-size: 1rem = 10px; 100% html font-size: 1rem = 16px',
+	'info'        => "62.5% html font-size: 1rem = 10px\n100% html font-size: 1rem = 16px",
 ];
 
 $controls['typographyBody'] = [
@@ -36,27 +36,7 @@ $controls['typographyHeadings'] = [
 	'css'   => [
 		[
 			'property' => 'font',
-			'selector' => 'h1',
-		],
-		[
-			'property' => 'font',
-			'selector' => 'h2',
-		],
-		[
-			'property' => 'font',
-			'selector' => 'h3',
-		],
-		[
-			'property' => 'font',
-			'selector' => 'h4',
-		],
-		[
-			'property' => 'font',
-			'selector' => 'h5',
-		],
-		[
-			'property' => 'font',
-			'selector' => 'h6',
+			'selector' => 'h1, h2, h3, h4, h5, h6',
 		],
 	],
 ];
@@ -81,7 +61,7 @@ $controls['typographyHeadingH1'] = [
 
 $controls['h1Margin'] = [
 	'label'       => esc_html__( 'Margin', 'bricks' ),
-	'type'        => 'dimensions',
+	'type'        => 'spacing',
 	'css'         => [
 		[
 			'property' => 'margin',
@@ -116,7 +96,7 @@ $controls['typographyHeadingH2'] = [
 
 $controls['h2Margin'] = [
 	'label'       => esc_html__( 'Margin', 'bricks' ),
-	'type'        => 'dimensions',
+	'type'        => 'spacing',
 	'css'         => [
 		[
 			'property' => 'margin',
@@ -151,7 +131,7 @@ $controls['typographyHeadingH3'] = [
 
 $controls['h3Margin'] = [
 	'label'       => esc_html__( 'Margin', 'bricks' ),
-	'type'        => 'dimensions',
+	'type'        => 'spacing',
 	'css'         => [
 		[
 			'property' => 'margin',
@@ -186,7 +166,7 @@ $controls['typographyHeadingH4'] = [
 
 $controls['h4Margin'] = [
 	'label'       => esc_html__( 'Margin', 'bricks' ),
-	'type'        => 'dimensions',
+	'type'        => 'spacing',
 	'css'         => [
 		[
 			'property' => 'margin',
@@ -221,7 +201,7 @@ $controls['typographyHeadingH5'] = [
 
 $controls['h5Margin'] = [
 	'label'       => esc_html__( 'Margin', 'bricks' ),
-	'type'        => 'dimensions',
+	'type'        => 'spacing',
 	'css'         => [
 		[
 			'property' => 'margin',
@@ -256,7 +236,7 @@ $controls['typographyHeadingH6'] = [
 
 $controls['h6Margin'] = [
 	'label'       => esc_html__( 'Margin', 'bricks' ),
-	'type'        => 'dimensions',
+	'type'        => 'spacing',
 	'css'         => [
 		[
 			'property' => 'margin',
@@ -287,7 +267,6 @@ $controls['typographyHero'] = [
 			'selector' => '.bricks-type-hero',
 		]
 	],
-	'info'  => esc_html__( 'Available for heading and text element.', 'bricks' ),
 ];
 
 $controls['typographyLead'] = [
@@ -299,7 +278,6 @@ $controls['typographyLead'] = [
 			'selector' => '.bricks-type-lead',
 		],
 	],
-	'info'  => esc_html__( 'Available for heading and text element.', 'bricks' ),
 ];
 
 $controls['focusOutline'] = [
@@ -324,7 +302,7 @@ $controls['blockquoteSeparator'] = [
 ];
 
 $controls['blockquoteMargin'] = [
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'label' => esc_html__( 'Blockquote margin', 'bricks' ),
 	'css'   => [
 		[
@@ -335,7 +313,7 @@ $controls['blockquoteMargin'] = [
 ];
 
 $controls['blockquotePadding'] = [
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'label' => esc_html__( 'Blockquote padding', 'bricks' ),
 	'css'   => [
 		[

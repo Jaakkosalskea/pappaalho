@@ -12,6 +12,16 @@ class Element_Sidebar extends Element {
 		return esc_html__( 'Sidebar', 'bricks' );
 	}
 
+	/**
+	 * Load required WP styles on the frontend
+	 *
+	 * @since 1.8
+	 */
+	public function enqueue_scripts() {
+		wp_enqueue_style( 'wp-block-library' );
+		wp_enqueue_style( 'global-styles' );
+	}
+
 	public function set_controls() {
 		// NOTE: wp_registered_sidebars is empty. Use db option 'sidebars_widgets' instead
 		$sidebar_options = [];
@@ -44,7 +54,7 @@ class Element_Sidebar extends Element {
 		$this->controls['margin'] = [
 			'tab'         => 'content',
 			'label'       => esc_html__( 'Widget margin', 'bricks' ),
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'css'         => [
 				[
 					'property' => 'margin',

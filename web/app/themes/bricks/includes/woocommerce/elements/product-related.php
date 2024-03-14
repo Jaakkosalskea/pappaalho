@@ -98,13 +98,41 @@ class Product_Related extends Element {
 			'placeholder' => '30px',
 		];
 
+		// @since 1.5.7
+		$this->controls['textAlign'] = [
+			'label'   => esc_html__( 'Align', 'bricks' ),
+			'type'    => 'text-align',
+			'inline'  => true,
+			'exclude' => [ 'justify' ],
+			'css'     => [
+				[
+					'property' => 'text-align',
+					'selector' => '.product',
+				],
+			],
+		];
+
+		// @since 1.5.7
+		$this->controls['imageHeight'] = [
+			'tab'   => 'content',
+			'label' => esc_html__( 'Image height', 'bricks' ),
+			'type'  => 'number',
+			'units' => true,
+			'css'   => [
+				[
+					'property' => 'height',
+					'selector' => '.product img',
+				],
+			],
+		];
+
 		// BUTTON
 
 		$this->controls['buttonPadding'] = [
 			'tab'   => 'content',
 			'group' => 'button',
 			'label' => esc_html__( 'Padding', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'selector' => '.button',

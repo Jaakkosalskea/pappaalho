@@ -4,32 +4,38 @@ namespace Bricks;
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class Frontend {
-	/**
-	 * List of elements requested for rendering (format: ID => element)
-	 */
-	public static $elements = [];
-	public static $area     = 'content';
+	public static $area = 'content';
 
 	/**
-	 * PhotoSwipe script loaded: Add PhotoSwipe HTML to DOM (frontend only)
+	 * Elements requested for rendering
 	 *
-	 * @since 1.3.4
+	 * key: ID
+	 * value: element data
 	 */
-	public function add_photoswipe_html() {
-		if ( wp_script_is( 'bricks-photoswipe', 'enqueued' ) ) {
-			echo self::photoswipe_html();
-		}
-	}
+	public static $elements = [];
+
+	/**
+	 * Live search results selectors
+	 *
+	 * key: live search ID
+	 * value: live search results CSS selector
+	 *
+	 * @since 1.9.6
+	 */
+	public static $live_search_wrapper_selectors = [];
 
 	public function __construct() {
 		add_action( 'wp_head', [ $this, 'add_seo_meta_tags' ], 1 );
+
+		add_filter( 'document_title_parts', [ $this, 'set_seo_document_title' ] );
+
 		add_filter( 'wp_get_attachment_image_attributes', [ $this, 'set_image_attributes' ], 10, 3 );
 
 		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_inline_css' ], 11 );
+		add_action( 'wp_footer', [ $this, 'enqueue_footer_inline_css' ] );
 
 		add_action( 'bricks_after_site_wrapper', [ $this, 'one_page_navigation_wrapper' ] );
-		add_action( 'bricks_after_site_wrapper', [ $this, 'add_photoswipe_html' ] );
 
 		// Load custom header body script (for analytics) only on the frontend
 		add_action( 'wp_head', [ $this, 'add_header_scripts' ] );
@@ -43,6 +49,8 @@ class Frontend {
 		add_action( 'template_redirect', [ $this, 'template_redirect' ] );
 
 		add_action( 'bricks_body', [ $this, 'add_skip_link' ] );
+
+		add_action( 'bricks_body', [ $this, 'remove_wp_hooks' ] );
 
 		add_action( 'render_header', [ $this, 'render_header' ] );
 		add_action( 'render_footer', [ $this, 'render_footer' ] );
@@ -70,7 +78,7 @@ class Frontend {
 	}
 
 	/**
-	 * Add meta description, keywords and robots
+	 * Page settings: Add meta description, keywords and robots
 	 */
 	public function add_seo_meta_tags() {
 		// NOTE: Undocumented
@@ -107,11 +115,54 @@ class Frontend {
 			if ( $meta_key == 'metaRobots' ) {
 				$meta_value = join( ', ', $meta_value );
 			} else {
-				$meta_value = Integrations\Dynamic_Data\Providers::render_content( $meta_value, $post_id );
+				$meta_value = bricks_render_dynamic_data( $meta_value, $post_id );
 			}
 
 			echo '<meta name="' . $name . '" content="' . esc_attr( $meta_value ) . '">';
 		}
+	}
+
+	/**
+	 * Page settings: Set document title
+	 *
+	 * @param array $title
+	 *
+	 * @see https://developer.wordpress.org/reference/hooks/document_title_parts/
+	 *
+	 * @since 1.6.1
+	 */
+	public function set_seo_document_title( $title ) {
+		// NOTE: Undocumented
+		$disable_seo = apply_filters( 'bricks/frontend/disable_seo', ! empty( Database::$global_settings['disableSeo'] ) );
+
+		if ( $disable_seo ) {
+			return $title;
+		}
+
+		$template_id = Database::$active_templates['content'];
+
+		$template_settings = get_post_meta( $template_id, BRICKS_DB_PAGE_SETTINGS, true );
+
+		$post_id = is_home() ? get_option( 'page_for_posts' ) : get_the_ID();
+
+		if ( $template_id !== $post_id ) {
+			$page_settings = get_post_meta( $post_id, BRICKS_DB_PAGE_SETTINGS, true );
+		}
+
+		// Page settings preceeds Template settings
+		$meta_value = ! empty( $page_settings['documentTitle'] ) ? $page_settings['documentTitle'] : ( ! empty( $template_settings['documentTitle'] ) ? $template_settings['documentTitle'] : false );
+
+		if ( empty( $meta_value ) ) {
+			return $title;
+		}
+
+		$meta_value = bricks_render_dynamic_data( $meta_value, $post_id );
+
+		if ( $meta_value ) {
+			$title['title'] = $meta_value;
+		}
+
+		return $title;
 	}
 
 	/**
@@ -146,7 +197,7 @@ class Frontend {
 		$og_tags = [
 			'sharingTitle',
 			'sharingDescription',
-			'sharingImage'
+			'sharingImage',
 		];
 
 		foreach ( $og_tags as $meta_key ) {
@@ -170,7 +221,7 @@ class Frontend {
 
 		// Title
 		if ( ! empty( $settings['sharingTitle'] ) ) {
-			$sharing_title = Integrations\Dynamic_Data\Providers::render_content( $settings['sharingTitle'], $post_id );
+			$sharing_title = bricks_render_dynamic_data( $settings['sharingTitle'], $post_id );
 		} else {
 			$sharing_title = get_the_title( $post_id );
 		}
@@ -179,7 +230,7 @@ class Frontend {
 
 		// Description
 		if ( ! empty( $settings['sharingDescription'] ) ) {
-			$sharing_description = Integrations\Dynamic_Data\Providers::render_content( $settings['sharingDescription'], $post_id );
+			$sharing_description = bricks_render_dynamic_data( $settings['sharingDescription'], $post_id );
 		} else {
 			$sharing_description = $post_id ? get_the_excerpt( $post_id ) : '';
 		}
@@ -243,10 +294,6 @@ class Frontend {
 		// Page settings scripts (@since 1.4)
 		$body_header_scripts .= Assets::get_page_settings_scripts( 'customScriptsBodyHeader' );
 
-		// if ( isset( Database::$page_settings['customScriptsBodyHeader'] ) && ! empty( Database::$page_settings['customScriptsBodyHeader'] ) ) {
-		// $body_header_scripts .= stripslashes_deep( Database::$page_settings['customScriptsBodyHeader'] ) . PHP_EOL;
-		// }
-
 		echo $body_header_scripts;
 	}
 
@@ -268,10 +315,6 @@ class Frontend {
 		// Page settings scripts (@since 1.4)
 		$body_footer_scripts .= Assets::get_page_settings_scripts( 'customScriptsBodyFooter' );
 
-		// if ( isset( Database::$page_settings['customScriptsBodyFooter'] ) && ! empty( Database::$page_settings['customScriptsBodyFooter'] ) ) {
-		// $body_footer_scripts .= stripslashes_deep( Database::$page_settings['customScriptsBodyFooter'] ) . PHP_EOL;
-		// }
-
 		echo $body_footer_scripts;
 	}
 
@@ -284,12 +327,31 @@ class Frontend {
 			wp_enqueue_style( 'bricks-admin', BRICKS_URL_ASSETS . 'css/admin.min.css', [], filemtime( BRICKS_PATH_ASSETS . 'css/admin.min.css' ) );
 		}
 
-		// No Bricks content, but WP content: Load default content styles (post header & content)
-		if ( ! Helpers::get_bricks_data( get_the_ID(), 'content' ) ) {
-			if ( is_search() || get_the_content() ) {
+		// No Bricks content: Load default post content styles (post header & content)
+		$bricks_data = Helpers::get_bricks_data( get_the_ID(), 'content' );
+		if ( ! $bricks_data ) {
+			if ( is_search() || get_the_content() || is_singular( 'post' ) ) {
 				wp_enqueue_style( 'bricks-default-content', BRICKS_URL_ASSETS . 'css/frontend/content-default.min.css', [], filemtime( BRICKS_PATH_ASSETS . 'css/frontend/content-default.min.css' ) );
 			}
 		}
+
+		// Remove .mejs from attachment page
+		if ( is_attachment() ) {
+			wp_deregister_script( 'wp-mediaelement' );
+			wp_deregister_style( 'wp-mediaelement' );
+		}
+
+		global $wp;
+
+		$base_url = home_url( $wp->request );
+
+		// Check if the URL contains a paging path (/page/X)
+		if ( preg_match( '/\/page\/\d+\/?$/', $base_url, $matches ) ) {
+			$paging_path = $matches[0];
+			$base_url    = str_replace( $paging_path, '', $base_url );
+		}
+
+		$base_url = trailingslashit( $base_url );
 
 		wp_localize_script(
 			'bricks-scripts',
@@ -300,50 +362,111 @@ class Frontend {
 				'ajaxUrl'                 => admin_url( 'admin-ajax.php' ),
 				'restApiUrl'              => Api::get_rest_api_url(),
 				'nonce'                   => wp_create_nonce( 'bricks-nonce' ),
+				'formNonce'               => wp_create_nonce( 'bricks-form-nonce' ),
 				'wpRestNonce'             => wp_create_nonce( 'wp_rest' ),
-				'postId'                  => get_the_ID(),
+				'postId'                  => Database::$page_data['preview_or_post_id'] ?? get_the_ID(),
 				'recaptchaIds'            => [],
 				'animatedTypingInstances' => [], // To destroy and then re-init TypedJS instances
 				'videoInstances'          => [], // To destroy and then re-init Plyr instances
 				'splideInstances'         => [], // Necessary to destroy and then reinit SplideJS instances
+				'tocbotInstances'         => [], // Necessary to destroy and then reinit Tocbot instances
 				'swiperInstances'         => [], // To destroy and then re-init SwiperJS instances
-				'infiniteScrollQueries'   => [], // To hold the query data for infinite scroll
+				'queryLoopInstances'      => [], // To hold the query data for infinite scroll + load more
+				'interactions'            => [], // Holds all the interactions
+				'filterInstances'         => [], // Holds all the filter instances (@since 1.9.6)
+				'isotopeInstances'        => [], // Holds all the isotope instances (@since 1.9.6)
 				'mapStyles'               => Setup::get_map_styles(),
 				'facebookAppId'           => isset( Database::$global_settings['facebookAppId'] ) ? Database::$global_settings['facebookAppId'] : false,
 				'headerPosition'          => Database::$header_position,
 				'offsetLazyLoad'          => ! empty( Database::$global_settings['offsetLazyLoad'] ) ? Database::$global_settings['offsetLazyLoad'] : 300,
+				'baseUrl'                 => $base_url, // @since 1.9.6
+				'useQueryFilter'          => Helpers::enabled_query_filters(), // @since 1.9.6
+				'pageFilters'             => Query_Filters::$page_filters, // @since 1.9.6
+				'facebookAppId'           => Database::$global_settings['facebookAppId'] ?? false,
+				'offsetLazyLoad'          => Database::$global_settings['offsetLazyLoad'] ?? 300,
+				'headerPosition'          => Database::$header_position,
 			]
 		);
 	}
 
+	/**
+	 * Enqueue inline CSS
+	 *
+	 * @since 1.8.2 using wp_footer instead of wp_enqueue_scripts to get all dynamic data styles & global classes
+	 */
 	public function enqueue_inline_css() {
 		// Dummy style to load after woocommerce.min.css
-		wp_register_style( 'bricks-frontend-inline', false );
+		wp_register_style( 'bricks-frontend-inline', false ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
 		wp_enqueue_style( 'bricks-frontend-inline' );
 
-		// CSS loading method: Inline (default)
+		// Bricks settings: Smooth scroll (CSS) (@since 1.7.1)
+		if ( Database::get_setting( 'smoothScroll' ) ) {
+			wp_add_inline_style( 'bricks-frontend-inline', 'html {scroll-behavior: smooth}' );
+		}
+
+		// Bricks settings: AJAX Hide View Cart Button (@since 1.9)
+		if ( WooCommerce::is_woocommerce_active() && Database::get_setting( 'woocommerceAjaxHideViewCart' ) ) {
+			wp_add_inline_style( 'bricks-frontend-inline', '.added_to_cart.wc-forward {display: none}' );
+		}
+
+		// CSS loading method: Inline styles (= default)
 		if ( Database::get_setting( 'cssLoading' ) !== 'file' ) {
 			wp_add_inline_style( 'bricks-frontend-inline', Assets::generate_inline_css() );
 		}
 
-		// // CSS loading method: External files
+		// CSS loading method: External files
 		else {
 			// Global classes need to be loaded inline
 			wp_add_inline_style( 'bricks-frontend-inline', Assets::$inline_css['global_classes'] );
+		}
+
+		// Clear global classes inline CSS to avoid adding duplicate classes in enqueue_footer_inline_css function below
+		Assets::$inline_css['global_classes'] = '';
+	}
+
+	/**
+	 * Enqueue inline CSS in wp_footer: Global classes (Template element) & dynamic data
+	 *
+	 * @since 1.8.2
+	 */
+	public function enqueue_footer_inline_css() {
+		/**
+		 * Add global classes in wp_footer
+		 *
+		 * Clear in enqueue_inline_css function above to avoid adding duplicate classes.
+		 *
+		 * Generated in Template element and therefore not available in enqueue_inline_css function above.
+		 *
+		 * @since 1.8.2
+		 */
+		$global_classes = Assets::$inline_css['global_classes'];
+
+		if ( $global_classes ) {
+			wp_register_style( 'bricks-global-classes-inline', false ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+			wp_enqueue_style( 'bricks-global-classes-inline' );
+			wp_add_inline_style( 'bricks-global-classes-inline', $global_classes );
+		}
+
+		// Get dynamic data CSS (for AJAX pagination only @since 1.8.2)
+		$inline_css_dynamic_data = Assets::$inline_css_dynamic_data;
+
+		if ( $inline_css_dynamic_data ) {
+			// Replace for AJAX pagination (see frontend.js #bricks-dynamic-data)
+			wp_register_style( 'bricks-dynamic-data', false ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+			wp_enqueue_style( 'bricks-dynamic-data' );
+			wp_add_inline_style( 'bricks-dynamic-data', $inline_css_dynamic_data );
 		}
 	}
 
 	/**
 	 * Get element content wrapper
-	 *
-	 * @param array $content_fields Element content wrapper for carousel, posts.
 	 */
 	public static function get_content_wrapper( $settings, $fields, $post ) {
 		$output = '';
 
 		foreach ( $fields as $index => $field ) {
 			if ( ! empty( $field['dynamicData'] ) ) {
-				$content = Integrations\Dynamic_Data\Providers::render_content( $field['dynamicData'], $post->ID );
+				$content = bricks_render_dynamic_data( $field['dynamicData'], $post->ID );
 
 				$content = do_shortcode( $content );
 
@@ -367,17 +490,23 @@ class Frontend {
 	 * @param array $element
 	 */
 	public static function render_element( $element ) {
+		$element_name = ! empty( $element['name'] ) ? $element['name'] : false;
+
+		if ( ! $element_name ) {
+			return;
+		}
+
 		$output = '';
 
-		// Check: Get global element settings
-		$global_settings = Helpers::get_global_element_settings( $element );
+		// Check: Get global element settings (skip if AJAX call is coming from builder via 'global_settings_checked')
+		$global_settings = ! isset( $element['global_settings_checked'] ) ? Helpers::get_global_element( $element, 'settings' ) : false;
 
 		if ( is_array( $global_settings ) ) {
 			$element['settings'] = $global_settings;
 		}
 
 		// Init element class (e.g.: new Bricks\Element_Alert( $element ))
-		$element_class_name = isset( Elements::$elements[ $element['name'] ]['class'] ) ? Elements::$elements[ $element['name'] ]['class'] : $element['name'];
+		$element_class_name = isset( Elements::$elements[ $element_name ]['class'] ) ? Elements::$elements[ $element_name ]['class'] : $element_name;
 
 		if ( class_exists( $element_class_name ) ) {
 			$element['themeStyleSettings'] = Theme_Styles::$active_settings;
@@ -400,12 +529,25 @@ class Frontend {
 	/**
 	 * Render element 'children' (= nestable element)
 	 *
-	 * @param array $element
+	 * @param array $element_instance Instance of the element.
 	 *
 	 * @since 1.5
 	 */
 	public static function render_children( $element_instance ) {
-		$element  = $element_instance->element;
+		$element = $element_instance->element;
+
+		/**
+		 * BUILDER: Replace children placeholder node with Vue components (in BricksElementPHP.vue)
+		 *
+		 * If not static builder area && not frontend && not a loop ghost node (loop index: 1, 2, 3, etc.)
+		 *
+		 * @since 1.7.1
+		 */
+		if ( ! isset( $element['staticArea'] ) && ! $element_instance->is_frontend && ! Query::get_loop_index() ) {
+			return '<div class="brx-nestable-children-placeholder"></div>';
+		}
+
+		// FRONTEND: Return children HTML
 		$children = ! empty( $element['children'] ) && is_array( $element['children'] ) ? $element['children'] : [];
 		$output   = '';
 
@@ -417,21 +559,14 @@ class Frontend {
 			}
 		}
 
-		// FRONTEND: Return children HTML
-		if ( $element_instance->is_frontend ) {
-			return $output;
-		}
-
-		// BUILDER: Replace children placeholder node with Vue components (in BricksElementPHP.vue)
-		return '<div class="brx-nestable-children-placeholder"></div>';
+		return $output;
 	}
 
 	/**
 	 * Return rendered elements (header/content/footer)
 	 *
-	 * @param array   $elements. Array of Bricks elements.
-	 * @param integer $post_id.  Current post ID. @deprecated 1.5
-	 * @param string  $area      header/content/footer.
+	 * @param array  $elements Array of Bricks elements.
+	 * @param string $area     header/content/footer.
 	 *
 	 * @since 1.2
 	 */
@@ -444,17 +579,36 @@ class Frontend {
 			return;
 		}
 
+		// NOTE: Undocumented. Useful to remove plugin actions/filters (@since 1.5.4)
+		do_action( 'bricks/frontend/before_render_data', $elements, $area );
+
 		self::$elements = [];
 		self::$area     = $area;
 
 		// Prepare flat list of elements for recursive calls
 		foreach ( $elements as $element ) {
-			self::$elements[ $element['id'] ] = $element;
+			if ( isset( $element['id'] ) ) {
+				self::$elements[ $element['id'] ] = $element;
+
+				/**
+				 * Store live search results selectors
+				 *
+				 * To set element root data attribute 'data-brx-ls-wrapper' to hide live search wrapper on page load (@see container.php:902)
+				 *
+				 * @since 1.9.6
+				 */
+				if (
+					Helpers::enabled_query_filters() &&
+					! empty( $element['settings']['query']['is_live_search'] ) &&
+					! empty( $element['settings']['query']['is_live_search_wrapper_selector'] )
+				) {
+					self::$live_search_wrapper_selectors[ $element['id'] ] = $element['settings']['query']['is_live_search_wrapper_selector'];
+				}
+			}
 		}
 
+		// Generate elements HTML
 		$content = '';
-
-		$element_index = 0;
 
 		foreach ( $elements as $element ) {
 			if ( ! empty( $element['parent'] ) ) {
@@ -462,17 +616,31 @@ class Frontend {
 			}
 
 			$content .= self::render_element( $element );
-
-			$element_index++;
 		}
 
-		// We need to check here for the looping in case we are looping a template element
-		$post_id = Query::is_looping() && Query::get_query_object_type() == 'post' ? get_the_ID() : Database::$page_data['preview_or_post_id'];
+		// NOTE: Undocumented. Useful to re-add plugin actions/filters (@since 1.5.4)
+		do_action( 'bricks/frontend/after_render_data', $elements, $area );
+
+		/**
+		 * Check: Are we looping a template element
+		 *
+		 * @since 1.7: Use Query::get_loop_object_type() if check for a looping post, so user custom queries are also supported (@see #862j64bkn)
+		 */
+		$looping_query_id = Query::is_any_looping();
+		$loop_object_type = Query::get_loop_object_type( $looping_query_id );
+
+		$post_id = $loop_object_type === 'post' ? get_the_ID() : Database::$page_data['preview_or_post_id'];
 
 		$post = get_post( $post_id );
 
-		// NOTE: Undocumented. Filter Bricks content.
-		$content = apply_filters( 'bricks/frontend/render_data', $content, $post );
+		/**
+		 * Filter Bricks content (incl. parsing of dynamic data)
+		 *
+		 * NOTE: Undocumented
+		 *
+		 * @since 1.5.4 ($area argument)
+		 */
+		$content = apply_filters( 'bricks/frontend/render_data', $content, $post, $area );
 
 		self::$elements = [];
 
@@ -499,10 +667,15 @@ class Frontend {
 	 *
 	 * @return array
 	 */
-	function set_image_attributes( $attr, $attachment, $size ) {
-		// Disable lazy load for in-builder AJAX or REST API calls (ensures assets are always rendered properly)
+	public function set_image_attributes( $attr, $attachment, $size ) {
+		// Disable lazy load for AJAX (builder & frontend) or REST API calls (builder) to ensure assets are always rendered properly
 		// REST_REQUEST constant discussion: https://github.com/WP-API/WP-API/issues/926
-		if ( bricks_is_builder_call() ) {
+		if ( bricks_is_ajax_call() || bricks_is_rest_call() ) {
+			return $attr;
+		}
+
+		// Disable lazy load inside TranslatePress iframe (@since 1.6)
+		if ( function_exists( 'trp_is_translation_editor' ) && trp_is_translation_editor( 'preview' ) ) {
 			return $attr;
 		}
 
@@ -514,7 +687,12 @@ class Frontend {
 		}
 
 		// Check: Lazy load disabled
-		if ( isset( Database::$global_settings['disableLazyLoad'] ) ) {
+		if ( isset( Database::$global_settings['disableLazyLoad'] ) || isset( Database::$page_settings['disableLazyLoad'] ) ) {
+			return $attr;
+		}
+
+		// Return: To disable lazy loading for all images with attribute loading="eager" (@since 1.6)
+		if ( isset( $attr['loading'] ) && $attr['loading'] === 'eager' ) {
 			return $attr;
 		}
 
@@ -534,9 +712,15 @@ class Frontend {
 		}
 
 		// Set SVG placeholder to preserve image aspect ratio to prevent browser content reflow when lazy loading the image
-		// Don't encode spaces and HTML tags (</>) to save a few more byte
-		// NOTE: Produces "space is not allowed" validator error (but seems like to only viable solution)
-		$attr['src'] = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . $image_width . ' ' . $image_height . '"%3E%3C/svg%3E';
+		// Encode spaces and use singlequotes instead of double quotes to avoid W3 "space" validator error (@since 1.5.1)
+		$attr['src'] = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20$image_width%20$image_height'%3E%3C/svg%3E";
+
+		// Add data-sizes attribute for lazy load to avoid "sizes" W3 validator error (@since 1.5.1)
+		if ( isset( $attr['sizes'] ) ) {
+			$attr['data-sizes'] = $attr['sizes'];
+			$attr['sizes']      = '';
+			unset( $attr['sizes'] );
+		}
 
 		if ( isset( $attr['srcset'] ) ) {
 			$attr['data-srcset'] = $attr['srcset'];
@@ -554,10 +738,14 @@ class Frontend {
 	 *
 	 * Overwrite via 'publicTemplates' setting
 	 *
-	 * @since 1.0
+	 * @since 1.9.4: Exclude redirect if maintenance mode activated (to prevent endless redirect)
 	 */
 	public function template_redirect() {
-		if ( is_singular( BRICKS_DB_TEMPLATE_SLUG ) && ! Capabilities::current_user_can_use_builder() && ! isset( Database::$global_settings['publicTemplates'] ) ) {
+		if (
+			is_singular( BRICKS_DB_TEMPLATE_SLUG ) &&
+			! Capabilities::current_user_can_use_builder() &&
+			! isset( Database::$global_settings['publicTemplates'] ) &&
+			! Maintenance::get_mode() ) {
 			wp_safe_redirect( site_url(), 301 );
 			die;
 		}
@@ -579,49 +767,15 @@ class Frontend {
 	}
 
 	/**
-	 * Add Photoswipe lightbox HTML before closing body tag
+	 * Remove WP hooks on frontend
+	 *
+	 * @since 1.5.5
 	 */
-	public static function photoswipe_html() {
-		ob_start();
-		?>
-		<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
-		<div class="pswp__bg"></div>
-		<div class="pswp__scroll-wrap">
-			<div class="pswp__container">
-				<div class="pswp__item"></div>
-				<div class="pswp__item"></div>
-				<div class="pswp__item"></div>
-			</div>
-			<div class="pswp__ui pswp__ui--hidden">
-				<div class="pswp__top-bar">
-					<div class="pswp__counter"></div>
-					<button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
-					<button class="pswp__button pswp__button--share" title="Share"></button>
-					<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
-					<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
-					<div class="pswp__preloader">
-						<div class="pswp__preloader__icn">
-							<div class="pswp__preloader__cut">
-								<div class="pswp__preloader__donut"></div>
-							</div>
-						</div>
-					</div>
-				</div>
-				<div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
-					<div class="pswp__share-tooltip"></div>
-				</div>
-				<button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)"></button>
-				<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button>
-				<div class="pswp__caption">
-					<div class="pswp__caption__center"></div>
-				</div>
-			</div>
-		</div>
-		</div>
-		<?php
-		$html = ob_get_clean();
-
-		return trim( apply_filters( 'bricks/photoswipe_html', $html ) );
+	public function remove_wp_hooks() {
+		if ( is_attachment() && ! empty( Database::$active_templates['content'] ) ) {
+			// Post type 'attachment' template: This filter prepends/adds the attachment to all Bricks elements that use the_content (@since 1.5.5)
+			remove_filter( 'the_content', 'prepend_attachment' );
+		}
 	}
 
 	/**
@@ -632,11 +786,6 @@ class Frontend {
 	 * @since 1.3.2
 	 */
 	public function render_header() {
-		// Check: Header disabled
-		if ( isset( Database::$page_settings['headerDisabled'] ) ) {
-			return;
-		}
-
 		$header_data = Database::get_template_data( 'header' );
 
 		// Return: No header data exists
@@ -665,7 +814,7 @@ class Frontend {
 		}
 
 		if ( ! empty( $settings['headerStickySlideUpAfter'] ) ) {
-			$attributes['data-slide-up-after'] = $settings['headerStickySlideUpAfter'];
+			$attributes['data-slide-up-after'] = intval( $settings['headerStickySlideUpAfter'] );
 		}
 
 		// https://academy.bricksbuilder.io/article/filter-bricks-header-attributes/ (@since 1.5)
@@ -690,19 +839,26 @@ class Frontend {
 	 */
 	public static function render_content( $bricks_data = [], $attributes = [], $html_after_begin = '', $html_before_end = '', $tag = 'main' ) {
 		// Merge custom attributes with default attributes ('id')
-		$attributes = array_merge(
-			[
-				'id' => 'brx-content',
-			],
-			$attributes
-		);
+		if ( is_array( $attributes ) ) {
+			$attributes = array_merge( [ 'id' => 'brx-content' ], $attributes );
+		}
+
+		// Return: Popup template preview
+		if ( Templates::get_template_type() === 'popup' ) {
+			return;
+		}
 
 		// https://academy.bricksbuilder.io/article/filter-bricks-content-attributes/ (@since 1.5)
 		$attributes = apply_filters( 'bricks/content/attributes', $attributes );
 
 		$attributes = Helpers::stringify_html_attributes( $attributes );
 
-		echo "<{$tag} {$attributes}>";
+		if ( $tag ) {
+			echo "<{$tag} {$attributes}>";
+		}
+
+		// https://academy.bricksbuilder.io/article/filter-bricks-content-html_after_begin/
+		$html_after_begin = apply_filters( 'bricks/content/html_after_begin', $html_after_begin, $bricks_data, $attributes, $tag );
 
 		if ( $html_after_begin ) {
 			echo $html_after_begin;
@@ -712,11 +868,16 @@ class Frontend {
 			echo self::render_data( $bricks_data );
 		}
 
+		// https://academy.bricksbuilder.io/article/filter-bricks-content-html_before_end/
+		$html_before_end = apply_filters( 'bricks/content/html_before_end', $html_before_end, $bricks_data, $attributes, $tag );
+
 		if ( $html_before_end ) {
 			echo $html_before_end;
 		}
 
-		echo "</{$tag}>";
+		if ( $tag ) {
+			echo "</{$tag}>";
+		}
 	}
 
 	/**

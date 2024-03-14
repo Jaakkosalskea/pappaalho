@@ -212,7 +212,7 @@ class Element_Team_Members extends Element {
 		$this->controls['imageWidth'] = [
 			'tab'   => 'content',
 			'group' => 'image',
-			'label' => esc_html__( 'Image width', 'bricks' ),
+			'label' => esc_html__( 'Width', 'bricks' ),
 			'type'  => 'number',
 			'units' => true,
 			'css'   => [
@@ -227,7 +227,7 @@ class Element_Team_Members extends Element {
 			'tab'   => 'content',
 			'group' => 'image',
 			'label' => esc_html__( 'Margin', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'margin',
@@ -239,7 +239,7 @@ class Element_Team_Members extends Element {
 		$this->controls['imageBorder'] = [
 			'tab'   => 'content',
 			'group' => 'image',
-			'label' => esc_html__( 'Image border', 'bricks' ),
+			'label' => esc_html__( 'Border', 'bricks' ),
 			'type'  => 'border',
 			'css'   => [
 				[
@@ -255,7 +255,7 @@ class Element_Team_Members extends Element {
 			'tab'         => 'content',
 			'group'       => 'content',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'css'         => [
 				[
 					'property' => 'padding',
@@ -377,7 +377,6 @@ class Element_Team_Members extends Element {
 				$this->set_attribute( "image-{$index}", 'class', $team_member_image_classes );
 
 				if ( ! empty( $member['image']['useDynamicData'] ) ) {
-
 					$images = $this->render_dynamic_data_tag( $member['image']['useDynamicData'], 'image' );
 
 					$size = isset( $member['image']['size'] ) ? $member['image']['size'] : BRICKS_DEFAULT_IMAGE_SIZE;
@@ -398,20 +397,20 @@ class Element_Team_Members extends Element {
 
 			echo '<div class="content">';
 
-			if ( isset( $member['title'] ) ) {
+			if ( ! empty( $member['title'] ) ) {
 				$this->set_attribute( "title-$index", esc_attr( $title_tag ) );
 				$this->set_attribute( "title-$index", 'class', [ 'title' ] );
 
 				echo "<{$this->render_attributes( "title-$index" )}>{$member['title']}</{$title_tag}>";
 			}
 
-			if ( isset( $member['subtitle'] ) ) {
+			if ( ! empty( $member['subtitle'] ) ) {
 				$this->set_attribute( "subtitle-$index", 'class', [ 'subtitle' ] );
 
 				echo "<div {$this->render_attributes( "subtitle-$index" )}>{$member['subtitle']}</div>";
 			}
 
-			if ( isset( $member['description'] ) ) {
+			if ( ! empty( $member['description'] ) ) {
 				$this->set_attribute( "description-$index", 'class', [ 'description' ] );
 
 				echo "<div {$this->render_attributes( "description-$index" )}>{$member['description']}</div>";

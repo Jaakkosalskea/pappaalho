@@ -7,11 +7,11 @@ class Woocommerce_Helpers {
 	/**
 	 * Product query controls (products, related products, upsells)
 	 *
-	 * @param array $args Arguments to merge (e.g. control 'group', etc.)
+	 * @param array $args Arguments to merge (e.g. control 'group').
 	 */
 	public static function get_product_query_controls( $args = false ) {
 		$query_controls = [
-			'posts_per_page' => [
+			'posts_per_page'        => [
 				'tab'   => 'content',
 				'label' => esc_html__( 'Products per page', 'bricks' ),
 				'type'  => 'number',
@@ -19,7 +19,7 @@ class Woocommerce_Helpers {
 				'step'  => 1,
 			],
 
-			'orderby'        => [
+			'orderby'               => [
 				'tab'         => 'content',
 				'label'       => esc_html__( 'Order by', 'bricks' ),
 				'type'        => 'select',
@@ -38,7 +38,7 @@ class Woocommerce_Helpers {
 				'placeholder' => esc_html__( 'Date', 'bricks' ),
 			],
 
-			'order'          => [
+			'order'                 => [
 				'tab'         => 'content',
 				'label'       => esc_html__( 'Order', 'bricks' ),
 				'type'        => 'select',
@@ -50,7 +50,7 @@ class Woocommerce_Helpers {
 				'placeholder' => esc_html__( 'Descending', 'bricks' ),
 			],
 
-			'productType'    => [
+			'productType'           => [
 				'tab'         => 'content',
 				'label'       => esc_html__( 'Product type', 'bricks' ),
 				'type'        => 'select',
@@ -59,7 +59,7 @@ class Woocommerce_Helpers {
 				'placeholder' => esc_html__( 'Select product type', 'bricks' ),
 			],
 
-			'include'        => [
+			'include'               => [
 				'tab'         => 'content',
 				'label'       => esc_html__( 'Include', 'bricks' ),
 				'type'        => 'select',
@@ -72,7 +72,7 @@ class Woocommerce_Helpers {
 				'placeholder' => esc_html__( 'Select products', 'bricks' ),
 			],
 
-			'exclude'        => [
+			'exclude'               => [
 				'tab'         => 'content',
 				'label'       => esc_html__( 'Exclude', 'bricks' ),
 				'type'        => 'select',
@@ -85,7 +85,7 @@ class Woocommerce_Helpers {
 				'placeholder' => esc_html__( 'Select products', 'bricks' ),
 			],
 
-			'categories'     => [
+			'categories'            => [
 				'tab'      => 'content',
 				'label'    => esc_html__( 'Product categories', 'bricks' ),
 				'type'     => 'select',
@@ -93,7 +93,7 @@ class Woocommerce_Helpers {
 				'multiple' => true,
 			],
 
-			'tags'           => [
+			'tags'                  => [
 				'tab'      => 'content',
 				'label'    => esc_html__( 'Product tags', 'bricks' ),
 				'type'     => 'select',
@@ -101,22 +101,29 @@ class Woocommerce_Helpers {
 				'multiple' => true,
 			],
 
-			'onSale'         => [
+			'onSale'                => [
 				'tab'   => 'content',
 				'label' => esc_html__( 'On sale', 'bricks' ),
 				'type'  => 'checkbox',
 			],
 
-			'featured'       => [
+			'featured'              => [
 				'tab'   => 'content',
 				'label' => esc_html__( 'Featured', 'bricks' ),
 				'type'  => 'checkbox',
 			],
 
-			'hideOutOfStock' => [
+			'hideOutOfStock'        => [
 				'tab'   => 'content',
 				'label' => esc_html__( 'Hide out of stock', 'bricks' ),
 				'type'  => 'checkbox',
+			],
+
+			'is_archive_main_query' => [
+				'tab'    => 'content',
+				'label'  => esc_html__( 'Is main query', 'bricks' ),
+				'type'   => 'checkbox',
+				'inline' => true,
 			],
 		];
 
@@ -223,7 +230,7 @@ class Woocommerce_Helpers {
 		if ( is_a( $queried_object, 'WP_Term' ) ) {
 			$taxonomy = get_taxonomy( $queried_object->taxonomy );
 
-			return isset( $taxonomy->types ) && in_array( 'product', $taxonomy->types );
+			return isset( $taxonomy->object_type ) && in_array( 'product', $taxonomy->object_type );
 		}
 
 		return false;
@@ -420,6 +427,7 @@ class Woocommerce_Helpers {
 		if ( ! empty( $settings['include'] ) ) {
 			$product_args['post__in'] = $settings['include'];
 		}
+
 		// Query Loop (since 1.5)
 		elseif ( ! empty( $settings['post__in'] ) ) {
 			$product_args['post__in'] = $settings['post__in'];
@@ -429,15 +437,29 @@ class Woocommerce_Helpers {
 		if ( ! empty( $settings['exclude'] ) ) {
 			$product_args['post__not_in'] = $settings['exclude'];
 		}
+
 		// Query Loop (since 1.5)
 		elseif ( ! empty( $settings['post__not_in'] ) ) {
 			$product_args['post__not_in'] = $settings['post__not_in'];
+		}
+
+		// @since 1.8 - Consider exclude current post
+		if ( isset( $settings['exclude_current_post'] ) ) {
+			if ( is_single() || is_page() ) {
+				$product_args['post__not_in'][] = get_the_ID();
+			}
 		}
 
 		// Show only products on sale
 		if ( isset( $settings['onSale'] ) ) {
 			$post_in                  = isset( $product_args['post__in'] ) ? $product_args['post__in'] : [];
 			$product_args['post__in'] = array_merge( $post_in, wc_get_product_ids_on_sale() );
+
+			// Ensure no products are returned if no "on sale" products are published.
+			// Necessary as empty 'post__in' array returns all prodcts instead of no products (@since 1.6)
+			if ( ! count( $product_args['post__in'] ) ) {
+				$product_args['post__in'] = [ 999999 ];
+			}
 		}
 
 		// Show only products featured
@@ -546,11 +568,12 @@ class Woocommerce_Helpers {
 	 *
 	 * @since 1.5
 	 *
-	 * @param string $post_id
+	 * @param array $data
 	 * @return array|boolean
 	 */
-	public static function get_products_element( $post_id = 0, $data = [] ) {
-		$data = ! empty( $data ) ? $data : get_post_meta( $post_id, BRICKS_DB_PAGE_CONTENT, true );
+	public static function get_products_element( $data = [] ) {
+		// Get data from Database::$active_templates instead of $post_id (@since 1.9.5)
+		$data = ! empty( $data ) ? $data : Database::get_data( Database::$active_templates['content'], 'content' );
 
 		if ( empty( $data ) || ! is_array( $data ) ) {
 			return false;
@@ -559,7 +582,12 @@ class Woocommerce_Helpers {
 		foreach ( $data as $element ) {
 			if (
 				$element['name'] === 'woocommerce-products' ||
-				isset( $element['settings']['hasLoop'] ) && ! empty( $element['settings']['query']['post_type'] ) && in_array( 'product', $element['settings']['query']['post_type'] )
+				(
+					isset( $element['settings']['hasLoop'] ) &&
+					! empty( $element['settings']['query']['post_type'] ) &&
+					in_array( 'product', $element['settings']['query']['post_type'] ) &&
+					( empty( $element['settings']['query']['objectType'] ) || $element['settings']['query']['objectType'] == 'post' )
+				)
 			 ) {
 				return $element;
 			}
@@ -583,7 +611,7 @@ class Woocommerce_Helpers {
 			return $query;
 		}
 
-		$query_element = self::get_products_element( $post_id );
+		$query_element = self::get_products_element();
 
 		if ( ! $query_element ) {
 			return false;
@@ -596,11 +624,13 @@ class Woocommerce_Helpers {
 				'ignore_sticky_posts' => 1
 			];
 		}
-
 		// Query
 		$query_object = new Query( $query_element );
 
 		$query = $query_object->query_result;
+
+		// Infinite loop if query is empty result inside builder (@since 1.8.2) (#862k16hwz)
+		$query_object->destroy();
 
 		wp_cache_set( $cache_key, $query, 'bricks', MINUTE_IN_SECONDS );
 
@@ -658,6 +688,444 @@ class Woocommerce_Helpers {
 		if ( bricks_is_builder_call() && is_null( WC()->cart ) ) {
 			wc_load_cart();
 		}
+	}
+
+	/**
+	 * Add or remove actions in the repeated_wc_template_hooks
+	 *
+	 * Used in {do_action} which the action is inside the repeated_wc_template_hooks hooks
+	 * To avoid duplicate ouput which already exists in Bricks elements
+	 *
+	 * @since 1.7
+	 *
+	 * @param string $template required (ex: 'content-single-product', 'content-product').
+	 * @param string $action remove, add.
+	 * @param string $hook optional.
+	 *
+	 * @return void
+	 */
+	public static function execute_actions_in_wc_template( $template = '', $action = 'remove', $hook = '' ) {
+		if ( ! $template ) {
+			return;
+		}
+
+		$hooks = self::repeated_wc_template_hooks( $template );
+
+		// No supported hooks found
+		if ( ( empty( $hooks ) || ! is_array( $hooks ) ) && ! in_array( $hook, array_keys( $hooks ) ) ) {
+			return;
+		}
+
+		$do = $action === 'remove' ? 'remove_action' : 'add_action';
+
+		$target_hook = $hooks;
+
+		// Remove or add a specific action
+		if ( $hook != '' ) {
+			// Check if the hook exists
+			$target_hook = array_filter(
+				$hooks,
+				function( $key ) use ( $hook ) {
+					return $key === $hook;
+				},
+				ARRAY_FILTER_USE_KEY
+			);
+
+			if ( empty( $target_hook ) ) {
+				return;
+			}
+		}
+
+		// Remove or add the actions
+		foreach ( $target_hook as $hook_name => $hook_details ) {
+			$actions = $hook_details['actions'];
+
+			foreach ( $actions as $action ) {
+				$do( $hook_name, $action['callback'], $action['priority'] );
+			}
+		}
+	}
+
+	/**
+	 * All woo template hooks that might be causing duplicated ouput when using together with Bricks WooCommerce elements
+	 *
+	 * @see woocommerce/includes/wc-template-hooks.php
+	 *
+	 * @since 1.7
+	 *
+	 * @param string $template
+	 *
+	 * @return array
+	 */
+	public static function repeated_wc_template_hooks( $template = '' ) {
+		// @see woocommerce/templates/content-product.php
+		$hooks['content-product'] = [
+			'woocommerce_before_shop_loop_item'       => [
+				'label'   => esc_html( 'Before shop loop item', 'bricks' ),
+				'actions' => [
+					[
+						// Not needed
+						'callback' => 'woocommerce_template_loop_product_link_open',
+						'priority' => 10
+					],
+				],
+			],
+			'woocommerce_before_shop_loop_item_title' => [
+				'label'   => esc_html( 'Before shop loop item title', 'bricks' ),
+				'actions' => [
+					[
+						// Not needed, can set at Bricks settings
+						'callback' => 'woocommerce_show_product_loop_sale_flash',
+						'priority' => 10
+					],
+					[
+						// Should use {featured_image}
+						'callback' => 'woocommerce_template_loop_product_thumbnail',
+						'priority' => 10
+					],
+				],
+			],
+			'woocommerce_shop_loop_item_title'        => [
+				'label'   => esc_html( 'Shop loop item title', 'bricks' ),
+				'actions' => [
+					[
+						// Should use Product title element.
+						'callback' => 'woocommerce_template_loop_product_title',
+						'priority' => 10
+					],
+				],
+			],
+			'woocommerce_after_shop_loop_item_title'  => [
+				'label'   => esc_html( 'After shop loop item title', 'bricks' ),
+				'actions' => [
+					[
+						// Should use {woo_product_rating}
+						'callback' => 'woocommerce_template_loop_rating',
+						'priority' => 5
+					],
+					[
+						// Should use Product price element.
+						'callback' => 'woocommerce_template_loop_price',
+						'priority' => 10
+					],
+				],
+			],
+			'woocommerce_after_shop_loop_item'        => [
+				'label'   => esc_html( 'After shop loop item', 'bricks' ),
+				'actions' => [
+					[
+						// Not needed
+						'callback' => 'woocommerce_template_loop_product_link_close',
+						'priority' => 5
+					],
+					[
+						// Should use Add to cart element.
+						'callback' => 'woocommerce_template_loop_add_to_cart',
+						'priority' => 10
+					],
+				],
+			],
+		];
+
+		// @see woocommerce/templates/content-single-product.php
+		$hooks['content-single-product'] = [
+			'woocommerce_before_single_product'         => [
+				'label'   => esc_html( 'Before single product', 'bricks' ),
+				'actions' => [
+				// [
+				// Notices should be handled by the new WooCommerce notice element.
+				// 'callback' => 'woocommerce_output_all_notices',
+				// 'priority' => 10
+				// ],
+				],
+			],
+			'woocommerce_before_single_product_summary' => [
+				'label'   => esc_html( 'Before single product summary', 'bricks' ),
+				'actions' => [
+					[
+						// Not needed, can use {woo_product_on_sale}
+						'callback' => 'woocommerce_show_product_sale_flash',
+						'priority' => 10
+					],
+					[
+						// Should use Product gallery element, or {featured_image}
+						'callback' => 'woocommerce_show_product_images',
+						'priority' => 20
+					],
+				],
+			],
+			'woocommerce_single_product_summary'        => [
+				'label'   => esc_html( 'Single product summary', 'bricks' ),
+				'actions' => [
+					[
+						// Should use Product title element
+						'callback' => 'woocommerce_template_single_title',
+						'priority' => 5
+					],
+					[
+						// Should use Product rating element
+						'callback' => 'woocommerce_template_single_rating',
+						'priority' => 10
+					],
+					[
+						// Should use Product price element
+						'callback' => 'woocommerce_template_single_price',
+						'priority' => 10
+					],
+					[
+						// Should use Product short description element
+						'callback' => 'woocommerce_template_single_excerpt',
+						'priority' => 20
+					],
+					[
+						// Should use Add to cart element
+						'callback' => 'woocommerce_template_single_add_to_cart',
+						'priority' => 30
+					],
+					[
+						// Should use Product meta element
+						'callback' => 'woocommerce_template_single_meta',
+						'priority' => 40
+					],
+					[
+						// Can use {do_action:woocommerce_share} in anywhere
+						'callback' => 'woocommerce_template_single_sharing',
+						'priority' => 50
+					],
+				],
+			],
+			'woocommerce_after_single_product_summary'  => [
+				'label'   => esc_html( 'After single product summary', 'bricks' ),
+				'actions' => [
+					[
+						// Should use Products tabs element
+						'callback' => 'woocommerce_output_product_data_tabs',
+						'priority' => 10
+					],
+					[
+						// Should use Product up/cross-sells element
+						'callback' => 'woocommerce_upsell_display',
+						'priority' => 15
+					],
+					[
+						// Should use Related products element
+						'callback' => 'woocommerce_output_related_products',
+						'priority' => 20
+					],
+				],
+			],
+		];
+
+		// @see woocommerce/templates/archive-product.php
+		$hooks['archive-product'] = [
+			'woocommerce_before_main_content' => [
+				'label'   => esc_html( 'Before main content', 'bricks' ),
+				'actions' => [
+					[
+						// This will wrap the content, not necessary as user should design by layout elements
+						'callback' => 'woocommerce_output_content_wrapper',
+						'priority' => 10
+					],
+					[
+						// Should use Breadcumbs element
+						'callback' => 'woocommerce_breadcrumb',
+						'priority' => 20
+					],
+				],
+			],
+			'woocommerce_archive_description' => [
+				'label'   => esc_html( 'Archive description', 'bricks' ),
+				'actions' => [
+					[
+						// Should use Products archive description element
+						'callback' => 'woocommerce_taxonomy_archive_description',
+						'priority' => 10
+					],
+					[
+						// Should use Products archive description element
+						'callback' => 'woocommerce_product_archive_description',
+						'priority' => 10
+					],
+				],
+			],
+			'woocommerce_before_shop_loop'    => [
+				'label'   => esc_html( 'Before shop loop', 'bricks' ),
+				'actions' => [
+					// [
+					// Notices should be handled by the new WooCommerce notice element.
+					// 'callback' => 'woocommerce_output_all_notices',
+					// 'priority' => 10
+					// ],
+					[
+						// Should use Products total results element
+						'callback' => 'woocommerce_result_count',
+						'priority' => 20
+					],
+					[
+						// Should use Products orderby element
+						'callback' => 'woocommerce_catalog_ordering',
+						'priority' => 30
+					],
+				],
+			],
+			'woocommerce_after_shop_loop'     => [
+				'label'   => esc_html( 'After shop loop', 'bricks' ),
+				'actions' => [
+					[
+						// Should use Products pagination element
+						'callback' => 'woocommerce_pagination',
+						'priority' => 10
+					],
+				],
+			],
+			'woocommerce_after_main_content'  => [
+				'label'   => esc_html( 'After main content', 'bricks' ),
+				'actions' => [
+					[
+						// This will wrap the content, not necessary as user should design by layout elements
+						'callback' => 'woocommerce_output_content_wrapper_end',
+						'priority' => 10
+					],
+				],
+			],
+		];
+
+		// @see woocommerce/templates/cart/cart.php
+		$hooks['cart'] = [
+			'woocommerce_before_cart' => [
+				'label'   => esc_html( 'Before cart', 'bricks' ),
+				'actions' => [
+					// [
+					// Notices should be handled by the new WooCommerce notice element.
+					// 'callback' => 'woocommerce_output_all_notices',
+					// 'priority' => 10
+					// ],
+				],
+			],
+		];
+
+		// @see woocommerce/templates/cart/cart-empty.php
+		$hooks['cart-empty'] = [
+			'woocommerce_cart_is_empty' => [
+				'label'   => esc_html( 'Cart is empty', 'bricks' ),
+				'actions' => [
+					// [
+					// Notices should be handled by the new WooCommerce notice element.
+					// 'callback' => 'woocommerce_output_all_notices',
+					// 'priority' => 5
+					// ],
+					[
+						// Empty messages should be freely customized by the user with any element.
+						'callback' => 'wc_empty_cart_message',
+						'priority' => 10
+					],
+				],
+			],
+		];
+
+		if ( ! empty( $template ) ) {
+			return isset( $hooks[ $template ] ) ? $hooks[ $template ] : [];
+		}
+
+		return $hooks;
+	}
+
+	/**
+	 * Find the template hooks array by using the action name.
+	 *
+	 * @since 1.7
+	 *
+	 * @param string $action
+	 *
+	 * @return array
+	 */
+	public static function get_repeated_wc_template_hooks_by_action( $action = '' ) {
+		if ( empty( $action ) ) {
+			return [];
+		}
+
+		$repeated_hooks = self::repeated_wc_template_hooks();
+
+		$template = array_filter(
+			$repeated_hooks,
+			function ( $hooks ) use ( $action ) {
+				return in_array( $action, array_keys( $hooks ) );
+			}
+		);
+
+		return $template;
+	}
+
+	/**
+	 * Bricks helper function to render the product rating.
+	 * single-product/rating.php
+	 *
+	 * @param WC_Product $product Product instance.
+	 * @param array      $params  Keys: show_empty_stars, hide_reviews_link, $wrapper.
+	 * @param bool       $render  Render (echo) or return.
+	 *
+	 * @since 1.8
+	 */
+	public static function render_product_rating( $product = null, $params = [], $render = true ) {
+		if ( ! is_a( $product, 'WC_Product' ) || ! wc_review_ratings_enabled() ) {
+			return;
+		}
+
+		$show_empty_stars  = isset( $params['show_empty_stars'] ) ? $params['show_empty_stars'] : true;
+		$hide_reviews_link = isset( $params['hide_reviews_link'] ) ? $params['hide_reviews_link'] : true;
+		$wrapper           = isset( $params['wrapper'] ) ? $params['wrapper'] : true;
+
+		$rating_count = $product->get_rating_count();
+		$review_count = $product->get_review_count();
+		$average      = $product->get_average_rating();
+
+		$html = '';
+
+		if ( $rating_count > 0 || $show_empty_stars ) {
+			// Add filter to show empty star
+			if ( $show_empty_stars ) {
+				add_filter( 'woocommerce_product_get_rating_html', [ '\Bricks\Woocommerce_Helpers', 'show_empty_stars' ], 10, 3 );
+			}
+
+			// Populate rating html
+			$html .= $wrapper ? '<div class="woocommerce-product-rating">' : '';
+			$html .= wc_get_rating_html( $average, $rating_count );
+
+			// Populate review link
+			if ( comments_open() && ! $hide_reviews_link ) {
+				$html .= '<a href="#reviews" class="woocommerce-review-link" rel="nofollow">';
+				// translators: %s: review count
+				$html .= sprintf( _n( '%s customer review', '%s customer reviews', $review_count, 'woocommerce' ), '<span class="count">' . esc_html( $review_count ) . '</span>' );
+				$html .= '</a>';
+			}
+
+			$html .= $wrapper ? '</div>' : '';
+
+			// Remove filter
+			if ( $show_empty_stars ) {
+				remove_filter( 'woocommerce_product_get_rating_html', [ '\Bricks\Woocommerce_Helpers', 'show_empty_stars' ], 10, 3 );
+			}
+		}
+
+		// Render or return (for dynamic data tag {woo_product_rating})
+		if ( $render ) {
+			echo $html;
+		} else {
+			return $html;
+		}
+	}
+
+	/**
+	 * Hooked to woocommerce_product_get_rating_html
+	 *
+	 * @since 1.8
+	 */
+	public static function show_empty_stars( $html, $rating, $count ) {
+		// translators: %s: rating
+		$label = sprintf( __( 'Rated %s out of 5', 'woocommerce' ), $rating );
+		$html  = '<div class="star-rating" role="img" aria-label="' . esc_attr( $label ) . '">' . wc_get_star_rating_html( $rating, $count ) . '</div>';
+
+		return $html;
 	}
 
 }

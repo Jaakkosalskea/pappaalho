@@ -69,7 +69,6 @@ abstract class Element {
 		$this->is_frontend       = isset( $element['is_frontend'] ) ? $element['is_frontend'] : bricks_is_frontend();
 		$this->id                = ! empty( $element['id'] ) ? $element['id'] : Helpers::generate_random_id( false );
 		$this->settings          = ! empty( $element['settings'] ) ? $element['settings'] : [];
-		$this->tag               = $this->get_tag();
 		$this->nestable_item     = $this->get_nestable_item();
 		$this->nestable_children = $this->get_nestable_children();
 		$this->nestable_hide     = Capabilities::current_user_has_full_access() === false;
@@ -85,6 +84,8 @@ abstract class Element {
 		} elseif ( ! empty( Theme_Styles::$active_settings[ $this->name ] ) ) {
 			$this->theme_styles = Theme_Styles::$active_settings[ $this->name ];
 		}
+
+		$this->tag = $this->get_tag();
 	}
 
 	/**
@@ -120,6 +121,9 @@ abstract class Element {
 			$this->set_css_selector( $this->css_selector );
 		}
 
+		// NOTE: Undocumented @see: https://academy.bricksbuilder.io/article/filter-bricks-elements-element_name-scripts (@since 1.5.5)
+		$this->scripts = apply_filters( "bricks/elements/$this->name/scripts", $this->scripts );
+
 		// Frontend
 		$this->add_actions();
 		$this->add_filters();
@@ -151,7 +155,7 @@ abstract class Element {
 	 */
 	public function set_css_selector( $custom_css_selector ) {
 		foreach ( $this->controls as $key => $value ) {
-			if ( isset( $this->controls[ $key ]['css'] ) ) {
+			if ( isset( $this->controls[ $key ]['css'] ) && is_array( $this->controls[ $key ]['css'] ) ) {
 				foreach ( $this->controls[ $key ]['css'] as $index => $value ) {
 					if ( ! isset( $this->controls[ $key ]['css'][ $index ]['selector'] ) ) {
 						$this->controls[ $key ]['css'][ $index ]['selector'] = $custom_css_selector;
@@ -173,25 +177,41 @@ abstract class Element {
 	/**
 	 * Return element tag
 	 *
-	 * Default: $tag set in element class
-	 * Fallback: 'div'
+	 * Default: 'div'
+	 * Next:    $tag set in theme styles
+	 * Last:    $tag set in element settings
 	 *
 	 * Custom tag: Check element 'tag' and 'customTag' settings.
 	 *
 	 * @since 1.4
 	 */
 	public function get_tag() {
-		$settings = $this->settings;
-		$tag      = $this->tag ? $this->tag : 'div';
+		$tag = $this->tag ? $this->tag : 'div';
 
-		// Return element default tag (e.g. heading is 'h3'. Otherwise fallback to 'div')
-		if ( empty( $settings['tag'] ) ) {
-			return $tag;
+		// Get 'tag' from theme styles (@see element-heading.php)
+		if ( ! empty( $this->theme_styles['tag'] ) ) {
+			$tag = $this->theme_styles['tag'];
 		}
 
-		$tag = $settings['tag'];
+		$settings = $this->settings;
 
-		return $tag === 'custom' && ! empty( $settings['customTag'] ) ? $settings['customTag'] : $tag;
+		// Get 'tag' from element setting
+		if ( ! empty( $settings['tag'] ) ) {
+			if ( $settings['tag'] === 'custom' ) {
+				// Return custom tag
+				if ( ! empty( $settings['customTag'] ) ) {
+					return $settings['customTag'];
+				}
+			}
+
+			// Return settings tag
+			else {
+				return $settings['tag'];
+			}
+		}
+
+		// Return default element tag
+		return $tag;
 	}
 
 	/**
@@ -252,7 +272,7 @@ abstract class Element {
 		];
 
 		$this->control_groups['_css'] = [
-			'title' => esc_html__( 'CSS', 'bricks' ),
+			'title' => 'CSS',
 			'tab'   => 'style',
 		];
 
@@ -297,7 +317,7 @@ abstract class Element {
 			'tab'   => 'style',
 			'group' => '_layout',
 			'label' => esc_html__( 'Margin', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'margin',
@@ -310,7 +330,7 @@ abstract class Element {
 			'tab'   => 'style',
 			'group' => '_layout',
 			'label' => esc_html__( 'Padding', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'padding',
@@ -356,21 +376,22 @@ abstract class Element {
 		];
 
 		/**
-		 * max-width: 100% by default for all elements & containers to avoid horizontal scrollbar when setting width
+		 * Use max-width: 100% by default for all elements
+		 * Avoid horizontal scrollbar when setting 'width' instead of 'max-width'.
 		 */
 		$this->controls['_widthMax'] = [
-			'tab'         => 'style',
-			'group'       => '_layout',
-			'label'       => esc_html__( 'Max. width', 'bricks' ),
-			'type'        => 'number',
-			'units'       => true,
-			'css'         => [
+			'tab'   => 'style',
+			'group' => '_layout',
+			'label' => esc_html__( 'Max. width', 'bricks' ),
+			'type'  => 'number',
+			'units' => true,
+			'css'   => [
 				[
 					'property' => 'max-width',
 					'selector' => '',
 				],
 			],
-			'placeholder' => '100%',
+			// 'placeholder' => '100%', // Outcommented (@since 1.8.2)
 		];
 
 		$this->controls['_height'] = [
@@ -413,92 +434,22 @@ abstract class Element {
 			],
 		];
 
-		// Flex controls (for non-layout elements: no section, container, div)
-		if ( ! $this->is_layout_element() ) {
-			$this->controls['_flexSeparator'] = [
-				'tab'   => 'style',
-				'group' => '_layout',
-				'label' => esc_html__( 'Flex', 'bricks' ),
-				'type'  => 'separator',
-			];
-
-			$this->controls['_alignSelf'] = [
-				'tab'     => 'style',
-				'group'   => '_layout',
-				'label'   => esc_html__( 'Align', 'bricks' ),
-				'type'    => 'align-items',
-				'tooltip' => [
-					'content'  => 'align-self',
-					'position' => 'top-left',
+		// aspect-ratio control (@since 1.9)
+		$this->controls['_aspectRatio'] = [
+			'tab'         => 'style',
+			'group'       => '_layout',
+			'label'       => esc_html__( 'Aspect ratio', 'bricks' ),
+			'type'        => 'text',
+			'inline'      => true,
+			'small'       => true,
+			'dd'          => false,
+			'placeholder' => '',
+			'css'         => [
+				[
+					'property' => 'aspect-ratio',
 				],
-				'css'     => [
-					[
-						'selector' => '',
-						'property' => 'align-self',
-					],
-				],
-				'inline'  => true,
-			];
-
-			$this->controls['_flexGrow'] = [
-				'tab'         => 'style',
-				'group'       => '_layout',
-				'label'       => esc_html__( 'Flex grow', 'bricks' ),
-				'type'        => 'number',
-				'tooltip'     => [
-					'content'  => 'flex-grow',
-					'position' => 'top-left',
-				],
-				'css'         => [
-					[
-						'selector' => '',
-						'property' => 'flex-grow',
-					],
-				],
-				'min'         => 0,
-				'placeholder' => 0,
-			];
-
-			$this->controls['_flexShrink'] = [
-				'tab'         => 'style',
-				'group'       => '_layout',
-				'label'       => esc_html__( 'Flex shrink', 'bricks' ),
-				'type'        => 'number',
-				'tooltip'     => [
-					'content'  => 'flex-shrink',
-					'position' => 'top-left',
-				],
-				'css'         => [
-					[
-						'selector' => '',
-						'property' => 'flex-shrink',
-					],
-				],
-				'min'         => 0,
-				'placeholder' => 1,
-			];
-
-			$this->controls['_flexBasis'] = [
-				'tab'            => 'style',
-				'group'          => '_layout',
-				'label'          => esc_html__( 'Flex basis', 'bricks' ),
-				'type'           => 'text',
-				'tooltip'        => [
-					'content'  => 'flex-basis',
-					'position' => 'top-left',
-				],
-				'css'            => [
-					[
-						'selector' => '',
-						'property' => 'flex-basis',
-					],
-				],
-				'inline'         => true,
-				'small'          => true,
-				'placeholder'    => 'auto',
-				'hasDynamicData' => false,
-			];
-		}
+			],
+		];
 
 		// POSITIONING
 
@@ -510,24 +461,23 @@ abstract class Element {
 		];
 
 		$this->controls['_position'] = [
-			'tab'         => 'style',
-			'group'       => '_layout',
-			'label'       => esc_html__( 'Position', 'bricks' ),
-			'type'        => 'select',
-			'options'     => Setup::$control_options['position'],
-			'css'         => [
+			'tab'     => 'style',
+			'group'   => '_layout',
+			'label'   => esc_html__( 'Position', 'bricks' ),
+			'type'    => 'select',
+			'options' => Setup::$control_options['position'],
+			'css'     => [
 				[
 					'property' => 'position',
 					'selector' => '',
 				],
 			],
-			'inline'      => true,
-			'placeholder' => esc_html__( 'Relative', 'bricks' ),
+			'inline'  => true,
 		];
 
 		$this->controls['_positionInfo'] = [
 			'type'     => 'info',
-			'content'  => esc_html__( 'Set "Top" value make this element "sticky".', 'bricks' ),
+			'content'  => esc_html__( 'Set "Top" value to make this element "sticky".', 'bricks' ),
 			'tab'      => 'style',
 			'group'    => '_layout',
 			'required' => [ '_position', '=', 'sticky' ],
@@ -621,6 +571,55 @@ abstract class Element {
 			];
 		}
 
+		/**
+		 * Scroll snap
+		 *
+		 * https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Scroll_Snap
+		 *
+		 * @since 1.9.3
+		 */
+		if ( ! isset( Settings::$controls['page'] ) ) {
+			Settings::set_controls();
+		}
+
+		$page_settings         = Settings::$controls['page'] ?? [];
+		$page_setting_controls = $page_settings['controls'] ?? [];
+
+		// Use page settings to set scroll snap controls
+		foreach ( $page_setting_controls as $key => $value ) {
+			if ( strpos( $key, 'scrollSnap' ) === 0 && $key !== 'scrollSnapSelector' ) {
+				$key                             = "_$key";
+				$this->controls[ $key ]          = $value;
+				$this->controls[ $key ]['group'] = '_layout';
+
+				if ( $key === '_scrollSnapType' ) {
+					if ( ! empty( $this->controls[ $key ]['options'] ) ) {
+						$this->controls[ $key ]['options']['x mandatory'] = 'Mandatory (' . esc_html__( 'x-axis', 'bricks' ) . ')';
+						$this->controls[ $key ]['options']['x proximity'] = 'Proximity (' . esc_html__( 'x-axis', 'bricks' ) . ')';
+					}
+
+					$this->controls[ $key ]['css'] = [
+						[
+							'property' => 'scroll-snap-type',
+						]
+					];
+				}
+
+				if ( $key === '_scrollSnapAlign' && isset( $this->controls[ $key ]['placeholder'] ) ) {
+					unset( $this->controls[ $key ]['placeholder'] );
+				}
+
+				// Remove CSS 'selector' property
+				if ( isset( $this->controls[ $key ]['css'] ) ) {
+					foreach ( $this->controls[ $key ]['css'] as $index => $value ) {
+						if ( isset( $this->controls[ $key ]['css'][ $index ]['selector'] ) ) {
+							unset( $this->controls[ $key ]['css'][ $index ]['selector'] );
+						}
+					}
+				}
+			}
+		}
+
 		// Misc
 
 		$this->controls['_miscSeparator'] = [
@@ -632,27 +631,60 @@ abstract class Element {
 
 		if ( ! $this->is_layout_element() ) {
 			$this->controls['_display'] = [
-				'tab'         => 'style',
-				'group'       => '_layout',
-				'label'       => esc_html__( 'Display', 'bricks' ),
-				'type'        => 'select',
-				'options'     => [
+				'tab'       => 'style',
+				'group'     => '_layout',
+				'label'     => esc_html__( 'Display', 'bricks' ),
+				'type'      => 'select',
+				'options'   => [
+					'flex'         => 'flex',
+					'inline-flex'  => 'inline-flex',
 					'block'        => 'block',
 					'inline-block' => 'inline-block',
 					'inline'       => 'inline',
 					'none'         => 'none',
 				],
-				'inline'      => true,
-				'lowercase'   => true,
-				'css'         => [
+				'add'       => true,
+				'inline'    => true,
+				'lowercase' => true,
+				'css'       => [
 					[
 						'selector' => '',
 						'property' => 'display',
 					],
+					/**
+					 * Use 'required' property to add CSS rule if display is set to 'grid'
+					 *
+					 * @prev 1.7.2: Used .brx-grid class on nestable to set align-items to initial.
+					 *
+					 * @since 1.7.2
+					 */
+					[
+						'selector' => '',
+						'property' => 'align-items',
+						'value'    => 'initial',
+						'required' => 'grid',
+					],
 				],
-				'placeholder' => 'block',
 			];
 		}
+
+		$this->controls['_visibility'] = [
+			'tab'     => 'style',
+			'group'   => '_layout',
+			'label'   => esc_html__( 'Visibility', 'bricks' ),
+			'type'    => 'select',
+			'inline'  => true,
+			'options' => [
+				'visible'  => 'visible',
+				'hidden'   => 'hidden',
+				'collapse' => 'collapse',
+			],
+			'css'     => [
+				[
+					'property' => 'visibility',
+				]
+			],
+		];
 
 		$this->controls['_overflow'] = [
 			'tab'            => 'style',
@@ -677,14 +709,282 @@ abstract class Element {
 			'step'        => '.01',
 			'min'         => '0',
 			'max'         => '1',
+			'large'       => true,
+			'placeholder' => 1,
 			'css'         => [
 				[
 					'property' => 'opacity',
 				]
 			],
-			'small'       => false,
-			'placeholder' => 1,
 		];
+
+		$this->controls['_cursor'] = [
+			'tab'         => 'style',
+			'group'       => '_layout',
+			'label'       => esc_html__( 'Cursor', 'bricks' ),
+			'type'        => 'select',
+			'options'     => [
+				'generalGroupTitle'   => esc_html__( 'General', 'bricks' ),
+				'auto'                => 'auto',
+				'default'             => 'default',
+				'none'                => 'none',
+
+				'linkGroupTitle'      => esc_html__( 'Link & status', 'bricks' ),
+				'pointer'             => 'pointer',
+				'context-menu'        => 'context-menu',
+				'help'                => 'help',
+				'progress'            => 'progress',
+				'wait'                => 'wait',
+
+				'selectionGroupTitle' => esc_html__( 'Selection', 'bricks' ),
+				'cell'                => 'cell',
+				'crosshair'           => 'crosshair',
+				'text'                => 'text',
+				'vertical-text'       => 'vertical-text',
+
+				'dndGroupTitle'       => esc_html__( 'Drag & drop', 'bricks' ),
+				'alias'               => 'alias',
+				'copy'                => 'copy',
+				'move'                => 'move',
+				'no-drop'             => 'no-drop',
+				'not-allowed'         => 'not-allowed',
+				'grab'                => 'grab',
+				'grabbing'            => 'grabbing',
+
+				'zoomGroupTitle'      => esc_html__( 'Zoom', 'bricks' ),
+				'zoom-in'             => 'zoom-in',
+				'zoom-out'            => 'zoom-out',
+
+				'scrollGroupTitle'    => esc_html__( 'Resize', 'bricks' ),
+				'col-resize'          => 'col-resize',
+				'row-resize'          => 'row-resize',
+				'n-resize'            => 'n-resize',
+				'e-resize'            => 'e-resize',
+				's-resize'            => 's-resize',
+				'w-resize'            => 'w-resize',
+				'ne-resize'           => 'ne-resize',
+				'nw-resize'           => 'nw-resize',
+				'se-resize'           => 'se-resize',
+				'sw-resize'           => 'sw-resize',
+				'ew-resize'           => 'ew-resize',
+				'ns-resize'           => 'ns-resize',
+				'nesw-resize'         => 'nesw-resize',
+				'nwse-resize'         => 'nwse-resize',
+				'all-scroll'          => 'all-scroll',
+			],
+			'css'         => [
+				[
+					'selector' => '',
+					'property' => 'cursor',
+				]
+			],
+			'inline'      => true,
+			'placeholder' => 'auto',
+		];
+
+		// isolation select control (@since 1.9)
+		$this->controls['_isolation'] = [
+			'tab'     => 'style',
+			'group'   => '_layout',
+			'label'   => esc_html__( 'Isolation', 'bricks' ),
+			'type'    => 'select',
+			'inline'  => true,
+			'options' => [
+				'auto'    => 'auto',
+				'isolate' => 'isolate',
+			],
+			'css'     => [
+				[
+					'property' => 'isolation',
+				]
+			],
+		];
+
+		// mix-blend-mode control (@since 1.9)
+		$this->controls['_mixBlendMode'] = [
+			'tab'     => 'style',
+			'group'   => '_layout',
+			'label'   => 'Mix blend mode', // Don't localize
+			'type'    => 'select',
+			'inline'  => true,
+			'options' => Setup::$control_options['blendMode'],
+			'css'     => [
+				[
+					'property' => 'mix-blend-mode',
+				]
+			],
+		];
+
+		$this->controls['_pointerEvents'] = [
+			'tab'    => 'style',
+			'group'  => '_layout',
+			'label'  => 'Pointer events', // Don't localize
+			'type'   => 'text',
+			'inline' => true,
+			'dd'     => false,
+			'css'    => [
+				[
+					'property' => 'pointer-events',
+				]
+			],
+		];
+
+		// Flex controls (for non-layout elements: no section, container, div)
+		if ( ! $this->is_layout_element() ) {
+			$this->controls['_flexSeparator'] = [
+				'tab'   => 'style',
+				'group' => '_layout',
+				'label' => esc_html__( 'Flex', 'bricks' ),
+				'type'  => 'separator',
+			];
+
+			$this->controls['_flexDirection'] = [
+				'tab'      => 'style',
+				'group'    => '_layout',
+				'label'    => esc_html__( 'Direction', 'bricks' ),
+				'tooltip'  => [
+					'content'  => 'flex-direction',
+					'position' => 'top-left',
+				],
+				'type'     => 'direction',
+				'css'      => [
+					[
+						'selector' => '',
+						'property' => 'flex-direction',
+					],
+				],
+				'inline'   => true,
+				'rerender' => true,
+				'required' => [ '_display', '=', 'flex' ],
+			];
+
+			$this->controls['_alignSelf'] = [
+				'tab'     => 'style',
+				'group'   => '_layout',
+				'label'   => esc_html__( 'Align self', 'bricks' ),
+				'type'    => 'align-items',
+				'tooltip' => [
+					'content'  => 'align-self',
+					'position' => 'top-left',
+				],
+				'css'     => [
+					[
+						'selector' => '',
+						'property' => 'align-self',
+					],
+				],
+			];
+
+			$this->controls['_justifyContent'] = [
+				'tab'      => 'style',
+				'group'    => '_layout',
+				'label'    => esc_html__( 'Align main axis', 'bricks' ),
+				'tooltip'  => [
+					'content'  => 'justify-content',
+					'position' => 'top-left',
+				],
+				'type'     => 'justify-content',
+				'css'      => [
+					[
+						'selector' => '',
+						'property' => 'justify-content',
+					],
+				],
+				'required' => [ '_display', '=', [ 'flex', 'inline-flex' ] ],
+			];
+
+			$this->controls['_alignItems'] = [
+				'tab'      => 'style',
+				'group'    => '_layout',
+				'label'    => esc_html__( 'Align cross axis', 'bricks' ),
+				'tooltip'  => [
+					'content'  => 'align-items',
+					'position' => 'top-left',
+				],
+				'type'     => 'align-items',
+				'css'      => [
+					[
+						'selector' => '',
+						'property' => 'align-items',
+					],
+				],
+				'required' => [ '_display', '=', [ 'flex', 'inline-flex' ] ],
+			];
+
+			$this->controls['_gap'] = [
+				'tab'      => 'style',
+				'group'    => '_layout',
+				'label'    => esc_html__( 'Gap', 'bricks' ),
+				'type'     => 'number',
+				'units'    => true,
+				'css'      => [
+					[
+						'property' => 'gap',
+						'selector' => '',
+					],
+				],
+				'required' => [ '_display', '=', [ 'flex', 'inline-flex' ] ],
+			];
+
+			$this->controls['_flexGrow'] = [
+				'tab'         => 'style',
+				'group'       => '_layout',
+				'label'       => esc_html__( 'Flex grow', 'bricks' ),
+				'type'        => 'number',
+				'tooltip'     => [
+					'content'  => 'flex-grow',
+					'position' => 'top-left',
+				],
+				'css'         => [
+					[
+						'selector' => '',
+						'property' => 'flex-grow',
+					],
+				],
+				'min'         => 0,
+				'placeholder' => 0,
+			];
+
+			$this->controls['_flexShrink'] = [
+				'tab'         => 'style',
+				'group'       => '_layout',
+				'label'       => esc_html__( 'Flex shrink', 'bricks' ),
+				'type'        => 'number',
+				'tooltip'     => [
+					'content'  => 'flex-shrink',
+					'position' => 'top-left',
+				],
+				'css'         => [
+					[
+						'selector' => '',
+						'property' => 'flex-shrink',
+					],
+				],
+				'min'         => 0,
+				'placeholder' => 1,
+			];
+
+			$this->controls['_flexBasis'] = [
+				'tab'            => 'style',
+				'group'          => '_layout',
+				'label'          => esc_html__( 'Flex basis', 'bricks' ),
+				'type'           => 'text',
+				'tooltip'        => [
+					'content'  => 'flex-basis',
+					'position' => 'top-left',
+				],
+				'css'            => [
+					[
+						'selector' => '',
+						'property' => 'flex-basis',
+					],
+				],
+				'inline'         => true,
+				'small'          => true,
+				'hasDynamicData' => false,
+				'placeholder'    => 'auto',
+			];
+		}
 
 		// TYPOGRAPHY
 
@@ -726,7 +1026,9 @@ abstract class Element {
 				'fields'        => [
 					'shape'           => [
 						'type'        => 'select',
+						'searchable'  => true,
 						'options'     => [
+							'custom'                   => esc_html__( 'Custom', 'bricks' ),
 							'cloud'                    => esc_html__( 'Cloud', 'bricks' ),
 							'drops'                    => esc_html__( 'Drops', 'bricks' ),
 							'grid-round'               => esc_html__( 'Grid (Round)', 'bricks' ),
@@ -763,6 +1065,17 @@ abstract class Element {
 						'placeholder' => esc_html__( 'Select shape', 'bricks' ),
 					],
 
+					'shapeCustom'     => [
+						'label'       => esc_html__( 'Custom shape', 'bricks' ) . ' (SVG)',
+						'type'        => 'svg',
+						'description' => sprintf(
+							// translators: %s: link to MDN
+							esc_html__( 'If the shape doesn\'t take up all available space add %s to the "svg" tag.', 'bricks' ),
+							'<a href="https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/preserveAspectRatio" target="_blank">preserveAspectRatio="none"</a>'
+						),
+						'required'    => [ 'shape', '=', 'custom' ],
+					],
+
 					'fill'            => [
 						'label'    => esc_html__( 'Fill color', 'bricks' ),
 						'type'     => 'color',
@@ -777,7 +1090,7 @@ abstract class Element {
 					],
 
 					'flipHorizontal'  => [
-						'label'    => esc_html__( 'Flip horizontal', 'bricks' ),
+						'label'    => esc_html__( 'Flip', 'bricks' ) . ' ' . esc_html__( 'x-axis', 'bricks' ),
 						'type'     => 'checkbox',
 						'inline'   => true,
 						'small'    => true,
@@ -785,7 +1098,7 @@ abstract class Element {
 					],
 
 					'flipVertical'    => [
-						'label'    => esc_html__( 'Flip vertical', 'bricks' ),
+						'label'    => esc_html__( 'Flip', 'bricks' ) . ' ' . esc_html__( 'y-axis', 'bricks' ),
 						'type'     => 'checkbox',
 						'inline'   => true,
 						'small'    => true,
@@ -873,11 +1186,7 @@ abstract class Element {
 
 		// Exclude background video control from non-layout elements
 		if ( ! $this->is_layout_element() ) {
-			$this->controls['_background']['exclude'] = [
-				'videoUrl',
-				'videoScale',
-				'videoAspectRatio',
-			];
+			$this->controls['_background']['exclude'] = 'video';
 		}
 
 		// GRADIENT
@@ -889,7 +1198,7 @@ abstract class Element {
 			'css'   => [
 				[
 					'property' => 'background-image',
-				]
+				],
 			],
 		];
 
@@ -933,7 +1242,10 @@ abstract class Element {
 			],
 			'inline'      => true,
 			'small'       => true,
-			'description' => sprintf( '<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/transform" target="_blank" rel="noopener">%s</a>', esc_html__( 'Learn more about CSS transform', 'bricks' ) ),
+			'description' => sprintf(
+				'<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/transform" target="_blank" rel="noopener">%s</a>',
+				esc_html__( 'Learn more about CSS transform', 'bricks' )
+			),
 		];
 
 		$this->controls['_transformOrigin'] = [
@@ -948,8 +1260,11 @@ abstract class Element {
 			],
 			'inline'         => true,
 			'hasDynamicData' => false,
-			'description'    => sprintf( '<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/transform-origin" target="_blank" rel="noopener">%s</a>', esc_html__( 'Learn more about CSS transform-origin', 'bricks' ) ),
-			'placeholder'    => esc_html__( 'Center', 'bricks' ),
+			'description'    => sprintf(
+				'<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/transform-origin" target="_blank" rel="noopener">%s</a>',
+				esc_html__( 'Learn more about CSS transform-origin', 'bricks' )
+			),
+			'placeholder'    => 'center',
 		];
 
 		// CSS
@@ -965,16 +1280,18 @@ abstract class Element {
 			'css'           => [
 				[
 					'property' => 'filter',
-					// 'selector' => '.css-filter', // @since 1.5 (apply to element root to work on every element)
 				],
 			],
-			'description'   => sprintf( '<a target="_blank" href="https://developer.mozilla.org/en-US/docs/Web/CSS/filter#Syntax">%s</a>', esc_html__( 'Learn more about CSS filters', 'bricks' ) ),
+			'description'   => sprintf(
+				'<a target="_blank" href="https://developer.mozilla.org/en-US/docs/Web/CSS/filter#Syntax">%s</a>',
+				esc_html__( 'Learn more about CSS filters', 'bricks' )
+			),
 		];
 
 		$this->controls['_cssTransition'] = [
 			'tab'            => 'style',
 			'group'          => '_css',
-			'label'          => esc_html__( 'CSS transition', 'bricks' ),
+			'label'          => esc_html__( 'Transition', 'bricks' ),
 			'class'          => 'ltr',
 			'css'            => [
 				[
@@ -984,8 +1301,10 @@ abstract class Element {
 			],
 			'type'           => 'text',
 			'hasDynamicData' => false,
-			'placeholder'    => 'all 0.2s ease-in',
-			'description'    => sprintf( '<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Transitions/Using_CSS_transitions" target="_blank">%s</a>', esc_html__( 'Learn more about CSS transitions', 'bricks' ) ),
+			'description'    => sprintf(
+				'<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Transitions/Using_CSS_transitions" target="_blank">%s</a>',
+				esc_html__( 'Learn more about CSS transitions', 'bricks' )
+			),
 		];
 
 		$this->controls['_cssCustom'] = [
@@ -994,7 +1313,9 @@ abstract class Element {
 			'label'       => esc_html__( 'Custom CSS', 'bricks' ),
 			'type'        => 'code',
 			'pasteStyles' => true,
-			'description' => esc_html__( 'Use "root" to target the element wrapper: root { background: blue }', 'bricks' ),
+			'css'         => [], // NOTE: Undocumented (@since 1.5.1) return true instead of array with 'property' and 'selector' data to output as plain CSS
+			'description' => esc_html__( 'Use "%root%" to target the element wrapper.', 'bricks' ) . ' ' . esc_html__( 'Add "%root%" via keyboard shortcut "r + TAB".', 'bricks' ),
+			'placeholder' => "%root% {\n  color: firebrick;\n}",
 		];
 
 		$this->controls['_cssClasses'] = [
@@ -1013,38 +1334,39 @@ abstract class Element {
 			'label'          => esc_html__( 'CSS ID', 'bricks' ),
 			'class'          => 'ltr',
 			'type'           => 'text',
-			'hasDynamicData' => false,
+			'hasDynamicData' => true, // NOTE: True @since 1.7.1
 			'description'    => esc_html__( 'No spaces. No pound (#) sign.', 'bricks' ),
 		];
 
 		// ATTRIBUTES
 
-		 $this->controls['_attributes'] = [
-			 'tab'           => 'style',
-			 'group'         => '_attributes',
-			 'placeholder'   => esc_html__( 'Attributes', 'bricks' ),
-			 'type'          => 'repeater',
-			 'titleProperty' => 'name',
-			 'fields'        => [
-				 'name'  => [
-					 'label'    => esc_html__( 'Name', 'bricks' ),
-					 'type'     => 'text',
-					 'rerender' => false,
-				 ],
-				 'value' => [
-					 'label'    => esc_html__( 'Value', 'bricks' ),
-					 'type'     => 'text',
-					 'rerender' => false,
-				 ],
-			 ],
-		 ];
+		$this->controls['_attributes'] = [
+			'tab'           => 'style',
+			'group'         => '_attributes',
+			'placeholder'   => esc_html__( 'Attributes', 'bricks' ),
+			'type'          => 'repeater',
+			'titleProperty' => 'name',
+			'fields'        => [
+				'name'  => [
+					'label'    => esc_html__( 'Name', 'bricks' ),
+					'type'     => 'text',
+					'rerender' => false,
+				],
+				'value' => [
+					'label'    => esc_html__( 'Value', 'bricks' ),
+					'type'     => 'text',
+					'rerender' => false,
+				],
+			],
+		];
 
-		 $this->controls['infoAttributes'] = [
-			 'tab'     => 'style',
-			 'group'   => '_attributes',
-			 'content' => sprintf( esc_html__( '%s will be added to the most relevant HTML node.', 'bricks' ), Helpers::article_link( 'custom-attributes', esc_html__( 'Custom attributes', 'bricks' ) ) ),
-			 'type'    => 'info',
-		 ];
+		$this->controls['infoAttributes'] = [
+			'tab'     => 'style',
+			'group'   => '_attributes',
+			// translators: %s: link to article
+			'content' => sprintf( esc_html__( '%s will be added to the most relevant HTML node.', 'bricks' ), Helpers::article_link( 'custom-attributes', esc_html__( 'Custom attributes', 'bricks' ) ) ),
+			'type'    => 'info',
+		];
 	}
 
 	/**
@@ -1053,13 +1375,21 @@ abstract class Element {
 	 * @since 1.0
 	 */
 	public function set_controls_after() {
-		// ANIMATION
-
+		// NOTE: Entry animations are deprecated @since 1.6 in favor of element interactions: Run new converter option!
 		$this->controls['_animationSeparator'] = [
-			'tab'   => 'style',
-			'group' => '_layout',
-			'label' => esc_html__( 'Animation', 'bricks' ),
-			'type'  => 'separator',
+			'tab'        => 'style',
+			'group'      => '_layout',
+			'label'      => esc_html__( 'Animation', 'bricks' ),
+			'type'       => 'separator',
+			'deprecated' => true,
+		];
+
+		$this->controls['_animationInfo'] = [
+			'tab'      => 'style',
+			'group'    => '_layout',
+			'content'  => 'The "Entry animation" settings below are deprecated since 1.6. Please convert them under "Bricks > Settings > General > Converter", and use the new <a href="https://academy.bricksbuilder.io/article/interactions/" target="_blank">Interactions</a> for all new animations.',
+			'required' => [ '_animation', '!=', '' ],
+			'type'     => 'info',
 		];
 
 		$this->controls['_animation'] = [
@@ -1068,86 +1398,10 @@ abstract class Element {
 			'label'       => esc_html__( 'Entry animation', 'bricks' ),
 			'type'        => 'select',
 			'searchable'  => true,
-			'options'     => [
-				'bounce'             => 'bounce',
-				'flash'              => 'flash',
-				'pulse'              => 'pulse',
-				'rubberBand'         => 'rubberBand',
-				'shake'              => 'shake',
-				'swing'              => 'swing',
-				'tada'               => 'tada',
-				'wobble'             => 'wobble',
-				'jello'              => 'jello',
-				'bounceIn'           => 'bounceIn',
-				'bounceInDown'       => 'bounceInDown',
-				'bounceInLeft'       => 'bounceInLeft',
-				'bounceInRight'      => 'bounceInRight',
-				'bounceInUp'         => 'bounceInUp',
-				'bounceOut'          => 'bounceOut',
-				'bounceOutDown'      => 'bounceOutDown',
-				'bounceOutLeft'      => 'bounceOutLeft',
-				'bounceOutRight'     => 'bounceOutRight',
-				'bounceOutUp'        => 'bounceOutUp',
-				'fadeIn'             => 'fadeIn',
-				'fadeInDown'         => 'fadeInDown',
-				'fadeInDownBig'      => 'fadeInDownBig',
-				'fadeInLeft'         => 'fadeInLeft',
-				'fadeInLeftBig'      => 'fadeInLeftBig',
-				'fadeInRight'        => 'fadeInRight',
-				'fadeInRightBig'     => 'fadeInRightBig',
-				'fadeInUp'           => 'fadeInUp',
-				'fadeInUpBig'        => 'fadeInUpBig',
-				'fadeOut'            => 'fadeOut',
-				'fadeOutDown'        => 'fadeOutDown',
-				'fadeOutDownBig'     => 'fadeOutDownBig',
-				'fadeOutLeft'        => 'fadeOutLeft',
-				'fadeOutLeftBig'     => 'fadeOutLeftBig',
-				'fadeOutRight'       => 'fadeOutRight',
-				'fadeOutRightBig'    => 'fadeOutRightBig',
-				'fadeOutUp'          => 'fadeOutUp',
-				'fadeOutUpBig'       => 'fadeOutUpBig',
-				'flip'               => 'flip',
-				'flipInX'            => 'flipInX',
-				'flipInY'            => 'flipInY',
-				'flipOutX'           => 'flipOutX',
-				'flipOutY'           => 'flipOutY',
-				'lightSpeedIn'       => 'lightSpeedIn',
-				'lightSpeedOut'      => 'lightSpeedOut',
-				'rotateIn'           => 'rotateIn',
-				'rotateInDownLeft'   => 'rotateInDownLeft',
-				'rotateInDownRight'  => 'rotateInDownRight',
-				'rotateInUpLeft'     => 'rotateInUpLeft',
-				'rotateInUpRight'    => 'rotateInUpRight',
-				'rotateOut'          => 'rotateOut',
-				'rotateOutDownLeft'  => 'rotateOutDownLeft',
-				'rotateOutDownRight' => 'rotateOutDownRight',
-				'rotateOutUpLeft'    => 'rotateOutUpLeft',
-				'rotateOutUpRight'   => 'rotateOutUpRight',
-				'slideInUp'          => 'slideInUp',
-				'slideInDown'        => 'slideInDown',
-				'slideInLeft'        => 'slideInLeft',
-				'slideInRight'       => 'slideInRight',
-				'slideOutUp'         => 'slideOutUp',
-				'slideOutDown'       => 'slideOutDown',
-				'slideOutLeft'       => 'slideOutLeft',
-				'slideOutRight'      => 'slideOutRight',
-				'zoomIn'             => 'zoomIn',
-				'zoomInDown'         => 'zoomInDown',
-				'zoomInLeft'         => 'zoomInLeft',
-				'zoomInRight'        => 'zoomInRight',
-				'zoomInUp'           => 'zoomInUp',
-				'zoomOut'            => 'zoomOut',
-				'zoomOutDown'        => 'zoomOutDown',
-				'zoomOutLeft'        => 'zoomOutLeft',
-				'zoomOutRight'       => 'zoomOutRight',
-				'zoomOutUp'          => 'zoomOutUp',
-				'hinge'              => 'hinge',
-				'jackInTheBox'       => 'jackInTheBox',
-				'rollIn'             => 'rollIn',
-				'rollOut'            => 'rollOut',
-			],
+			'options'     => Setup::$control_options['animationTypes'],
 			'inline'      => true,
 			'placeholder' => esc_html__( 'None', 'bricks' ),
+			'deprecated'  => true,
 		];
 
 		$this->controls['_animationDuration'] = [
@@ -1168,6 +1422,7 @@ abstract class Element {
 			'hasDynamicData' => false,
 			'placeholder'    => esc_html__( 'Normal', 'bricks' ) . ' (1s)',
 			'required'       => [ '_animation', '!=', '' ],
+			'deprecated'     => true,
 		];
 
 		$this->controls['_animationDurationCustom'] = [
@@ -1175,16 +1430,11 @@ abstract class Element {
 			'group'          => '_layout',
 			'label'          => esc_html__( 'Animation duration', 'bricks' ) . ' (' . esc_html__( 'Custom', 'bricks' ) . ')',
 			'type'           => 'text',
-			'css'            => [
-				[
-					'property' => 'animation-duration',
-					'selector' => '',
-				],
-			],
 			'inline'         => true,
 			'hasDynamicData' => false,
 			'info'           => '500ms | 1s',
 			'required'       => [ '_animationDuration', '=', 'custom' ],
+			'deprecated'     => true,
 		];
 
 		$this->controls['_animationDelay'] = [
@@ -1192,18 +1442,12 @@ abstract class Element {
 			'group'       => '_layout',
 			'label'       => esc_html__( 'Animation delay', 'bricks' ),
 			'type'        => 'text',
-			'css'         => [
-				[
-					'property' => 'animation-delay',
-					'selector' => '',
-				],
-			],
 			'inline'      => true,
 			'placeholder' => 0,
 			'info'        => '500ms | -2.5s',
 			'required'    => [ '_animation', '!=', '' ],
+			'deprecated'  => true,
 		];
-
 	}
 
 	/**
@@ -1241,27 +1485,28 @@ abstract class Element {
 	}
 
 	/**
-	 * Return element ID
+	 * Return element attribute: id
 	 *
 	 * @since 1.5
+	 *
+	 * @since 1.7.1: Parse dynamic data for _cssId (same for _cssClasses)
 	 */
-	public function get_element_id( $settings ) {
-		return empty( $settings['_cssId'] ) ? "brxe-{$this->id}" : sanitize_html_class( $settings['_cssId'] );
+	public function get_element_attribute_id() {
+		return Helpers::get_element_attribute_id( $this->id, $this->settings );
 	}
 
 	/**
 	 * Set element root attributes (element ID, classes, etc.)
 	 *
 	 * @since 1.4
-	 *
-	 * @return array/string
 	 */
 	public function set_root_attributes() {
-		$element    = $this->element;
-		$nestable   = $this->nestable;
-		$element_id = $this->id;
-		$settings   = ! empty( $element['settings'] ) && is_array( $element['settings'] ) ? $element['settings'] : [];
-		$attributes = [];
+		$element      = $this->element;
+		$nestable     = $this->nestable;
+		$element_id   = $this->id;
+		$element_name = $this->name;
+		$settings     = ! empty( $element['settings'] ) && is_array( $element['settings'] ) ? $element['settings'] : [];
+		$attributes   = [];
 
 		$has_css_settings = self::has_css_settings( $settings );
 
@@ -1285,15 +1530,24 @@ abstract class Element {
 		}
 
 		/**
-		 * STEP: Add element ID
+		 * STEP: Add element 'id' attribute
 		 *
-		 * Not inside query loop; Not a global element; has CSS setting; has no custom ID set (could be indicator of anchor link to this element)
+		 * IF:
+		 * - Custom 'id' set
+		 *
+		 * OR:
+		 * - Not inside query loop
+		 * - Has CSS setting
+		 * - Not a global element
 		 */
+		$global_element_id = Helpers::get_global_element( $element, 'global' );
+
 		if (
-			( ! Query::is_looping() && empty( $element['global'] ) && $has_css_settings ) ||
-			! empty( $settings['_cssId'] )
+			! empty( $settings['_cssId'] ) ||
+			( ! Query::is_looping() && $has_css_settings && ! $global_element_id ) ||
+			$element_name === 'offcanvas' // Offcanvas: Always add 'id' attribute to ensure it works with 'Selector' setting of the Toggle element
 		) {
-			$attributes['id'] = $this->get_element_id( $settings );
+			$attributes['id'] = $this->get_element_attribute_id();
 		}
 
 		// STEP: Add element classes
@@ -1306,13 +1560,16 @@ abstract class Element {
 		}
 
 		// Global element: Use class name instead of ID as main selector (global element can occur multiple times on a page)
-		elseif ( ! empty( $element['global'] ) ) {
-			if ( $has_css_settings ) {
-				$classes[] = "brxe-{$element['global']}";
-			}
+		if ( $global_element_id && $has_css_settings ) {
+			$classes[] = "brxe-{$global_element_id}";
 		}
 
 		$classes[] = sanitize_html_class( "brxe-{$this->name}" );
+
+		// IS CSS grid (@since 1.6.1)
+		if ( ! empty( $settings['_display'] ) && $settings['_display'] === 'grid' ) {
+			$classes[] = 'brx-grid';
+		}
 
 		// Element global classes
 		if ( ! empty( $settings['_cssGlobalClasses'] ) ) {
@@ -1323,52 +1580,18 @@ abstract class Element {
 		if ( Query::is_looping() ) {
 			// Custom element ID, transform it into a class
 			if ( ! empty( $settings['_cssId'] ) ) {
-				$classes[] = sanitize_html_class( $settings['_cssId'] );
-			}
-
-			$loop_index = Query::get_loop_index();
-
-			/**
-			 * First query loop result: Provide element ID via 'data-loop-element-id' attribute so that render knows which elements should re-render
-			 *
-			 * To render correct HTML for elements with PHP render() functions (no x-template).
-			 *
-			 * Example: "Post title" element.
-			 *
-			 * TODO NEXT Loop object type 'wooCart' not working @Luis
-			 *
-			 * @since 1.4
-			 */
-			if ( bricks_is_builder_call() && $loop_index === 0 && ! $nestable && ! $this->render_builder() ) {
-				$attributes['data-loop-element-id'] = $element_id;
-			}
-
-			// Add background-image via HTML attribute ()
-			if ( ! empty( $settings['_background']['image']['useDynamicData'] ) ) {
-				$images     = Integrations\Dynamic_Data\Providers::render_tag( $settings['_background']['image']['useDynamicData'], get_the_ID(), 'image' );
-				$image_id   = ! empty( $images[0] ) ? $images[0] : false;
-				$image_size = ! empty( $settings['_background']['image']['size'] ) ? $settings['_background']['image']['size'] : 'full';
-
-				if ( $image_id ) {
-					$url = is_numeric( $image_id ) ? wp_get_attachment_image_url( $image_id, $image_size ) : $image_id;
-				} else {
-					$url = '';
-				}
-
-				// Add the style if the $url is empty in a builder call to override the default image (@since 1.5)
-				if ( $url || bricks_is_builder_call() ) {
-					// Lazy load background-image?
-					$attributes[ $this->lazy_load() ? 'data-style' : 'style' ] = "background-image: url('$url')";
-				}
+				$classes[] = $this->get_element_attribute_id();
 			}
 		}
 
 		/**
-		 * Container link (class, href, rel, target)
+		 * Add link attributes (class, href, rel, target) to layout element (section, container, block, div, etc.)
+		 *
+		 * If HTML tag is "a" (@since 1.9)
 		 *
 		 * @since 1.2.1
 		 */
-		if ( $nestable && ! empty( $settings['link']['type'] ) ) {
+		if ( $this->is_layout_element() && ! empty( $settings['link']['type'] ) && $this->tag === 'a' ) {
 			$this->set_link_attributes( 'link', $settings['link'] );
 
 			$container_link = isset( $this->attributes['link'] ) ? $this->attributes['link'] : [];
@@ -1409,20 +1632,16 @@ abstract class Element {
 			$attributes['data-script-id'] = Query::is_any_looping() ? Helpers::generate_random_id( false ) : $this->id;
 		}
 
-		// Entry animation
-		if ( ! empty( $settings['_animation'] ) ) {
-			$classes[] = 'brx-animated';
-
-			if ( ! empty( $settings['_animationDuration'] ) ) {
-				$classes[] = sanitize_html_class( "animation-duration-{$settings['_animationDuration']}" );
-			}
-
-			$attributes['data-animation'] = $settings['_animation'];
+		// Frontend: Lazy load nestable background images (section, container, block, div, etc.)
+		if ( $this->lazy_load() && $nestable ) {
+			$classes[] = 'bricks-lazy-hidden';
 		}
 
-		// Frontend: Lazy load nestable background images (section, container, block, div, etc.)
-		if ( $this->is_frontend && $nestable && ! isset( Database::$global_settings['disableLazyLoad'] ) ) {
-			$classes[] = 'bricks-lazy-hidden';
+		// Parse CSS classes for dynamic data (@since 1.7.1)
+		foreach ( $classes as $index => $class_name ) {
+			if ( strpos( $class_name, '{' ) !== false && strpos( $class_name, '}' ) !== false ) {
+				$classes[ $index ] = bricks_render_dynamic_data( $class_name );
+			}
 		}
 
 		$attributes['class'] = $classes;
@@ -1460,6 +1679,19 @@ abstract class Element {
 			return true;
 		}
 
+		/**
+		 * Always add element 'id' for the following elements:
+		 *
+		 * Nav menu: to add 'mobileMenu' <style> tag to <head> which contain element 'id'
+		 *
+		 * @since 1.5.1
+		 *
+		 * @since 1.8 'nav-nested'
+		 */
+		if ( in_array( $this->name, [ 'nav-menu', 'nav-nested' ] ) ) {
+			return true;
+		}
+
 		// Experimental element ID & class setting not enabled: Always add element ID & class
 		if ( ! isset( Database::$global_settings['elementAttsAsNeeded'] ) ) {
 			return true;
@@ -1467,19 +1699,29 @@ abstract class Element {
 
 		$has_css_settings = false;
 
-		$element_id = $this->get_element_id( $settings );
+		$element_attribute_id = $this->get_element_attribute_id();
 
 		// STEP: Check for 'css' setting
 		foreach ( $settings as $key => $value ) {
+			// Remove pseudo class & breapkoint keys to get plain control
+			if ( $key && strpos( $key, ':' ) ) {
+				$control_key_parts = explode( ':', $key );
+
+				// First part is plain control key
+				if ( count( $control_key_parts ) > 1 ) {
+					$key = $control_key_parts[0];
+				}
+			}
+
 			$control = ! empty( $this->controls[ $key ] ) ? $this->controls[ $key ] : false;
 
-			// Check for mobile settings
+			// Check for breakpoint settings
 			if ( ! $control ) {
-				foreach ( Setup::$breakpoints as $bp ) {
+				foreach ( Breakpoints::$breakpoints as $bp ) {
 					$breakpoint_key = $bp['key'];
 
 					// Setting contains breakpoint key (e.g.: "_background:tablet_portrait")
-					if ( $breakpoint_key !== 'base' && strpos( $key, ":$breakpoint_key" ) ) {
+					if ( $breakpoint_key !== 'desktop' && strpos( $key, ":$breakpoint_key" ) ) {
 						$has_css_settings = true;
 						break;
 					}
@@ -1488,6 +1730,23 @@ abstract class Element {
 
 			if ( ! $control ) {
 				continue;
+			}
+
+			// Loop over repeater items to see if it contains any CSS settings
+			if ( ! empty( $control['type'] ) && $control['type'] === 'repeater' ) {
+				if ( is_array( $value ) ) {
+					foreach ( $value as $repeater_item ) {
+						if ( is_array( $repeater_item ) ) {
+							foreach ( $repeater_item as $repeater_key => $repeater_value ) {
+								$repeater_control = ! empty( $this->controls[ $key ]['fields'][ $repeater_key ] ) ? $this->controls[ $key ]['fields'][ $repeater_key ] : false;
+
+								if ( isset( $repeater_control['css'] ) ) {
+									$has_css_settings = true;
+								}
+							}
+						}
+					}
+				}
 			}
 
 			// Icon has 'css' property, but only used if 'svg' option is selected
@@ -1512,7 +1771,7 @@ abstract class Element {
 
 			// Check for element ID use in custom CSS
 			if ( $key === '_cssCustom' ) {
-				if ( strpos( $value, $element_id ) !== false ) {
+				if ( strpos( $value, $element_attribute_id ) !== false ) {
 					$has_css_settings = true;
 					break;
 				}
@@ -1524,12 +1783,12 @@ abstract class Element {
 		}
 
 		// STEP: Global settings 'customCss' contain element ID
-		if ( ! empty( Database::$global_settings['customCss'] ) && strpos( Database::$global_settings['customCss'], $element_id ) !== false ) {
+		if ( ! empty( Database::$global_settings['customCss'] ) && strpos( Database::$global_settings['customCss'], $element_attribute_id ) !== false ) {
 			return true;
 		}
 
 		// STEP: Page settings 'customCss' contain element ID
-		if ( ! empty( Database::$page_settings['customCss'] ) && strpos( Database::$page_settings['customCss'], $element_id ) !== false ) {
+		if ( ! empty( Database::$page_settings['customCss'] ) && strpos( Database::$page_settings['customCss'], $element_attribute_id ) !== false ) {
 			return true;
 		}
 
@@ -1539,7 +1798,8 @@ abstract class Element {
 	/**
 	 * Convert the global classes ids into the classes names
 	 *
-	 * @param array $class_ids The global classes ids
+	 * @param array $class_ids The global classes ids.
+	 *
 	 * @return array
 	 */
 	public static function get_element_global_classes( $class_ids ) {
@@ -1578,13 +1838,27 @@ abstract class Element {
 			foreach ( $value as $val ) {
 				$this->attributes[ $key ][ $attribute ][] = $val;
 			}
-		} else {
-			if ( empty( $value ) ) {
-				$this->attributes[ $key ][ $attribute ] = '';
-			} else {
-				$this->attributes[ $key ][ $attribute ][] = $value;
-			}
+
+			return;
 		}
+
+		if ( empty( $value ) && ! is_numeric( $value ) ) {
+			$this->attributes[ $key ][ $attribute ] = '';
+
+			return;
+		}
+
+		// Attribute with value already exists, but is not an array: Convert to array first and add new value
+		if ( isset( $this->attributes[ $key ][ $attribute ] ) && ! is_array( $this->attributes[ $key ][ $attribute ] ) ) {
+			$this->attributes[ $key ][ $attribute ] = [
+				$this->attributes[ $key ][ $attribute ],
+				$value,
+			];
+
+			return;
+		}
+
+		$this->attributes[ $key ][ $attribute ][] = $value;
 	}
 
 	/**
@@ -1602,8 +1876,8 @@ abstract class Element {
 			// Trigger popup via link type
 			$link_type = strpos( $link_settings['type'], 'lightbox' ) !== false ? 'lightbox' : $link_settings['type'];
 
-			if ( $link_type === 'lightbox' ) {
-				$this->set_attribute( $attribute_key, 'data-link', $link_type );
+			if ( $link_type === 'lightbox' && isset( $link_settings['lightboxId'] ) ) {
+				$this->set_attribute( $attribute_key, 'data-pswp-id', esc_attr( $link_settings['lightboxId'] ) );
 			}
 
 			if ( $link_settings['type'] === 'internal' && isset( $link_settings['postId'] ) ) {
@@ -1613,53 +1887,79 @@ abstract class Element {
 			}
 
 			if ( $link_settings['type'] === 'external' && isset( $link_settings['url'] ) ) {
-				$this->set_attribute(
-					$attribute_key,
-					'href',
-					Integrations\Dynamic_Data\Providers::render_content( $link_settings['url'], get_the_ID(), 'link' )
-				);
+				$this->set_attribute( $attribute_key, 'href', bricks_render_dynamic_data( $link_settings['url'], get_the_ID(), 'link' ) );
 			}
 
-			if ( $link_settings['type'] === 'lightboxImage' && isset( $link_settings['lightboxImage'] ) ) {
+			// Lightbox: Photoswipe required width & height (default: 1280x720 = 16:9 for lightbox videos; lightbox image use whatever intrinsic width & height the image has)
+			$lightbox_width  = ! empty( Theme_Styles::$active_settings['general']['lightboxWidth'] ) ? Theme_Styles::$active_settings['general']['lightboxWidth'] : 1280;
+			$lightbox_height = ! empty( Theme_Styles::$active_settings['general']['lightboxHeight'] ) ? Theme_Styles::$active_settings['general']['lightboxHeight'] : 720;
 
-				if ( ! empty( $link_settings['lightboxImage']['useDynamicData'] ) ) {
+			// Lightbox image
+			if ( $link_settings['type'] === 'lightboxImage' ) {
+				$lightbox_image = ! empty( $link_settings['lightboxImage'] ) ? $link_settings['lightboxImage'] : false;
+				$image_size     = ! empty( $lightbox_image['size'] ) ? $lightbox_image['size'] : BRICKS_DEFAULT_IMAGE_SIZE;
+				$image_url      = ! empty( $lightbox_image['url'] ) ? $lightbox_image['url'] : false;
+				$image_id       = ! empty( $lightbox_image['id'] ) ? $lightbox_image['id'] : 0;
+				$image          = $image_id ? wp_get_attachment_image_src( $image_id, $image_size ) : false;
 
-					$image_size = isset( $link_settings['lightboxImage']['size'] ) ? $link_settings['lightboxImage']['size'] : BRICKS_DEFAULT_IMAGE_SIZE;
+				// Dynamic data lightbox image
+				if ( ! empty( $lightbox_image['useDynamicData'] ) ) {
+					$image = Integrations\Dynamic_Data\Providers::render_tag( $lightbox_image['useDynamicData'], get_the_ID(), 'image', [ 'size' => $image_size ] );
 
-					$images = Integrations\Dynamic_Data\Providers::render_tag( $link_settings['lightboxImage']['useDynamicData'], get_the_ID(), 'image', [ 'size' => $image_size ] );
+					if ( ! empty( $image[0] ) ) {
+						$image_url = $image[0];
 
-					if ( ! empty( $images[0] ) ) {
-						$lightbox_image_url = is_numeric( $images[0] ) ? wp_get_attachment_image_url( $images[0], $image_size ) : $images[0];
-					} else {
-						$lightbox_image_url = '';
+						// DD is image ID, not URL
+						if ( is_numeric( $image[0] ) ) {
+							$image = wp_get_attachment_image_src( $image[0], $image_size );
+						}
 					}
-				} else {
-					$lightbox_image_url = isset( $link_settings['lightboxImage']['url'] ) ? $link_settings['lightboxImage']['url'] : '';
 				}
 
-				$this->set_attribute( $attribute_key, 'data-bricks-lightbox-image-url', $lightbox_image_url );
+				if ( $image ) {
+					$image_url       = ! empty( $image[0] ) ? $image[0] : '';
+					$lightbox_width  = ! empty( $image[1] ) ? $image[1] : '';
+					$lightbox_height = ! empty( $image[2] ) ? $image[2] : '';
+				}
+
+				$this->set_attribute( $attribute_key, 'href', $image_url );
+				$this->set_attribute( $attribute_key, 'class', 'bricks-lightbox' );
+				$this->set_attribute( $attribute_key, 'data-pswp-src', $image_url );
+				$this->set_attribute( $attribute_key, 'data-pswp-width', $lightbox_width );
+				$this->set_attribute( $attribute_key, 'data-pswp-height', $lightbox_height );
 			}
 
+			// Lightbox video
 			if ( $link_settings['type'] === 'lightboxVideo' && isset( $link_settings['lightboxVideo'] ) ) {
-				$this->set_attribute( $attribute_key, 'data-bricks-lightbox-video-url', $link_settings['lightboxVideo'] );
-			}
+				$video_url = bricks_render_dynamic_data( $link_settings['lightboxVideo'] );
 
-			// Obsolete since 0.8.3 (keep for backwards compatibility and reference)
-			if ( $link_settings['type'] === 'popup' && isset( $link_settings['popupType'] ) ) {
-				if ( $link_settings['popupType'] === 'image' && isset( $link_settings['popupImage']['url'] ) ) {
-					$this->set_attribute( $attribute_key, 'data-bricks-popup-image-url', $link_settings['popupImage']['url'] );
-				}
-
-				if ( $link_settings['popupType'] === 'video' && isset( $link_settings['popupVideo'] ) ) {
-					$this->set_attribute( $attribute_key, 'data-bricks-popup-video-url', $link_settings['popupVideo'] );
-				}
+				$this->set_attribute( $attribute_key, 'href', $video_url );
+				$this->set_attribute( $attribute_key, 'class', 'bricks-lightbox' );
+				$this->set_attribute( $attribute_key, 'data-pswp-width', $lightbox_width );
+				$this->set_attribute( $attribute_key, 'data-pswp-height', $lightbox_height );
+				$this->set_attribute( $attribute_key, 'data-pswp-video-url', $video_url );
 			}
 
 			if ( $link_settings['type'] === 'meta' && ! empty( $link_settings['useDynamicData'] ) ) {
+				// Check for the old dynamic data format
+				$link_dd_tag = ! empty( $link_settings['useDynamicData']['name'] ) ? $link_settings['useDynamicData']['name'] : (string) $link_settings['useDynamicData'];
+
+				// It is a composed link e.g. "https://my-domain.com/?p={post_id}" (@since 1.5.4)
+				if ( strpos( $link_dd_tag, '{' ) !== 0 || substr_count( $link_dd_tag, '}' ) > 1 ) {
+					$context = 'text';
+				}
+
+				// It is a dynamic data tag only e.g. "{post_url}"
+				else {
+					$context = 'link';
+				}
+
+				$href = bricks_render_dynamic_data( $link_dd_tag, get_the_ID(), $context );
+
 				$this->set_attribute(
 					$attribute_key,
 					'href',
-					Integrations\Dynamic_Data\Providers::render_tag( $link_settings['useDynamicData'], get_the_ID(), 'link' )
+					$href
 				);
 			}
 
@@ -1675,24 +1975,74 @@ abstract class Element {
 				$this->set_attribute( $attribute_key, 'target', '_blank' );
 			}
 
+			if ( isset( $link_settings['title'] ) ) {
+				$this->set_attribute( $attribute_key, 'title', esc_attr( $link_settings['title'] ) );
+			}
+
 			if ( isset( $link_settings['ariaLabel'] ) ) {
 				$this->set_attribute( $attribute_key, 'aria-label', esc_attr( $link_settings['ariaLabel'] ) );
 			}
 
-			if ( isset( $link_settings['title'] ) ) {
-				$this->set_attribute( $attribute_key, 'title', esc_attr( $link_settings['title'] ) );
-			}
+			// Set aria-current="page" attribute to the link if it points to the current page. (@since 1.8)
+			$this->maybe_set_aria_current( $link_settings, $attribute_key );
+		}
+	}
+
+	/**
+	 * Maybe set aria-current="page" attribute to the link if it points to the current page.
+	 *
+	 * Example: nav-nested active nav item background color.
+	 *
+	 * NOTE: url_to_postid() returns 0 if URL contains the port like https://bricks.local:49581/blog/
+	 *
+	 * @since 1.8
+	 */
+	public function maybe_set_aria_current( $link_settings, $attribute_key ) {
+		$link_url  = false;
+		$link_type = ! empty( $link_settings['type'] ) ? $link_settings['type'] : false;
+
+		switch ( $link_type ) {
+			case 'meta':
+				$link_url = ! empty( $link_settings['useDynamicData'] ) ? $link_settings['useDynamicData'] : false;
+				break;
+
+			// Page or post
+			case 'internal':
+				$link_url = ! empty( $link_settings['postId'] ) ? get_permalink( $link_settings['postId'] ) : false;
+				break;
+
+			case 'external':
+				$link_url = ! empty( $link_settings['url'] ) ? $link_settings['url'] : false;
+				break;
+		}
+
+		// Return: Link URL is "#"
+		if ( $link_url === '#' ) {
+			return;
+		}
+
+		if ( $link_url ) {
+			$link_url = bricks_render_dynamic_data( $link_url );
+		}
+
+		// Return: Link URL is empty
+		if ( ! $link_url ) {
+			return;
+		}
+
+		if ( Helpers::maybe_set_aria_current_page( $link_url ) ) {
+			$this->set_attribute( $attribute_key, 'aria-current', 'page' );
 		}
 	}
 
 	/**
 	 * Remove attribute
 	 *
-	 * @since 1.0
-	 *
 	 * @param string      $key        Element identifier.
 	 * @param string      $attribute  Attribute to remove.
 	 * @param string|null $value Set to remove single value instead of entire attribute.
+	 *
+	 * @since 1.0
 	 */
 	public function remove_attribute( $key, $attribute, $value = null ) {
 		if ( ! isset( $this->attributes[ $key ] ) || ! is_array( $this->attributes[ $key ] ) ) {
@@ -1713,12 +2063,10 @@ abstract class Element {
 	/**
 	 * Render HTML attributes for specific element
 	 *
-	 * @param string  $key                   Attribute identifier
-	 * @param boolean $add_custom_attributes true to get custom atts for elements where we don't add them to the wrapper (Nav Menu)
+	 * @param string  $key                   Attribute identifier.
+	 * @param boolean $add_custom_attributes true to get custom atts for elements where we don't add them to the wrapper (Nav Menu).
 	 *
 	 * @since 1.0
-	 *
-	 * @param string  $key HTML element identifier to render attributes for.
 	 */
 	public function render_attributes( $key, $add_custom_attributes = false ) {
 		// @see: https://academy.bricksbuilder.io/article/filter-bricks-element-render_attributes/ (@since 1.3.7)
@@ -1755,7 +2103,7 @@ abstract class Element {
 					$value = array_filter(
 						$value,
 						function( $val ) {
-							return ! empty( $val );
+							return ! empty( $val ) || is_numeric( $val );
 						}
 					);
 
@@ -1785,9 +2133,10 @@ abstract class Element {
 
 		foreach ( $settings['_attributes'] as $index => $field ) {
 			if ( ! empty( $field['name'] ) ) {
-				$key = sanitize_title( $field['name'] );
+				// Use 'esc_attr' instead of 'sanitize_title' to avoid removing ':' (e.g. AlpineJS)
+				$key = esc_attr( $field['name'] );
 
-				$attributes[ $key ] = isset( $field['value'] ) ? Integrations\Dynamic_Data\Providers::render_content( $field['value'], $this->post_id ) : '';
+				$attributes[ $key ] = isset( $field['value'] ) ? bricks_render_dynamic_data( $field['value'], $this->post_id ) : '';
 			}
 		}
 
@@ -1830,16 +2179,12 @@ abstract class Element {
 	 *
 	 * Use as blueprint for nestable children & when adding repeater item.
 	 *
-	 * @return array First child element.
-	 *
 	 * @since 1.5
 	 */
 	public function get_nestable_item() {}
 
 	/**
 	 * Builder: Array of child elements added when inserting new nestable element
-	 *
-	 * @return array Array of child elements.
 	 *
 	 * @since 1.5
 	 */
@@ -1849,12 +2194,39 @@ abstract class Element {
 	 * Frontend: Lazy load (images, videos)
 	 *
 	 * Global settings 'disableLazyLoad': Disable lazy load altogether
+	 * Page settings 'disableLazyLoad': Disable lazy load on this page (@since 1.8.6)
 	 * Element settings 'disableLazyLoad': Carousel, slider, testimonials (= bricksSwiper) (@since 1.4)
 	 *
 	 * @since 1.0
 	 */
 	public function lazy_load() {
-		return $this->is_frontend && ! isset( Database::$global_settings['disableLazyLoad'] ) && ! isset( $this->settings['disableLazyLoad'] );
+		// Skip lazy load: Custom HTML attribute set to loading=eager (@since 1.6)
+		$custom_attributes = ! empty( $this->settings['_attributes'] ) ? $this->settings['_attributes'] : [];
+
+		$skip_lazy_load = false;
+
+		if ( is_array( $custom_attributes ) ) {
+			foreach ( $custom_attributes as $attr ) {
+				if (
+					isset( $attr['name'] ) && $attr['name'] === 'loading' &&
+					isset( $attr['value'] ) && $attr['value'] === 'eager'
+				) {
+					$skip_lazy_load = true;
+				}
+			}
+
+			// Skip loading=eager
+			if ( $skip_lazy_load ) {
+				return false;
+			}
+		}
+
+		return $this->is_frontend &&
+			! bricks_is_ajax_call() &&
+			! bricks_is_rest_call() &&
+			! isset( Database::$global_settings['disableLazyLoad'] ) &&
+			! isset( Database::$page_settings['disableLazyLoad'] ) &&
+			! isset( $this->settings['disableLazyLoad'] );
 	}
 
 	/**
@@ -1870,8 +2242,14 @@ abstract class Element {
 		if ( Query::is_looping() && Query::get_loop_object_type() == 'post' ) {
 			$post_id = Query::get_loop_object_id();
 		} else {
-			// NOTE: Undocumented
-			$post_id = apply_filters( 'bricks/builder/data_post_id', Database::$page_data['preview_or_post_id'] );
+			/**
+			 * Changed from Database::$page_data['preview_or_post_id'] to Database::$page_data['original_post_id'] to ensure setup_query runs inside of a template
+			 *
+			 * @since 1.5.7
+			 *
+			 * NOTE: Undocumented
+			 */
+			$post_id = apply_filters( 'bricks/builder/data_post_id', isset( Database::$page_data['original_post_id'] ) ? Database::$page_data['original_post_id'] : Database::$page_data['preview_or_post_id'] );
 		}
 
 		$this->set_post_id( $post_id );
@@ -1879,61 +2257,45 @@ abstract class Element {
 		// Set root attributes
 		$this->set_root_attributes();
 
-		if ( get_post_type( $post_id ) === BRICKS_DB_TEMPLATE_SLUG ) {
+		/**
+		 * Setup query if post or page direct edit with Bricks (#861m48kv4)
+		 *
+		 * If bricks_is_builder_call(), shouldn't setup query if looping.
+		 *
+		 * @since 1.8
+		 */
+		$setup_preview_query = Helpers::is_bricks_template( $post_id ) || ( bricks_is_builder_call() && ! Query::is_looping() );
+
+		if ( $setup_preview_query ) {
 			$this->setup_query( $post_id );
 		}
 
+		$render_element = true;
+
+		// Check element conditions (@since 1.5.4)
+		if ( ! empty( $this->settings['_conditions'] ) ) {
+			$render_element = Conditions::check( $this->settings['_conditions'], $this );
+		}
+
 		// NOTE: Undocumented (@since 1.5 to interject element render)
-		$render_element = apply_filters( 'bricks/element/render', true, $this );
+		$render_element = apply_filters( 'bricks/element/render', $render_element, $this );
 
 		if ( $render_element ) {
-			// NOTE: Undocumented (@since 1.5 to interject element settings for translation plugins, etc.)
+			/** To interject element settings for translation plugins, etc.
+			 *
+			 * https://academy.bricksbuilder.io/article/filter-bricks-element-settings/
+			 *
+			 * @since 1.5
+			 */
 			$this->settings = apply_filters( 'bricks/element/settings', $this->settings, $this );
 
 			$this->render();
 		}
 
-		if ( get_post_type( $post_id ) === BRICKS_DB_TEMPLATE_SLUG ) {
+		// @since 1.8 - Restore query if post or page direct edit with Bricks (#861m48kv4)
+		if ( $setup_preview_query ) {
 			$this->restore_query();
 		}
-	}
-
-	/**
-	 * Generate array with column width CSS class names
-	 *
-	 * Columns setting in Image Gallery & Posts element.
-	 *
-	 * @since 1.3.5
-	 */
-	public function generate_columns_per_breakpoint_css_classes( $columns, $settings ) {
-		$breakpoint_classes = [];
-
-		foreach ( Setup::$breakpoints as $breakpoint ) {
-			// Base breakpoint
-			if ( ! $breakpoint['max'] && $columns ) {
-				$column_width         = $this->calc_column_width( $columns );
-				$breakpoint_classes[] = 'bricks-col-' . $column_width;
-			}
-
-			// Mobile breakpoint
-			else {
-				$breakpoint_key = $breakpoint['key']; // e.g. tablet_portrait
-
-				// @since 1.3.5 breakpoint syntax with colon
-				if ( ! empty( $settings[ "columns:$breakpoint_key" ] ) ) {
-					$column_width         = $this->calc_column_width( $settings[ "columns:$breakpoint_key" ] );
-					$breakpoint_classes[] = 'bricks-col-' . str_replace( '_', '-', $breakpoint_key ) . '-' . $column_width;
-				}
-
-				// @pre 1.3.5 breakpoint syntax with underscore
-				elseif ( ! empty( $settings[ "columns_$breakpoint_key" ] ) ) {
-					$column_width         = $this->calc_column_width( $settings[ "columns_$breakpoint_key" ] );
-					$breakpoint_classes[] = 'bricks-col-' . str_replace( '_', '-', $breakpoint_key ) . '-' . $column_width;
-				}
-			}
-		}
-
-		return $breakpoint_classes;
 	}
 
 	/**
@@ -1947,22 +2309,6 @@ abstract class Element {
 		}
 
 		return $column_width;
-	}
-
-	/**
-	 * Isotope column width calculator
-	 */
-	public function isotope_column_width( $index = 1, $columns = 2 ) {
-		if ( isset( $this->settings['layout'] ) && $this->settings['layout'] === 'metro' ) {
-			if ( is_int( $index ) && $index % 3 == 0 ) {
-				// Double-width for every third metro item
-				return 50;
-			} else {
-				return 25;
-			}
-		} else {
-			return isset( $columns ) ? floor( 100 / intval( $columns ) ) : 50;
-		}
 	}
 
 	/**
@@ -2025,7 +2371,7 @@ abstract class Element {
 
 				'dynamicMargin'     => [
 					'label' => esc_html__( 'Margin', 'bricks' ),
-					'type'  => 'dimensions',
+					'type'  => 'spacing',
 					'css'   => [
 						[
 							'property' => 'margin',
@@ -2035,7 +2381,7 @@ abstract class Element {
 
 				'dynamicPadding'    => [
 					'label' => esc_html__( 'Padding', 'bricks' ),
-					'type'  => 'dimensions',
+					'type'  => 'spacing',
 					'css'   => [
 						[
 							'property' => 'padding',
@@ -2113,7 +2459,6 @@ abstract class Element {
 	 *
 	 * @since 1.0
 	 */
-
 	public function get_post_content() {
 		$post_content = [];
 
@@ -2141,23 +2486,24 @@ abstract class Element {
 		// NOTE: Necessary as Isotope doesn't play nice with flexbox, but float
 		// https://github.com/metafizzy/isotope/issues/1234
 		$post_content['contentHeight'] = [
-			'tab'   => 'content',
-			'group' => 'content',
-			'label' => esc_html__( 'Min. height', 'bricks' ),
-			'type'  => 'number',
-			'units' => true,
-			'css'   => [
+			'tab'      => 'content',
+			'group'    => 'content',
+			'label'    => esc_html__( 'Min. height', 'bricks' ),
+			'type'     => 'number',
+			'units'    => true,
+			'css'      => [
 				[
 					'property' => 'min-height',
 					'selector' => '.content-wrapper',
 				],
 			],
+			'rerender' => true,
 		];
 
 		$post_content['contentMargin'] = [
 			'tab'   => 'content',
 			'group' => 'content',
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'label' => esc_html__( 'Margin', 'bricks' ),
 			'css'   => [
 				[
@@ -2170,7 +2516,7 @@ abstract class Element {
 		$post_content['contentPadding'] = [
 			'tab'   => 'content',
 			'group' => 'content',
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'label' => esc_html__( 'Padding', 'bricks' ),
 			'css'   => [
 				[
@@ -2203,7 +2549,6 @@ abstract class Element {
 	 *
 	 * @since 1.0
 	 */
-
 	public function get_post_overlay() {
 		$post_overlay = [];
 
@@ -2258,7 +2603,7 @@ abstract class Element {
 		$post_overlay['overlayMargin'] = [
 			'tab'   => 'content',
 			'group' => 'overlay',
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'label' => esc_html__( 'Margin', 'bricks' ),
 			'css'   => [
 				[
@@ -2271,7 +2616,7 @@ abstract class Element {
 		$post_overlay['overlayPadding'] = [
 			'tab'   => 'content',
 			'group' => 'overlay',
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'label' => esc_html__( 'Padding', 'bricks' ),
 			'css'   => [
 				[
@@ -2370,7 +2715,8 @@ abstract class Element {
 			'min'         => 1,
 			'max'         => 10,
 			'placeholder' => 1,
-			'breakpoints' => true, // NOTE: Undocumented (allows to set non-CSS settings per breakpoint: Carousel, Slider, etc.)
+			'breakpoints' => true, // NOTE: Undocumented (allows setting non-CSS settings per breakpoint: Carousel, Slider, etc.)
+			'required'    => [ 'effect', '!=', [ 'fade', 'cube', 'flip' ] ],
 		];
 
 		$controls['slidesToScroll'] = [
@@ -2382,6 +2728,7 @@ abstract class Element {
 			'max'         => 10,
 			'placeholder' => 1,
 			'breakpoints' => true,
+			'required'    => [ 'effect', '!=', [ 'fade', 'cube', 'flip' ] ],
 		];
 
 		$controls['effect'] = [
@@ -2398,7 +2745,20 @@ abstract class Element {
 			],
 			'inline'      => true,
 			'placeholder' => esc_html__( 'Slide', 'bricks' ),
-			'info'        => __( '"Fade", "Cube", and "Flip" require "Items To Show" set to 1.', 'bricks' ),
+		];
+
+		// @since 1.9.3
+		$controls['swiperLoop'] = [
+			'tab'         => 'content',
+			'group'       => 'settings',
+			'label'       => esc_html__( 'Loop', 'bricks' ),
+			'placeholder' => esc_html__( 'Enable', 'bricks' ),
+			'type'        => 'select',
+			'inline'      => true,
+			'options'     => [
+				'enable'  => esc_html__( 'Enable', 'bricks' ),
+				'disable' => esc_html__( 'Disable', 'bricks' ),
+			],
 		];
 
 		$controls['infinite'] = [
@@ -2407,7 +2767,6 @@ abstract class Element {
 			'label'   => esc_html__( 'Loop', 'bricks' ),
 			'type'    => 'checkbox',
 			'default' => true,
-			'inline'  => true,
 		];
 
 		$controls['centerMode'] = [
@@ -2425,11 +2784,10 @@ abstract class Element {
 		];
 
 		$controls['adaptiveHeight'] = [
-			'tab'    => 'content',
-			'group'  => 'settings',
-			'label'  => esc_html__( 'Adaptive height', 'bricks' ),
-			'type'   => 'checkbox',
-			'inline' => true,
+			'tab'   => 'content',
+			'group' => 'settings',
+			'label' => esc_html__( 'Adaptive height', 'bricks' ),
+			'type'  => 'checkbox',
 		];
 
 		$controls['autoplay'] = [
@@ -2445,7 +2803,6 @@ abstract class Element {
 			'label'    => esc_html__( 'Pause on hover', 'bricks' ),
 			'type'     => 'checkbox',
 			'required' => [ 'autoplay', '!=', '' ],
-			'inline'   => true,
 		];
 
 		$controls['stopOnLastSlide'] = [
@@ -2455,13 +2812,12 @@ abstract class Element {
 			'type'     => 'checkbox',
 			'info'     => esc_html__( 'No effect with loop enabled', 'bricks' ),
 			'required' => [ 'autoplay', '!=', '' ],
-			'inline'   => true,
 		];
 
 		$controls['autoplaySpeed'] = [
 			'tab'         => 'content',
 			'group'       => 'settings',
-			'label'       => esc_html__( 'Autoplay speed in ms', 'bricks' ),
+			'label'       => esc_html__( 'Autoplay delay in ms', 'bricks' ),
 			'type'        => 'number',
 			'required'    => [ 'autoplay', '!=', '' ],
 			'placeholder' => 3000,
@@ -2476,38 +2832,6 @@ abstract class Element {
 			'placeholder' => 300,
 		];
 
-		$controls['responsive'] = [
-			'deprecated'  => true, // @since 1.3.5 use: generate_swiper_breakpoint_data_options
-			'tab'         => 'content',
-			'group'       => 'settings',
-			'label'       => esc_html__( 'Responsive breakpoints', 'bricks' ),
-			'placeholder' => esc_html__( 'Breakpoint', 'bricks' ),
-			'type'        => 'repeater',
-			'fields'      => [
-				'title'          => [
-					'label'  => esc_html__( 'Title', 'bricks' ),
-					'type'   => 'text',
-					'inline' => true,
-				],
-				'breakpoint'     => [
-					'label' => esc_html__( 'Breakpoint in px', 'bricks' ) . ' <a href="https://swiperjs.com/swiper-api#parameters" target="_blank" rel="noopener">(>=)</a>',
-					'type'  => 'number',
-				],
-				'slidesToShow'   => [
-					'label' => esc_html__( 'Items to show', 'bricks' ),
-					'type'  => 'number',
-					'min'   => 1,
-					'max'   => 10,
-				],
-				'slidesToScroll' => [
-					'label' => esc_html__( 'Items to scroll', 'bricks' ),
-					'type'  => 'number',
-					'min'   => 1,
-					'max'   => 10,
-				],
-			]
-		];
-
 		// Arrows
 
 		$controls['arrows'] = [
@@ -2515,7 +2839,6 @@ abstract class Element {
 			'group'    => 'arrows',
 			'label'    => esc_html__( 'Show arrows', 'bricks' ),
 			'type'     => 'checkbox',
-			'inline'   => true,
 			'rerender' => true,
 			'default'  => true,
 		];
@@ -2622,7 +2945,7 @@ abstract class Element {
 			],
 			'css'      => [
 				[
-					'selector' => '.bricks-swiper-button-prev',
+					'selector' => '.bricks-swiper-button-prev > *',
 				],
 			],
 			'required' => [ 'arrows', '!=', '' ],
@@ -2690,6 +3013,20 @@ abstract class Element {
 			'required' => [ 'arrows', '!=', '' ],
 		];
 
+		$controls['prevArrowTransform'] = [
+			'tab'      => 'content',
+			'group'    => 'arrows',
+			'label'    => esc_html__( 'Transform', 'bricks' ),
+			'type'     => 'transform',
+			'css'      => [
+				[
+					'property' => 'transform',
+					'selector' => '.bricks-swiper-button-prev',
+				],
+			],
+			'required' => [ 'arrows', '!=', '' ],
+		];
+
 		$controls['nextArrowSeparator'] = [
 			'tab'      => 'content',
 			'group'    => 'arrows',
@@ -2709,7 +3046,7 @@ abstract class Element {
 			],
 			'css'      => [
 				[
-					'selector' => '.bricks-swiper-button-next',
+					'selector' => '.bricks-swiper-button-next > *',
 				],
 			],
 			'required' => [ 'arrows', '!=', '' ],
@@ -2771,6 +3108,20 @@ abstract class Element {
 			'css'      => [
 				[
 					'property' => 'left',
+					'selector' => '.bricks-swiper-button-next',
+				],
+			],
+			'required' => [ 'arrows', '!=', '' ],
+		];
+
+		$controls['nextArrowTransform'] = [
+			'tab'      => 'content',
+			'group'    => 'arrows',
+			'label'    => esc_html__( 'Transform', 'bricks' ),
+			'type'     => 'transform',
+			'css'      => [
+				[
+					'property' => 'transform',
 					'selector' => '.bricks-swiper-button-next',
 				],
 			],
@@ -2945,20 +3296,6 @@ abstract class Element {
 			'required' => [ 'dots', '!=', '' ],
 		];
 
-		$controls['dotsSpacing'] = [
-			'tab'      => 'content',
-			'group'    => 'dots',
-			'label'    => esc_html__( 'Spacing', 'bricks' ),
-			'type'     => 'dimensions',
-			'css'      => [
-				[
-					'property' => 'margin',
-					'selector' => '.swiper-pagination-bullet',
-				],
-			],
-			'required' => [ 'dots', '!=', '' ],
-		];
-
 		$controls['dotsColor'] = [
 			'tab'      => 'content',
 			'group'    => 'dots',
@@ -2990,6 +3327,20 @@ abstract class Element {
 				[
 					'property' => 'color',
 					'selector' => '.swiper-pagination-bullet-active',
+				],
+			],
+			'required' => [ 'dots', '!=', '' ],
+		];
+
+		$controls['dotsSpacing'] = [
+			'tab'      => 'content',
+			'group'    => 'dots',
+			'label'    => esc_html__( 'Margin', 'bricks' ),
+			'type'     => 'spacing',
+			'css'      => [
+				[
+					'property' => 'margin',
+					'selector' => '.swiper-pagination-bullet',
 				],
 			],
 			'required' => [ 'dots', '!=', '' ],
@@ -3092,15 +3443,15 @@ abstract class Element {
 	 *
 	 * @since 1.5
 	 *
-	 * @param Query  $query
-	 * @param string $node_key The element key to add the query data attributes (used in the posts element)
+	 * @param Query  $query    The query object.
+	 * @param string $node_key The element key to add the query data attributes (used in the posts element).
 	 *
 	 * @return string
 	 */
 	public function render_query_loop_trail( $query, $node_key = '' ) {
 		$settings = ! empty( $this->element['settings'] ) ? $this->element['settings'] : [];
 
-		if ( ! $this->is_frontend || bricks_is_rest_call() || ! isset( $settings['query']['infinite_scroll'] ) ) {
+		if ( ! $this->is_frontend || bricks_is_rest_call() ) {
 			return '';
 		}
 
@@ -3109,19 +3460,45 @@ abstract class Element {
 
 		$page = isset( $query->query_vars['paged'] ) ? $query->query_vars['paged'] : 1;
 
-		if ( $page == 1 && $query->max_num_pages == 1 ) {
-			return;
+		// This will cause no results got no queryLoopInstances generated in frontend (@since 1.9.6)
+		// if ( $page == 1 && $query->max_num_pages == 1 ) {
+		// return;
+		// }
+
+		// Query trail class (load more or infinite scroll)
+		$this->set_attribute( $node_key, 'class', 'brx-query-trail' );
+
+		// Is Live Search: So JavaScript will hide it's results container if input value is empty
+		if ( isset( $settings['query']['is_live_search'] ) ) {
+			$this->set_attribute( $node_key, 'data-brx-live-search', true );
 		}
 
-		// Classes
-		if ( $render ) {
-			$this->set_attribute( $node_key, 'class', 'brx-query-trail' );
+		// Infinite scroll class
+		if ( isset( $settings['query']['infinite_scroll'] ) ) {
+			$this->set_attribute( $node_key, 'class', 'brx-infinite-scroll' );
 		}
 
-		$this->set_attribute( $node_key, 'class', 'brx-infinite-scroll' );
+		// AJAX loader (@since 1.9)
+		if ( ! empty( $settings['query']['ajax_loader_animation'] ) ) {
+			$ajax_loader_data = [
+				'animation' => $settings['query']['ajax_loader_animation'],
+				'selector'  => isset( $settings['query']['ajax_loader_selector'] ) ? $settings['query']['ajax_loader_selector'] : '',
+				'color'     => isset( $settings['query']['ajax_loader_color'] ) ? Assets::generate_css_color( $settings['query']['ajax_loader_color'] ) : '',
+				'scale'     => isset( $settings['query']['ajax_loader_scale'] ) ? $settings['query']['ajax_loader_scale'] : '',
+			];
+
+			$this->set_attribute( $node_key, 'data-brx-ajax-loader', wp_json_encode( $ajax_loader_data ) );
+		}
 
 		// Element ID
 		$this->set_attribute( $node_key, 'data-query-element-id', $this->id );
+
+		// Unset 'queryEditor' value as not needed in the frontend (@since 1.9.1)
+		if ( isset( $query->query_vars['queryEditor'] ) ) {
+			unset( $query->query_vars['queryEditor'] );
+		}
+		// Query vars: needed to make sure the context is the same if the query was merged with the global query (@since 1.5.1)
+		$this->set_attribute( $node_key, 'data-query-vars', wp_json_encode( $query->query_vars ) );
 
 		// Pagination
 		$this->set_attribute( $node_key, 'data-page', $page );
@@ -3146,14 +3523,17 @@ abstract class Element {
 	/**
 	 * Get the dynamic data for a specific tag
 	 *
-	 * @param string $tag Dynamic Data tag
-	 * @param string $context text, image, media, link
-	 * @param array  $args Needed to set the size for image avatar
+	 * @param string $tag Dynamic data tag.
+	 * @param string $context text, image, media, link.
+	 * @param array  $args Needed to set size for avatar image.
+	 * @param string $post_id Post ID.
 	 *
 	 * @return mixed
 	 */
-	public function render_dynamic_data_tag( $tag = '', $context = 'text', $args = [] ) {
-		$post_id = Query::is_looping() && Query::get_query_object_type() == 'post' ? Query::get_loop_object_id() : $this->post_id;
+	public function render_dynamic_data_tag( $tag = '', $context = 'text', $args = [], $post_id = 0 ) {
+		if ( ! $post_id ) {
+			$post_id = Query::is_looping() && Query::get_loop_object_type() == 'post' ? Query::get_loop_object_id() : $this->post_id;
+		}
 
 		return Integrations\Dynamic_Data\Providers::render_tag( $tag, $post_id, $context, $args );
 	}
@@ -3162,18 +3542,20 @@ abstract class Element {
 	 * Render dynamic data tags on a string
 	 *
 	 * @param string $content
+	 *
 	 * @return mixed
 	 */
 	public function render_dynamic_data( $content = '' ) {
-		$post_id = Query::is_looping() && Query::get_query_object_type() == 'post' ? Query::get_loop_object_id() : $this->post_id;
+		$post_id = Query::is_looping() && Query::get_loop_object_type() == 'post' ? Query::get_loop_object_id() : $this->post_id;
 
-		return Integrations\Dynamic_Data\Providers::render_content( $content, $post_id );
+		return bricks_render_dynamic_data( $content, $post_id );
 	}
 
 	/**
 	 * Set Post ID
 	 *
-	 * @param integer $post_id
+	 * @param int $post_id
+	 *
 	 * @return void
 	 */
 	public function set_post_id( $post_id = 0 ) {
@@ -3181,9 +3563,12 @@ abstract class Element {
 	}
 
 	/**
-	 * Setup custom query for templates according to 'templatePreviewType'
+	 * Setup query for templates according to 'templatePreviewType'
 	 *
 	 * To alter builder template and template preview query. NOT the frontend!
+	 *
+	 * 1. Set element $post_id
+	 * 2. Populate query_args from"Populate content" settings and set it to global $wp_query
 	 *
 	 * @param integer $post_id
 	 *
@@ -3194,101 +3579,45 @@ abstract class Element {
 			$post_id = get_the_ID();
 		}
 
-		// Store $wp_query in $original_query to restore it via restore_query() after element has been rendered
-		global $wp_query;
-
-		$this->original_query = $wp_query;
-
-		$query_args = [];
-
+		// STEP: Set post ID to template preview ID if direct edit or single template preview
 		$template_settings     = Helpers::get_template_settings( $post_id );
 		$template_preview_type = Helpers::get_template_setting( 'templatePreviewType', $post_id );
 
-		switch ( $template_preview_type ) {
-			// Archive: Recent posts
-			case 'archive-recent-posts':
-				$query_args['post_type'] = 'post';
-				break;
-
-			// Archive: author
-			case 'archive-author':
-				$template_preview_author = Helpers::get_template_setting( 'templatePreviewAuthor', $post_id );
-
-				if ( $template_preview_author ) {
-					$query_args['author'] = $template_preview_author;
-				}
-				break;
-
-			// Author date
-			case 'archive-date':
-				$query_args['year'] = date( 'Y' );
-				break;
-
-			// Archive CPT
-			case 'archive-cpt':
-				$template_preview_post_type = Helpers::get_template_setting( 'templatePreviewPostType', $post_id );
-
-				if ( $template_preview_post_type ) {
-					$query_args['post_type'] = $template_preview_post_type;
-				}
-				break;
-
-			// Archive term
-			case 'archive-term':
-				$template_preview_term_id_parts = isset( $template_settings['templatePreviewTerm'] ) ? explode( '::', $template_settings['templatePreviewTerm'] ) : '';
-				$template_preview_taxnomy       = isset( $template_preview_term_id_parts[0] ) ? $template_preview_term_id_parts[0] : '';
-				$template_preview_term_id       = isset( $template_preview_term_id_parts[1] ) ? $template_preview_term_id_parts[1] : '';
-
-				if ( $template_preview_taxnomy && $template_preview_term_id ) {
-					$query_args['tax_query'] = [
-						[
-							'taxonomy' => $template_preview_taxnomy,
-							'terms'    => $template_preview_term_id,
-							'field'    => 'term_id',
-						],
-					];
-				}
-				break;
-
-			// Search
-			case 'search':
-				$template_preview_search_term = Helpers::get_template_setting( 'templatePreviewSearchTerm', $post_id );
-
-				if ( $template_preview_search_term ) {
-					$query_args['s'] = $template_preview_search_term;
-				}
-				break;
-
-			// Single
-			case 'single':
-				$template_preview_post_id = Helpers::get_template_setting( 'templatePreviewPostId', $post_id );
-
-				// Set post ID to template preview ID
-				if ( $template_preview_post_id ) {
-					$query_args['p']         = $template_preview_post_id;
-					$query_args['post_type'] = get_post_type( $template_preview_post_id );
-
-					// Set the global $post to affect the entire WP environment (needed for WooCommerce)
-					global $post;
-					$post = get_post( $template_preview_post_id );
-					setup_postdata( $post );
-				}
-				break;
+		// @since 1.8 - Set preview type if direct edit page or post with Bricks (#861m48kv4)
+		if ( bricks_is_builder_call() && empty( $template_settings ) && ! Helpers::is_bricks_template( $post_id ) ) {
+			$template_preview_type = 'direct-edit';
 		}
 
-		// NOTE: Undocumented
-		$query_args = apply_filters( 'bricks/element/builder_setup_query', $query_args, $post_id );
+		if ( in_array( $template_preview_type, [ 'direct-edit', 'single' ] ) ) {
+			// @since 1.8 - If direct edit page or post with Bricks, use the $post_id (#861m48kv4)
+			$template_preview_post_id = ( $template_preview_type === 'direct-edit' ) ? $post_id : Helpers::get_template_setting( 'templatePreviewPostId', $post_id );
+
+			if ( $template_preview_post_id ) {
+				// Set the global $post to affect the entire WP environment (needed for WooCommerce)
+				global $post;
+				$post = get_post( $template_preview_post_id );
+				setup_postdata( $post );
+
+				// Set the preview ID as the Post ID before render this element (@since 1.5.7)
+				$this->set_post_id( $template_preview_post_id );
+			}
+		}
+
+		// STEP: Populate query_args from populate content settings. Moved the logic to helpers class (@since 1.9.1)
+		$query_args = Helpers::get_template_preview_query_vars( $post_id );
 
 		// Init query with template preview args
 		if ( ! empty( $query_args ) && is_array( $query_args ) ) {
+			// Store $wp_query in $original_query to restore it via restore_query() after element has been rendered
+			global $wp_query;
+			$this->original_query = $wp_query;
+			// This is still needed in template preview (i.e. Pagination element if targeting main query)
 			$wp_query = new \WP_Query( $query_args );
 		}
 	}
 
 	/**
 	 * Restore custom query after element render()
-	 *
-	 * @param integer $post_id
 	 *
 	 * @since 1.0
 	 */
@@ -3309,7 +3638,7 @@ abstract class Element {
 	 * Render control 'icon' HTML (either font icon 'i' or 'svg' HTML)
 	 *
 	 * @param array $icon Contains either 'icon' CSS class or 'svg' URL data.
-	 * @param array $icon Additional icon HTML attributes.
+	 * @param array $attributes Additional icon HTML attributes.
 	 *
 	 * @see ControlIcon.vue
 	 * @return string SVG HMTL string
@@ -3321,22 +3650,25 @@ abstract class Element {
 			$attributes = [];
 		}
 
-		// Flat array with classes only (most used)
-		if ( count( $attributes ) == count( $attributes, COUNT_RECURSIVE ) ) {
-			$attributes = [ 'class' => $attributes ];
+		// Is flat array (key is index, not an attribute name): Items are list of class names
+		if ( isset( $attributes[0] ) ) {
+			$attributes = [
+				'class' => $attributes,
+			];
 		}
 
-		// STEP: Render SVG
-		$svg_url = ! empty( $icon['svg']['url'] ) ? $icon['svg']['url'] : false;
+		$classes = [];
 
-		if ( $svg_url ) {
-			$svg = Helpers::get_file_contents( $svg_url );
+		// STEP: Render SVG
+		$svg_id = ! empty( $icon['svg']['id'] ) ? $icon['svg']['id'] : false;
+
+		if ( $svg_id ) {
+			$svg_path = get_attached_file( $svg_id );
+			$svg      = Helpers::file_get_contents( $svg_path );
 
 			if ( ! $svg ) {
 				return;
 			}
-
-			$classes = [];
 
 			if ( isset( $icon['fill'] ) ) {
 				$classes[] = 'fill';
@@ -3417,7 +3749,7 @@ abstract class Element {
 		$post_id = $this->post_id;
 
 		// Return: Not a template OR no 'post_type' condition set
-		if ( get_post_type( $post_id ) !== BRICKS_DB_TEMPLATE_SLUG || ! empty( $query_vars['post_type'] ) ) {
+		if ( ! Helpers::is_bricks_template( $post_id ) || ! empty( $query_vars['post_type'] ) ) {
 			return $query_vars;
 		}
 
@@ -3450,5 +3782,121 @@ abstract class Element {
 		$layout_element_names = apply_filters( 'bricks/is_layout_element', $layout_element_names );
 
 		return in_array( $this->name, $layout_element_names );
+	}
+
+	/**
+	 * Generate breakpoint-specific @media rules for nav menu & mobile menu toggle
+	 *
+	 * If not set to 'always' or 'never'
+	 *
+	 * @since 1.5.1
+	 */
+	public function generate_mobile_menu_inline_css( $settings = [], $breakpoint = '' ) {
+		$breakpoint_width    = ! empty( $breakpoint['width'] ) ? intval( $breakpoint['width'] ) : 0;
+		$base_width          = Breakpoints::$base_width;
+		$nav_menu_inline_css = '';
+
+		if ( $breakpoint_width ) {
+			if ( $breakpoint_width > $base_width ) {
+				if ( Breakpoints::$is_mobile_first ) {
+					$nav_menu_inline_css .= "@media (max-width: {$breakpoint_width}px) {\n";
+				} else {
+					$nav_menu_inline_css .= "@media (min-width: {$breakpoint_width}px) {\n";
+				}
+			} else {
+				if ( Breakpoints::$is_mobile_first ) {
+					$nav_menu_inline_css .= "@media (min-width: {$breakpoint_width}px) {\n";
+				} else {
+					$nav_menu_inline_css .= "@media (max-width: {$breakpoint_width}px) {\n";
+				}
+			}
+
+			$element_id = $this->get_element_attribute_id();
+
+			// Nav menu
+			if ( $this->name === 'nav-menu' ) {
+				$nav_menu_inline_css .= "#{$element_id} .bricks-nav-menu-wrapper { display: none; }\n";
+				$nav_menu_inline_css .= "#{$element_id} .bricks-mobile-menu-toggle { display: block; }\n";
+			}
+
+			// Nav nested
+			elseif ( $this->name === 'nav-nested' ) {
+				$nav_menu_inline_css .= "#{$element_id} .brx-toggle-div { display: inline-flex; }\n";
+				$nav_menu_inline_css .= "#{$element_id} .brxe-toggle { display: inline-flex; }\n";
+
+				// NOTE: Using element ID doesn't allow "Nav items" settings to overwrite it
+				// $nav_menu_inline_css .= "#{$element_id} .brx-nav-nested-items {
+				$nav_menu_inline_css .= "[data-script-id={$this->id}] .brx-nav-nested-items {
+					opacity: 0;
+					visibility: hidden;
+					gap: 0;
+					position: fixed;
+					z-index: 1001;
+					top: 0;
+					right: 0;
+					bottom: 0;
+					left: 0;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					flex-direction: column;
+					background-color: #fff;
+					overflow-y: scroll;
+					flex-wrap: nowrap;
+				}\n";
+
+				$nav_menu_inline_css .= "#{$element_id}.brx-open .brx-nav-nested-items {
+					opacity: 1;
+					visibility: visible;
+				}\n";
+			}
+
+			$nav_menu_inline_css .= '}';
+		}
+
+		return $nav_menu_inline_css;
+	}
+
+	/**
+	 * Return true if any of the element classes contains a match
+	 *
+	 * @param array $values_to_check Array of values to check the global class settings for.
+	 *
+	 * @see image.php 'popupOverlay', video.php 'overlay', etc.
+	 *
+	 * @since 1.7.1
+	 */
+	public function element_classes_have( $values_to_check = [] ) {
+		if ( ! is_array( $values_to_check ) ) {
+			$values_to_check = [ $values_to_check ];
+		}
+
+		$element_classes = ! empty( $this->settings['_cssGlobalClasses'] ) ? $this->settings['_cssGlobalClasses'] : false;
+
+		if ( ! $element_classes ) {
+			return false;
+		}
+
+		$class_has = false;
+
+		$global_classes = Database::$global_data['globalClasses'];
+
+		// Loop over element class settings
+		foreach ( $element_classes as $element_class ) {
+			$class_index = array_search( $element_class, array_column( $global_classes, 'id' ) );
+
+			if ( empty( $global_classes[ $class_index ] ) ) {
+				continue;
+			}
+
+			foreach ( $values_to_check as $value ) {
+				// Global class has setting with $value
+				if ( strpos( wp_json_encode( $global_classes[ $class_index ] ), $value ) ) {
+					$class_has = true;
+				}
+			}
+		}
+
+		return $class_has;
 	}
 }

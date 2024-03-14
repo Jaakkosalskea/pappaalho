@@ -53,6 +53,7 @@ class Woocommerce_Cart_Items extends Element {
 			$this->controls[ "{$key}Hide" ] = [
 				'tab'   => 'content',
 				'group' => 'products',
+				// translators: %s: Label name
 				'label' => sprintf( esc_html__( 'Hide %s', 'bricks' ), $label ),
 				'type'  => 'checkbox',
 				'css'   => [
@@ -73,6 +74,7 @@ class Woocommerce_Cart_Items extends Element {
 			$this->controls[ "{$key}Typography" ] = [
 				'tab'      => 'content',
 				'group'    => 'products',
+				// translators: %s: Label name
 				'label'    => sprintf( esc_html__( '%s typography', 'bricks' ), $label ),
 				'type'     => 'typography',
 				'css'      => [
@@ -215,12 +217,28 @@ class Woocommerce_Cart_Items extends Element {
 			'units'       => true,
 			'css'         => [
 				[
-					'property' => 'max-width',
+					'property' => 'width',
 					'selector' => '.product-thumbnail img',
 				]
 			],
 			'placeholder' => 100,
 			'required'    => [ 'imageDisable', '=', '' ],
+		];
+
+		$this->controls['imageHeight'] = [
+			'tab'      => 'content',
+			'group'    => 'products',
+			'label'    => esc_html__( 'Height', 'bricks' ),
+			'type'     => 'number',
+			'units'    => true,
+			'css'      => [
+				[
+					'property' => 'height',
+					'selector' => '.product-thumbnail img',
+				]
+			],
+			// 'placeholder' => 'auto',
+			'required' => [ 'imageDisable', '=', '' ],
 		];
 
 		$this->controls['imageSize'] = [
@@ -241,27 +259,31 @@ class Woocommerce_Cart_Items extends Element {
 			'group' => 'products',
 		];
 
-		$this->controls['removeWidth'] = [
-			'tab'         => 'content',
-			'group'       => 'products',
-			'label'       => esc_html__( 'Width', 'bricks' ),
-			'type'        => 'number',
-			'units'       => true,
-			'css'         => [
+		$this->controls['removeColor'] = [
+			'tab'   => 'content',
+			'group' => 'products',
+			'label' => esc_html__( 'Color', 'bricks' ),
+			'type'  => 'color',
+			'css'   => [
 				[
-					'property' => 'background-size',
-					'selector' => '.product-remove a',
-				],
-				[
-					'property' => 'min-height',
-					'selector' => '.product-remove a',
-				],
-				[
-					'property' => 'min-width',
+					'property' => 'color',
 					'selector' => '.product-remove a',
 				],
 			],
-			'placeholder' => 10,
+		];
+
+		$this->controls['removeSize'] = [
+			'tab'   => 'content',
+			'group' => 'products',
+			'label' => esc_html__( 'Size', 'bricks' ),
+			'type'  => 'number',
+			'units' => true,
+			'css'   => [
+				[
+					'property' => 'font-size',
+					'selector' => '.product-remove a',
+				],
+			],
 		];
 
 		$this->controls['removePosition'] = [
@@ -278,11 +300,6 @@ class Woocommerce_Cart_Items extends Element {
 					'property' => 'position',
 					'selector' => '.product-remove',
 					'value'    => 'absolute',
-				],
-				[
-					'property' => 'height',
-					'selector' => '.product-remove',
-					'value'    => '30px',
 				],
 			],
 		];
@@ -341,7 +358,7 @@ class Woocommerce_Cart_Items extends Element {
 			'tab'      => 'content',
 			'group'    => 'coupon',
 			'label'    => esc_html__( 'Margin', 'bricks' ),
-			'type'     => 'dimensions',
+			'type'     => 'spacing',
 			'css'      => [
 				[
 					'property' => 'margin',
@@ -389,8 +406,9 @@ class Woocommerce_Cart_Items extends Element {
 
 					<?php
 					foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-						$_product   = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
-						$product_id = apply_filters( 'woocommerce_cart_item_product_id', $cart_item['product_id'], $cart_item, $cart_item_key );
+						$_product     = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
+						$product_id   = apply_filters( 'woocommerce_cart_item_product_id', $cart_item['product_id'], $cart_item, $cart_item_key );
+						$product_name = apply_filters( 'woocommerce_cart_item_name', $_product->get_name(), $cart_item, $cart_item_key );
 
 						if ( $_product && $_product->exists() && $cart_item['quantity'] > 0 && apply_filters( 'woocommerce_cart_item_visible', true, $cart_item, $cart_item_key ) ) {
 							$product_permalink = apply_filters( 'woocommerce_cart_item_permalink', $_product->is_visible() ? $_product->get_permalink( $cart_item ) : '', $cart_item, $cart_item_key );
@@ -401,10 +419,12 @@ class Woocommerce_Cart_Items extends Element {
 									<?php
 										echo apply_filters( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 											'woocommerce_cart_item_remove_link',
+											// translators: %s: Product remove URL, %s: Product remove text, %s: Product ID, %s: Product SKU
 											sprintf(
 												'<a href="%s" class="remove" aria-label="%s" data-product_id="%s" data-product_sku="%s">&times;</a>',
 												esc_url( wc_get_cart_remove_url( $cart_item_key ) ),
-												esc_html__( 'Remove this item', 'woocommerce' ),
+												// translators: %s: Product name
+												esc_attr( sprintf( __( 'Remove %s from cart', 'woocommerce' ), wp_strip_all_tags( $product_name ) ) ),
 												esc_attr( $product_id ),
 												esc_attr( $_product->get_sku() )
 											),
@@ -428,7 +448,7 @@ class Woocommerce_Cart_Items extends Element {
 								<td class="product-name" data-title="<?php esc_attr_e( 'Product', 'woocommerce' ); ?>">
 								<?php
 								if ( ! $product_permalink ) {
-									echo wp_kses_post( apply_filters( 'woocommerce_cart_item_name', $_product->get_name(), $cart_item, $cart_item_key ) . '&nbsp;' );
+									echo wp_kses_post( $product_name . '&nbsp;' );
 								} else {
 									echo wp_kses_post( apply_filters( 'woocommerce_cart_item_name', sprintf( '<a href="%s">%s</a>', esc_url( $product_permalink ), $_product->get_name() ), $cart_item, $cart_item_key ) );
 								}
@@ -454,20 +474,24 @@ class Woocommerce_Cart_Items extends Element {
 								<td class="product-quantity" data-title="<?php esc_attr_e( 'Quantity', 'woocommerce' ); ?>">
 								<?php
 								if ( $_product->is_sold_individually() ) {
-									$product_quantity = sprintf( '1 <input type="hidden" name="cart[%s][qty]" value="1" />', $cart_item_key );
+									$min_quantity = 1;
+									$max_quantity = 1;
 								} else {
-									$product_quantity = woocommerce_quantity_input(
-										array(
-											'input_name'   => "cart[{$cart_item_key}][qty]",
-											'input_value'  => $cart_item['quantity'],
-											'max_value'    => $_product->get_max_purchase_quantity(),
-											'min_value'    => '0',
-											'product_name' => $_product->get_name(),
-										),
-										$_product,
-										false
-									);
+									$min_quantity = 0; // Follow cart.php in WC 7.4.0.
+									$max_quantity = $_product->get_max_purchase_quantity();
 								}
+
+								$product_quantity = woocommerce_quantity_input(
+									[
+										'input_name'   => "cart[{$cart_item_key}][qty]",
+										'input_value'  => $cart_item['quantity'],
+										'max_value'    => $max_quantity,
+										'min_value'    => $min_quantity,
+										'product_name' => $product_name,
+									],
+									$_product,
+									false
+								);
 
 								echo apply_filters( 'woocommerce_cart_item_quantity', $product_quantity, $cart_item_key, $cart_item ); // PHPCS: XSS ok.
 								?>
@@ -490,7 +514,7 @@ class Woocommerce_Cart_Items extends Element {
 						<td colspan="6" class="actions">
 							<?php if ( wc_coupons_enabled() && ! isset( $settings['hideCoupon'] ) ) { ?>
 								<div class="coupon">
-									<label for="coupon_code"><?php esc_html_e( 'Coupon:', 'woocommerce' ); ?></label> <input type="text" name="coupon_code" class="input-text" id="coupon_code" value="" placeholder="<?php esc_attr_e( 'Coupon code', 'woocommerce' ); ?>" /> <button type="submit" class="button" name="apply_coupon" value="<?php esc_attr_e( 'Apply coupon', 'woocommerce' ); ?>"><?php esc_attr_e( 'Apply coupon', 'woocommerce' ); ?></button>
+									<label for="coupon_code"><?php esc_html_e( 'Coupon:', 'woocommerce' ); ?></label> <input type="text" name="coupon_code" class="input-text" id="coupon_code" value="" placeholder="<?php esc_attr_e( 'Coupon code', 'woocommerce' ); ?>" /> <button type="submit" class="button" name="apply_coupon" value="<?php esc_attr_e( 'Apply coupon', 'woocommerce' ); ?>"><?php esc_html_e( 'Apply coupon', 'woocommerce' ); ?></button>
 									<?php do_action( 'woocommerce_cart_coupon' ); ?>
 								</div>
 							<?php } ?>

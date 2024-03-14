@@ -83,16 +83,16 @@ class Sendgrid extends Base {
 		$form_settings = $form->get_settings();
 		$form_fields   = $form->get_fields();
 
-		$first_name    = isset( $form_fields[ "form-field-{$form_settings['sendgridFirstName']}" ] ) ? $form_fields[ "form-field-{$form_settings['sendgridFirstName']}" ] : false;
-		$last_name     = isset( $form_fields[ "form-field-{$form_settings['sendgridLastName']}" ] ) ? $form_fields[ "form-field-{$form_settings['sendgridLastName']}" ] : false;
-		$email_address = isset( $form_fields[ "form-field-{$form_settings['sendgridEmail']}" ] ) ? $form_fields[ "form-field-{$form_settings['sendgridEmail']}" ] : false;
+		$first_name    = isset( $form_settings['sendgridFirstName'] ) && isset( $form_fields[ "form-field-{$form_settings['sendgridFirstName']}" ] ) ? $form_fields[ "form-field-{$form_settings['sendgridFirstName']}" ] : false;
+		$last_name     = isset( $form_settings['sendgridLastName'] ) && isset( $form_fields[ "form-field-{$form_settings['sendgridLastName']}" ] ) ? $form_fields[ "form-field-{$form_settings['sendgridLastName']}" ] : false;
+		$email_address = isset( $form_settings['sendgridEmail'] ) && isset( $form_fields[ "form-field-{$form_settings['sendgridEmail']}" ] ) ? $form_fields[ "form-field-{$form_settings['sendgridEmail']}" ] : false;
 
 		// Throw error if no email address provided
 		if ( ! $email_address ) {
 			$form->set_result(
 				[
 					'action'  => $this->name,
-					'type'    => 'danger',
+					'type'    => 'error',
 					'message' => esc_html__( 'No email address provided.', 'bricks' )
 				]
 			);
@@ -131,7 +131,7 @@ class Sendgrid extends Base {
 			[
 				'method'  => 'PUT',
 				'headers' => self::get_headers(),
-				'body'    => json_encode( $body ),
+				'body'    => wp_json_encode( $body ),
 			]
 		);
 
@@ -140,7 +140,7 @@ class Sendgrid extends Base {
 
 		// Error
 		if ( $response_code === 400 ) {
-			$type    = 'danger';
+			$type    = 'error';
 			$message = isset( $form_settings['sendgridErrorMessage'] ) ? $form_settings['sendgridErrorMessage'] : '';
 			$body    = $response_body['errors'][0]['message'] . '.';
 		}
@@ -148,7 +148,7 @@ class Sendgrid extends Base {
 		// Success
 		else {
 			$type    = 'success';
-			$message = 'OK';
+			$message = '';
 			$body    = $response_body;
 		}
 

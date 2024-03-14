@@ -30,6 +30,7 @@ class Element_Tabs extends Element {
 			'tab'         => 'content',
 			'placeholder' => esc_html__( 'Tab', 'bricks' ),
 			'type'        => 'repeater',
+			'description' => esc_html__( 'Set "ID" on items above to open via anchor link.', 'bricks' ) . ' ' . esc_html__( 'No spaces. No pound (#) sign.', 'bricks' ),
 			'fields'      => [
 				'icon'         => [
 					'label' => esc_html__( 'Icon', 'bricks' ),
@@ -47,6 +48,11 @@ class Element_Tabs extends Element {
 
 				'title'        => [
 					'label' => esc_html__( 'Title', 'bricks' ),
+					'type'  => 'text',
+				],
+
+				'anchorId'     => [
+					'label' => esc_html__( 'ID', 'bricks' ),
 					'type'  => 'text',
 				],
 
@@ -115,7 +121,7 @@ class Element_Tabs extends Element {
 			'tab'     => 'content',
 			'group'   => 'title',
 			'label'   => esc_html__( 'Padding', 'bricks' ),
-			'type'    => 'dimensions',
+			'type'    => 'spacing',
 			'css'     => [
 				[
 					'property' => 'padding',
@@ -127,19 +133,6 @@ class Element_Tabs extends Element {
 				'right'  => 20,
 				'bottom' => 20,
 				'left'   => 20,
-			],
-		];
-
-		$this->controls['titleTypography'] = [
-			'tab'   => 'content',
-			'group' => 'title',
-			'label' => esc_html__( 'Typography', 'bricks' ),
-			'type'  => 'typography',
-			'css'   => [
-				[
-					'property' => 'font',
-					'selector' => '.tab-title',
-				],
 			],
 		];
 
@@ -181,15 +174,15 @@ class Element_Tabs extends Element {
 			],
 		];
 
-		$this->controls['titleActiveTypography'] = [
+		$this->controls['titleTypography'] = [
 			'tab'   => 'content',
 			'group' => 'title',
-			'label' => esc_html__( 'Active typography', 'bricks' ),
+			'label' => esc_html__( 'Typography', 'bricks' ),
 			'type'  => 'typography',
 			'css'   => [
 				[
 					'property' => 'font',
-					'selector' => '.tab-title.brx-open',
+					'selector' => '.tab-title',
 				],
 			],
 		];
@@ -220,13 +213,26 @@ class Element_Tabs extends Element {
 			],
 		];
 
+		$this->controls['titleActiveTypography'] = [
+			'tab'   => 'content',
+			'group' => 'title',
+			'label' => esc_html__( 'Active typography', 'bricks' ),
+			'type'  => 'typography',
+			'css'   => [
+				[
+					'property' => 'font',
+					'selector' => '.tab-title.brx-open',
+				],
+			],
+		];
+
 		// CONTENT
 
 		$this->controls['contentPadding'] = [
 			'tab'     => 'content',
 			'group'   => 'content',
 			'label'   => esc_html__( 'Padding', 'bricks' ),
-			'type'    => 'dimensions',
+			'type'    => 'spacing',
 			'css'     => [
 				[
 					'property' => 'padding',
@@ -327,12 +333,13 @@ class Element_Tabs extends Element {
 		foreach ( $settings['tabs'] as $index => $tab ) {
 			$tab_title_classes = [ 'tab-title', 'repeater-item' ];
 
-			if ( $index === 0 ) {
-				$tab_title_classes[] = 'brx-open';
-			}
-
 			if ( ! empty( $tab['iconPosition'] ) ) {
 				$tab_title_classes[] = "icon-{$tab['iconPosition']}";
+			}
+
+			// Set 'id' to open & scroll to specific tab (@since 1.8.6)
+			if ( ! empty( $tab['anchorId'] ) ) {
+				$this->set_attribute( "tab-title-$index", 'id', $tab['anchorId'] );
 			}
 
 			$this->set_attribute( "tab-title-$index", 'class', $tab_title_classes );
@@ -347,7 +354,7 @@ class Element_Tabs extends Element {
 			}
 
 			if ( ! empty( $tab['title'] ) ) {
-				$output .= "<span>{$tab['title']}</span>";
+				$output .= "<span>{$this->render_dynamic_data( $tab['title'] )}</span>";
 			}
 
 			$output .= '</li>';
@@ -360,15 +367,13 @@ class Element_Tabs extends Element {
 		foreach ( $settings['tabs'] as $index => $tab ) {
 			$tab_pane_classes = [ 'tab-pane' ];
 
-			if ( $index === 0 ) {
-				$tab_pane_classes[] = 'brx-open';
-			}
-
 			$this->set_attribute( "tab-pane-$index", 'class', $tab_pane_classes );
 
-			$content = ! empty( $tab['content'] ) ? $this->render_dynamic_data( $tab['content'] ) : '';
+			$content = ! empty( $tab['content'] ) ? $tab['content'] : false;
 
-			$output .= "<li {$this->render_attributes( "tab-pane-$index" )}>" . apply_filters( 'the_content', $content ) . '</li>';
+			$content = $this->render_dynamic_data( $content );
+
+			$output .= "<li {$this->render_attributes( "tab-pane-$index" )}>" . Helpers::parse_editor_content( $content ) . '</li>';
 		}
 
 		$output .= '</ul>';

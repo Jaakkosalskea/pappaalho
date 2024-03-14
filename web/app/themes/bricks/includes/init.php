@@ -7,6 +7,9 @@ class Theme {
 	public $capabilities;
 	public $database;
 	public $helpers;
+	public $cli;
+
+	public $breakpoints;
 	public $blocks;
 	public $revisions;
 	public $license;
@@ -20,6 +23,7 @@ class Theme {
 	public $templates;
 	public $heartbeat;
 	public $converter;
+	public $maintenance;
 
 	public $admin;
 	public $feedback;
@@ -27,11 +31,22 @@ class Theme {
 	public $api;
 	public $elements;
 	public $woocommerce;
+	public $polylang;
 	public $integrations_form;
+	public $wpml;
 	public $builder;
 	public $frontend;
 
 	public $assets;
+
+	public $interactions;
+	public $popups;
+
+	public $conditions;
+
+	public $auth_redirects;
+
+	public $query_filters;
 
 	/**
 	 * The one and only Theme instance
@@ -66,14 +81,28 @@ class Theme {
 		$this->capabilities = new Capabilities();
 		$this->database     = new Database();
 		$this->helpers      = new Helpers();
-		$this->blocks       = new Blocks();
-		$this->revisions    = new Revisions();
+		$this->cli          = new CLI();
+
+		$this->maintenance = Maintenance::get_instance();
+
+		$this->breakpoints = new Breakpoints();
+		$this->blocks      = new Blocks();
+		$this->revisions   = new Revisions();
 
 		$this->license      = new License();
 		$this->setup        = new Setup();
 		$this->search       = new Search();
-		$this->theme_styles = new Theme_Styles();
 		$this->custom_fonts = new Custom_Fonts();
+		$this->interactions = new Interactions();
+		$this->popups       = new Popups();
+
+		// Element Conditions API
+		$this->conditions = new Conditions();
+
+		$this->auth_redirects = new Auth_Redirects();
+
+		// Load before elements (theme style settings needed inside element render)
+		$this->theme_styles = new Theme_Styles();
 
 		// Load all elements in builder, but only requested elements on frontend
 		$this->elements = new Elements();
@@ -88,6 +117,8 @@ class Theme {
 
 		// Integrations
 		$this->integrations_form = new Integrations\Form\Init();
+		$this->polylang          = new Integrations\Polylang\Polylang();
+		$this->wpml              = new Integrations\Wpml\Wpml();
 
 		if ( is_admin() ) {
 			$this->admin     = new Admin();
@@ -101,8 +132,24 @@ class Theme {
 		 * Dynamic Data
 		 *
 		 * Order matters: 'cmb2' before 'wp' so it can filter the custom fields correctly.
+		 *
+		 * NOTE: bricks/dynamic_data/register_providers Undocumented (@since 1.6.2)
 		 */
-		Integrations\Dynamic_Data\Providers::register( [ 'cmb2', 'wp', 'woo', 'acf', 'pods', 'metabox', 'toolset', 'jetengine' ] );
+		$dynamic_data_providers = apply_filters(
+			'bricks/dynamic_data/register_providers',
+			[
+				'cmb2',
+				'wp',
+				'woo',
+				'acf',
+				'pods',
+				'metabox',
+				'toolset',
+				'jetengine' ,
+			]
+		);
+
+		Integrations\Dynamic_Data\Providers::register( $dynamic_data_providers );
 
 		Integrations\Rank_Math\Rank_Math::register();
 
@@ -117,8 +164,13 @@ class Theme {
 			}
 		}
 
-		// @since 1.3.4
 		$this->assets = new Assets();
+
+		// Query Filters (@since 1.9.6)
+		if ( Helpers::enabled_query_filters() ) {
+			$this->query_filters = Query_Filters::get_instance();
+		}
+
 	}
 
 	/**

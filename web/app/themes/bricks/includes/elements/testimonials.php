@@ -104,20 +104,19 @@ class Element_Testimonials extends Element {
 		$this->controls['gutter']         = $swiper_controls['gutter'];
 
 		$this->controls['alignItems'] = [
-			'tab'          => 'content',
-			'group'        => 'settings',
-			'label'        => esc_html__( 'Align items', 'bricks' ),
-			'type'         => 'justify-content',
-			'exclude'      => 'space',
-			'isHorizontal' => false,
-			'css'          => [
+			'tab'     => 'content',
+			'group'   => 'settings',
+			'label'   => esc_html__( 'Align items', 'bricks' ),
+			'type'    => 'justify-content',
+			'exclude' => 'space',
+			'css'     => [
 				[
 					'property' => 'justify-content',
 					'selector' => '.repeater-item',
 				],
 			],
 
-			'inline'       => true,
+			'inline'  => true,
 		];
 
 		$this->controls['textAlign'] = [
@@ -148,24 +147,22 @@ class Element_Testimonials extends Element {
 		$this->controls['pauseOnHover']    = $swiper_controls['pauseOnHover'];
 		$this->controls['autoplaySpeed']   = $swiper_controls['autoplaySpeed'];
 		$this->controls['speed']           = $swiper_controls['speed'];
-		$this->controls['responsive']      = $swiper_controls['responsive'];
 
 		// IMAGE
 
 		$this->controls['imageAlign'] = [
-			'tab'          => 'content',
-			'group'        => 'image',
-			'label'        => esc_html__( 'Image align', 'bricks' ),
-			'type'         => 'align-items',
-			'isHorizontal' => false,
-			'exclude'      => 'stretch',
-			'css'          => [
+			'tab'     => 'content',
+			'group'   => 'image',
+			'label'   => esc_html__( 'Image align', 'bricks' ),
+			'type'    => 'align-items',
+			'exclude' => 'stretch',
+			'css'     => [
 				[
 					'property' => 'align-items',
 					'selector' => '.repeater-item',
 				],
 			],
-			'inline'       => true,
+			'inline'  => true,
 		];
 
 		$this->controls['imagePosition'] = [
@@ -269,9 +266,9 @@ class Element_Testimonials extends Element {
 		$this->controls['dotsBottom']      = $swiper_controls['dotsBottom'];
 		$this->controls['dotsLeft']        = $swiper_controls['dotsLeft'];
 		$this->controls['dotsBorder']      = $swiper_controls['dotsBorder'];
-		$this->controls['dotsSpacing']     = $swiper_controls['dotsSpacing'];
 		$this->controls['dotsColor']       = $swiper_controls['dotsColor'];
 		$this->controls['dotsActiveColor'] = $swiper_controls['dotsActiveColor'];
+		$this->controls['dotsSpacing']     = $swiper_controls['dotsSpacing'];
 
 		/**
 		 * Tab: Style
@@ -366,10 +363,9 @@ class Element_Testimonials extends Element {
 
 		$this->set_attribute( 'meta-wrapper', 'class', $meta_wrapper_classes );
 
-		$slides_to_show   = isset( $settings['slidesToShow'] ) ? intval( $settings['slidesToShow'] ) : 1;
-		$slides_to_scroll = isset( $settings['slidesToScroll'] ) ? intval( $settings['slidesToScroll'] ) : 1;
-
 		$options = [
+			'slidesPerView'  => isset( $settings['slidesToShow'] ) ? intval( $settings['slidesToShow'] ) : 1,
+			'slidesPerGroup' => isset( $settings['slidesToScroll'] ) ? intval( $settings['slidesToScroll'] ) : 1,
 			'autoHeight'     => true,
 			'speed'          => isset( $settings['speed'] ) ? intval( $settings['speed'] ) : 300,
 			'effect'         => isset( $settings['effect'] ) ? $settings['effect'] : 'slide',
@@ -377,21 +373,10 @@ class Element_Testimonials extends Element {
 			'initialSlide'   => isset( $settings['initialSlide'] ) ? intval( $settings['initialSlide'] ) : 0,
 			'loop'           => isset( $settings['infinite'] ),
 			'centeredSlides' => isset( $settings['centerMode'] ),
-			// Set slides per view & group in breakpoint settings below
-			// 'slidesPerView'  => $slides_to_show,
-			// 'slidesPerGroup' => $slides_to_scroll,
 		];
 
 		if ( isset( $settings['autoplay'] ) ) {
-			$options['autoplay'] = [
-				'delay'                => isset( $settings['autoplaySpeed'] ) ? intval( $settings['autoplaySpeed'] ) : 3000,
-
-				// Set to false if pauseOnHover is true, otherwise it stops after the first hover
-				'disableOnInteraction' => ! isset( $settings['pauseOnHover'] ),
-
-				// Pause autoplay on mouse enter (new in v6.6: autoplay.pauseOnMouseEnter)
-				'pauseOnMouseEnter'    => isset( $settings['pauseOnHover'] ),
-			];
+			$options['autoplay'] = Helpers::generate_swiper_autoplay_options( $settings );
 		}
 
 		// Arrow navigation
@@ -410,10 +395,11 @@ class Element_Testimonials extends Element {
 
 		$breakpoint_options = Helpers::generate_swiper_breakpoint_data_options( $settings );
 
-		// Has slidesPerView/slidesPerGroup set on non-base breakpoints
-		if ( is_array( $breakpoint_options ) && count( $breakpoint_options ) > 1 ) {
+		// Has slidesPerView/slidesPerGroup set on non-desktop breakpoints
+		if ( count( $breakpoint_options ) > 1 ) {
 			unset( $options['slidesPerView'] );
 			unset( $options['slidesPerGroup'] );
+
 			$options['breakpoints'] = $breakpoint_options;
 		}
 
@@ -438,7 +424,7 @@ class Element_Testimonials extends Element {
 						if ( isset( $testimonial['name'] ) || isset( $testimonial['title'] ) || isset( $testimonial['image'] ) ) {
 							echo "<div {$this->render_attributes( 'meta-wrapper' )}>";
 
-							if ( isset( $testimonial['image'] ) && ! empty( $testimonial['image'] ) ) {
+							if ( ! empty( $testimonial['image'] ) ) {
 								if ( ! empty( $testimonial['image']['useDynamicData'] ) ) {
 									$images = $this->render_dynamic_data_tag( $testimonial['image']['useDynamicData'], 'image' );
 									$size   = isset( $testimonial['image']['size'] ) ? $testimonial['image']['size'] : BRICKS_DEFAULT_IMAGE_SIZE;

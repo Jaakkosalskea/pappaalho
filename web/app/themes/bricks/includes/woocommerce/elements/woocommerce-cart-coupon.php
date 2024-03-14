@@ -15,22 +15,20 @@ class Woocommerce_Cart_Coupon extends Element {
 
 	public function set_controls() {
 		$this->controls['direction'] = [
-			'tab'       => 'content',
-			'label'     => esc_html__( 'Direction', 'bricks' ),
-			'tooltip'   => [
+			'tab'     => 'content',
+			'label'   => esc_html__( 'Direction', 'bricks' ),
+			'tooltip' => [
 				'content'  => 'flex-direction',
 				'position' => 'top-left',
 			],
-			'type'      => 'direction',
-			'direction' => 'row',
-			'css'       => [
+			'type'    => 'direction',
+			'css'     => [
 				[
 					'selector' => '.coupon',
 					'property' => 'flex-direction',
 				],
 			],
-			'inline'    => true,
-			'rerender'  => true
+			'inline'  => true,
 		];
 
 		$this->controls['inputSeperator'] = [
@@ -128,7 +126,7 @@ class Woocommerce_Cart_Coupon extends Element {
 		$this->controls['buttonMargin'] = [
 			'tab'         => 'content',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'css'         => [
 				[
 					'property' => 'margin',
@@ -186,6 +184,7 @@ class Woocommerce_Cart_Coupon extends Element {
 		Woocommerce_Helpers::maybe_init_cart_context();
 
 		if ( ! wc_coupons_enabled() ) {
+			// translators: %1$s: opening a tag, %2$s: closing a tag
 			return $this->render_element_placeholder( [ 'title' => sprintf( esc_html__( 'Coupons are disabled. To enable coupons go to %1$sWooCommerce settings%2$s', 'bricks' ), '<a href="' . admin_url( 'admin.php?page=wc-settings' ) . '">', '</a>' ) ] );
 		}
 

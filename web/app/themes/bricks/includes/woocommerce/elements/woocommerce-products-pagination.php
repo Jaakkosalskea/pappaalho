@@ -68,6 +68,7 @@ class Woocommerce_Products_Pagination extends Element {
 			if ( ! $query ) {
 				return $this->render_element_placeholder(
 					[
+						// translators: %s: element name
 						'title' => sprintf( esc_html__( 'Element %s not found.', 'bricks' ), '"' . esc_html__( 'Products', 'bricks' ) . '"' ),
 					]
 				);

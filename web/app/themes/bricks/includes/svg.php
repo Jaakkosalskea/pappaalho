@@ -7,13 +7,11 @@ use Bricks\Integrations\Svg_Sanitizer\Allowed_Attributes as Allowed_Attributes;
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class Svg {
-
 	/**
 	 * Enable SVGs uploads
 	 *
 	 * https://enshrined.co.uk/2018/04/29/securing-svg-uploads-in-wordpress/
 	 */
-
 	public function __construct() {
 		add_filter( 'upload_mimes', [ $this, 'svg_enable_upload' ] );
 		add_filter( 'wp_check_filetype_and_ext', [ $this, 'disable_real_mime_check' ], 10, 4 );
@@ -29,7 +27,7 @@ class Svg {
 	 * @since 1.0
 	 */
 	public function svg_enable_upload( $mimes ) {
-		if ( ! current_user_can( Capabilities::UPLOAD_SVG ) ) {
+		if ( ! Capabilities::current_user_can_upload_svg() ) {
 			return $mimes;
 		}
 
@@ -77,9 +75,7 @@ class Svg {
 			return $file;
 		}
 
-		/**
-		 * NOTE: Undocumented. Bypass the svg sanitization process
-		 */
+		// NOTE: Undocumented. Bypass the svg sanitization process
 		$bypass_sanitization = apply_filters( 'bricks/svg/bypass_sanitization', false, $file );
 
 		if ( ! $bypass_sanitization ) {
@@ -98,16 +94,15 @@ class Svg {
 	 * Uses https://github.com/darylldoyle/svg-sanitizer library
 	 *
 	 * @param array $file
-	 * @return void
 	 */
 	protected function sanitize( $file ) {
-
 		$sanitizer = new \enshrined\svgSanitize\Sanitizer();
 		$sanitizer->minify( true );
 
 		$file_content = file_get_contents( $file );
+		$is_gzipped   = $this->is_file_gzipped( $file_content );
 
-		if ( $is_gzipped = $this->is_file_gzipped( $file_content ) ) {
+		if ( $is_gzipped ) {
 			$file_content = gzdecode( $file_content );
 
 			if ( $file_content === false ) {
@@ -140,19 +135,18 @@ class Svg {
 	 * Checks if content is gzipped
 	 *
 	 * @param string $contents
+	 *
 	 * @return boolean
 	 */
 	protected function is_file_gzipped( $contents ) {
 		if ( function_exists( 'mb_strpos' ) ) {
-			return 0 === mb_strpos( $contents, "\x1f" . "\x8b" . "\x08" );
+			return mb_strpos( $contents, "\x1f\x8b\x08" ) === 0;
 		} else {
-			return 0 === strpos( $contents, "\x1f" . "\x8b" . "\x08" );
+			return strpos( $contents, "\x1f\x8b\x08" ) === 0;
 		}
 	}
 
 	public static function load_libraries() {
 		require_once BRICKS_PATH . 'includes/integrations/svg-sanitizer/library/vendor/autoload.php';
 	}
-
 }
-

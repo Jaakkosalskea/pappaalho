@@ -4,7 +4,6 @@ namespace Bricks;
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class License {
-
 	public static $license_key     = '';
 	public static $license_status  = '';
 	public static $remote_base_url = 'https://bricksbuilder.io/api/commerce/';
@@ -24,8 +23,7 @@ class License {
 	/**
 	 * Check remotely if newer version of Bricks is available
 	 *
-	 * @param $transient Transient for WordPress theme updates.
-	 * @return void
+	 * @param string $transient Transient for WordPress theme updates.
 	 */
 	public static function check_for_update( $transient ) {
 		// 'checked' is an array with all installed themes and their version numbers
@@ -41,7 +39,7 @@ class License {
 
 		// Installed theme data
 		$theme_data        = wp_get_theme();
-		$installed_version = $theme_data->Version;
+		$installed_version = $theme_data->Version; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 
 		// Check if Bricks is parent theme (i.e. Bricks child theme in use)
 		if ( wp_get_theme()->parent() ) {
@@ -111,7 +109,7 @@ class License {
 	/**
 	 * Get license status (stored locally in transient: bricks_license_status)
 	 *
-	 * If transient expired (after 12h) then get it remotely from Bricks server.
+	 * If transient has expired (after 168h) then get it remotely from Bricks server.
 	 *
 	 * @return array
 	 */
@@ -122,14 +120,14 @@ class License {
 			return false;
 		}
 
-		// Check license transient (expires after 12 hours)
+		// Check license transient (expires after 168 hours)
 		$transient_timeout          = get_option( '_transient_timeout_bricks_license_status' );
 		$transient_timeout_in_hours = ( intval( $transient_timeout ) - time() ) / 60 / 60;
 
 		$license_status = get_transient( 'bricks_license_status' );
 
 		// No valid transient found: Get license status remotely
-		if ( ! $transient_timeout || $transient_timeout_in_hours > 12 || false === $license_status ) {
+		if ( ! $transient_timeout || $transient_timeout_in_hours > 168 || false === $license_status ) {
 			delete_transient( 'bricks_license_status' );
 
 			$url = add_query_arg(
@@ -153,7 +151,7 @@ class License {
 				$license_status = $response['status'];
 			}
 
-			// Save license status in transient (expires after 12 hours)
+			// Save license status in transient (expires after 168 hours)
 			self::set_license_status( $license_status );
 		}
 
@@ -178,10 +176,10 @@ class License {
 	}
 
 	/**
-	 * Save license status in transient (expires after 12 hours)
+	 * Save license status in transient (expires after 168 hours)
 	 */
 	public static function set_license_status( $license_status ) {
-		$expiration_time = 12 * HOUR_IN_SECONDS;
+		$expiration_time = 168 * HOUR_IN_SECONDS;
 
 		set_transient( 'bricks_license_status', $license_status, $expiration_time );
 	}
@@ -198,7 +196,12 @@ class License {
 		$is_ajax     = bricks_is_ajax_call();
 
 		if ( $is_ajax ) {
-			Ajax::verify_request();
+			Ajax::verify_nonce();
+
+			// Only a user with full access can activate the license (@since 1.5.4)
+			if ( ! Capabilities::current_user_has_full_access() ) {
+				wp_send_json_error( 'verify_request: Sorry, you are not allowed to perform this action.' );
+			}
 
 			$license_key = isset( $_POST['licenseKey'] ) && ! empty( $_POST['licenseKey'] ) ? trim( $_POST['licenseKey'] ) : false;
 
@@ -233,22 +236,42 @@ class License {
 		// Check for remote error(s)
 		if ( is_wp_error( $response ) ) {
 			if ( $is_ajax ) {
-				wp_send_json_error( [ 'message' => $response->get_error_message() ] );
+				wp_send_json_error(
+					[
+						'message'  => $response->get_error_message(),
+						'response' => $response,
+					]
+				);
 			} else {
 				return;
 			}
 		}
 
-		if ( wp_remote_retrieve_response_code( $response ) !== 200 ) {
-			if ( $is_ajax ) {
-				wp_send_json_error( [ 'message' => wp_remote_retrieve_response_message( $response ) ] );
+		$license_status = false;
+		$response_code  = wp_remote_retrieve_response_code( $response );
+
+		if ( $response_code != 200 ) {
+			// Handle CloudFlare 403 "Forbidden" response
+			if ( $response_code === 403 ) {
+				$license_status = 'active';
+			} elseif ( $is_ajax ) {
+				wp_send_json_error(
+					[
+						'code'     => $response_code,
+						'message'  => wp_remote_retrieve_response_message( $response ),
+						'response' => $response,
+					]
+				);
 			} else {
 				return;
 			}
 		}
 
-		$response       = json_decode( wp_remote_retrieve_body( $response ), true );
-		$license_status = isset( $response['status'] ) ? $response['status'] : false;
+		$response = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( isset( $response['status'] ) ) {
+			$license_status = $response['status'];
+		}
 
 		// Return remote error
 		if ( $response['type'] === 'error' && isset( $response['message'] ) ) {
@@ -271,11 +294,8 @@ class License {
 		// Save license key in db options table
 		update_option( 'bricks_license_key', $license_key );
 
-		// Save license status in transient (expires after 12 hours)
+		// Save license status in transient (expires after 168 hours)
 		self::set_license_status( $license_status );
-
-		// Download remote templates data from server and store in db options table
-		Templates::get_remote_templates_data();
 
 		if ( $is_ajax ) {
 			wp_send_json_success(
@@ -292,12 +312,17 @@ class License {
 	/**
 	 * Deactivate license
 	 *
-	 * @return null
+	 * @return void
 	 *
 	 * @since 1.0
 	 */
 	public static function deactivate_license() {
-		Ajax::verify_request();
+		Ajax::verify_nonce();
+
+		// Only a user with full access can deactivate the license (@since 1.5.4)
+		if ( ! Capabilities::current_user_has_full_access() ) {
+			wp_send_json_error( 'verify_request: Sorry, you are not allowed to perform this action.' );
+		}
 
 		// Deactivate license
 		$response = Helpers::remote_post(
@@ -346,7 +371,7 @@ class License {
 				<p><?php echo esc_html__( 'Activate your license to edit with Bricks, receive one-click updates, and access to all community templates.', 'bricks' ); ?></p>
 			</div>
 
-			<a class="button button-primary" href="<?php echo esc_url( BRICKS_ADMIN_PAGE_URL_LICENSE ); ?>"><?php esc_html_e( 'Activate License', 'bricks' ); ?></a>
+			<a class="button button-primary" href="<?php echo esc_url( BRICKS_ADMIN_PAGE_URL_LICENSE ); ?>"><?php esc_html_e( 'Activate license', 'bricks' ); ?></a>
 		</div>
 		<?php
 	}
@@ -376,12 +401,12 @@ class License {
 		switch ( $license_status ) {
 			case 'license_key_invalid':
 				$license_error_title       = esc_html__( 'Error: Invalid license key', 'bricks' );
-				$license_error_description = esc_html__( 'Your provided license key is invalid. Please deactive and then reactivate your license.', 'bricks' );
+				$license_error_description = esc_html__( 'Your provided license key is invalid. Please deactivate and then reactivate your license.', 'bricks' );
 				break;
 
 			case 'website_inactive':
 				$license_error_title       = esc_html__( 'Error: License mismatch', 'bricks' );
-				$license_error_description = esc_html__( 'Your website does not match your license key. Please deactive and then reactivate your license.', 'bricks' );
+				$license_error_description = esc_html__( 'Your website does not match your license key. Please deactivate and then reactivate your license.', 'bricks' );
 				break;
 		}
 

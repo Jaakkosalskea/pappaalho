@@ -20,16 +20,90 @@ class Element_Countdown extends Element {
 
 	public function set_controls() {
 		$this->controls['date'] = [
-			'tab'      => 'content',
-			'label'    => esc_html__( 'Date', 'bricks' ),
-			'type'     => 'datepicker',
-			'default'  => '2023-01-01 12:00',
+			'label'          => esc_html__( 'Date', 'bricks' ),
+			'type'           => 'datepicker',
+			'default'        => '2024-01-01 12:00',
+			'hasDynamicData' => false, // TODO: Set to true to use dynamic data
+			'rerender'       => true,
+		];
+
+		$this->controls['timezone'] = [
+			'tab'         => 'content',
+			'label'       => esc_html__( 'Time zone', 'bricks' ),
+			'type'        => 'select',
+			'options'     => [
+				'UTC-12:00' => 'UTC-12:00',
+				'UTC-11:00' => 'UTC-11:00',
+				'UTC-10:00' => 'UTC-10:00',
+				'UTC-09:30' => 'UTC-09:30',
+				'UTC-09:00' => 'UTC-09:00',
+				'UTC-08:00' => 'UTC-08:00',
+				'UTC-07:00' => 'UTC-07:00',
+				'UTC-06:00' => 'UTC-06:00',
+				'UTC-05:00' => 'UTC-05:00',
+				'UTC-04:30' => 'UTC-04:30',
+				'UTC-04:00' => 'UTC-04:00',
+				'UTC-03:30' => 'UTC-03:30',
+				'UTC-03:00' => 'UTC-03:00',
+				'UTC-02:00' => 'UTC-02:00',
+				'UTC-01:00' => 'UTC-01:00',
+				'UTC+00:00' => 'UTC+00:00',
+				'UTC+01:00' => 'UTC+01:00',
+				'UTC+02:00' => 'UTC+02:00',
+				'UTC+03:00' => 'UTC+03:00',
+				'UTC+03:30' => 'UTC+03:30',
+				'UTC+04:00' => 'UTC+04:00',
+				'UTC+04:30' => 'UTC+04:30',
+				'UTC+05:00' => 'UTC+05:00',
+				'UTC+05:30' => 'UTC+05:30',
+				'UTC+05:45' => 'UTC+05:45',
+				'UTC+06:00' => 'UTC+06:00',
+				'UTC+06:30' => 'UTC+06:30',
+				'UTC+07:00' => 'UTC+07:00',
+				'UTC+08:00' => 'UTC+08:00',
+				'UTC+08:45' => 'UTC+08:45',
+				'UTC+09:00' => 'UTC+09:00',
+				'UTC+09:30' => 'UTC+09:30',
+				'UTC+10:00' => 'UTC+10:00',
+				'UTC+10:30' => 'UTC+10:30',
+				'UTC+11:00' => 'UTC+11:00',
+				'UTC+12:00' => 'UTC+12:00',
+				'UTC+12:45' => 'UTC+12:45',
+				'UTC+13:00' => 'UTC+13:00',
+				'UTC+14:00' => 'UTC+14:00',
+			],
+			'inline'      => true,
+			'placeholder' => 'UTC+00',
+		];
+
+		$this->controls['action'] = [
+			'label'       => esc_html__( 'Date Reached', 'bricks' ),
+			'type'        => 'select',
+			'options'     => [
+				'countdown' => esc_html__( 'Countdown', 'bricks' ),
+				'hide'      => esc_html__( 'Hide', 'bricks' ),
+				'text'      => esc_html__( 'Custom text', 'bricks' ),
+			],
+			'placeholder' => esc_html__( 'Countdown', 'bricks' ),
+			'inline'      => true,
+			'rerender'    => true,
+		];
+
+		$this->controls['actionText'] = [
+			'label'    => esc_html__( 'Date Reached', 'bricks' ) . ': ' . esc_html__( 'Custom text', 'bricks' ),
+			'type'     => 'text',
+			'required' => [ 'action', '=', 'text' ],
 			'rerender' => true,
 		];
 
+		// FIELDS
+
+		$this->controls['fieldsSeparator'] = [
+			'label' => esc_html__( 'Fields', 'bricks' ),
+			'type'  => 'separator',
+		];
+
 		$this->controls['fields'] = [
-			'tab'           => 'content',
-			'label'         => esc_html__( 'Fields', 'bricks' ),
 			'type'          => 'repeater',
 			'titleProperty' => 'format',
 			'placeholder'   => esc_html__( 'Field', 'bricks' ),
@@ -63,10 +137,70 @@ class Element_Countdown extends Element {
 			'rerender'      => true,
 		];
 
+		$this->controls['flexDirectionFields'] = [
+			'label'  => esc_html__( 'Direction', 'bricks' ),
+			'type'   => 'direction',
+			'css'    => [
+				[
+					'property' => 'flex-direction',
+					'selector' => '',
+				],
+			],
+			'inline' => true,
+		];
+
+		$this->controls['justifyContent'] = [
+			'label'   => esc_html__( 'Align main axis', 'bricks' ),
+			'tooltip' => [
+				'content'  => 'justify-content',
+				'position' => 'top-left',
+			],
+			'type'    => 'justify-content',
+			'css'     => [
+				[
+					'property' => 'justify-content',
+					'selector' => '',
+				],
+			],
+		];
+
+		$this->controls['alignItems'] = [
+			'label'   => esc_html__( 'Align cross axis', 'bricks' ),
+			'tooltip' => [
+				'content'  => 'align-items',
+				'position' => 'top-left',
+			],
+			'type'    => 'align-items',
+			'css'     => [
+				[
+					'property' => 'align-items',
+					'selector' => '',
+				],
+			],
+		];
+
+		// FIELD
+
+		$this->controls['fieldSeparator'] = [
+			'label' => esc_html__( 'Field', 'bricks' ),
+			'type'  => 'separator',
+		];
+
+		$this->controls['flexDirection'] = [
+			'label'  => esc_html__( 'Direction', 'bricks' ),
+			'type'   => 'direction',
+			'css'    => [
+				[
+					'property' => 'flex-direction',
+					'selector' => '.field',
+				],
+			],
+			'inline' => true,
+		];
+
 		$this->controls['gutter'] = [
-			'tab'     => 'content',
-			'label'   => esc_html__( 'Spacing', 'bricks' ),
-			'type'    => 'dimensions',
+			'label'   => esc_html__( 'Margin', 'bricks' ),
+			'type'    => 'spacing',
 			'css'     => [
 				[
 					'property' => 'margin',
@@ -79,67 +213,6 @@ class Element_Countdown extends Element {
 				'bottom' => 0,
 				'left'   => 0,
 			],
-		];
-
-		$this->controls['flexDirectionFields'] = [
-			'tab'       => 'content',
-			'label'     => esc_html__( 'Direction', 'bricks' ) . ' (' . esc_html__( 'Fields', 'bricks' ) . ')',
-			'type'      => 'direction',
-			'direction' => 'row',
-			'css'       => [
-				[
-					'property' => 'flex-direction',
-					'selector' => '',
-				],
-			],
-			'inline'    => true,
-		];
-
-		$this->controls['flexDirection'] = [
-			'tab'       => 'content',
-			'label'     => esc_html__( 'Direction', 'bricks' ) . ' (' . esc_html__( 'Field', 'bricks' ) . ')',
-			'type'      => 'direction',
-			'direction' => 'column',
-			'css'       => [
-				[
-					'property' => 'flex-direction',
-					'selector' => '.field',
-				],
-			],
-			'inline'    => true,
-		];
-
-		// COUNTDOWN DATE REACHED
-
-		$this->controls['actionSeparator'] = [
-			'tab'   => 'content',
-			'label' => esc_html__( 'Date Reached', 'bricks' ),
-			'type'  => 'separator',
-		];
-
-		$this->controls['action'] = [
-			'tab'         => 'content',
-			'label'       => esc_html__( 'Show', 'bricks' ),
-			'type'        => 'select',
-			'options'     => [
-				'countdown' => esc_html__( 'Countdown', 'bricks' ),
-				'hide'      => esc_html__( 'Hide', 'bricks' ),
-				'text'      => esc_html__( 'Custom text', 'bricks' ),
-			],
-			'placeholder' => esc_html__( 'Countdown', 'bricks' ),
-			'inline'      => true,
-			'rerender'    => true,
-		];
-
-		$this->controls['actionText'] = [
-			'tab'            => 'content',
-			'label'          => esc_html__( 'Custom text', 'bricks' ),
-			'type'           => 'text',
-			'hasDynamicData' => false,
-			'placeholder'    => esc_html__( 'Countdown', 'bricks' ),
-			// 'trigger'        => [ 'blur', 'enter' ],
-			'required'       => [ 'action', '=', 'text' ],
-			'rerender'       => true,
 		];
 
 		// STYLE: TYPOGRAPHY
@@ -191,11 +264,28 @@ class Element_Countdown extends Element {
 		$date        = ! empty( $settings['date'] ) ? $settings['date'] : false;
 		$fields      = ! empty( $settings['fields'] ) ? $settings['fields'] : false;
 		$action      = ! empty( $settings['action'] ) ? $settings['action'] : 'countdown';
-		$action_text = ! empty( $settings['actionText'] ) ? $settings['actionText'] : '';
+		$action_text = ! empty( $settings['actionText'] ) ? $this->render_dynamic_data( $settings['actionText'] ) : '';
+		$timezone    = ! empty( $settings['timezone'] ) ? $settings['timezone'] : 'UTC+00:00';
 
 		if ( ! $date || ! $fields ) {
 			return $this->render_element_placeholder( [ 'title' => esc_html__( 'No date/fields set.', 'bricks' ) ] );
 		}
+
+		// Render dynamic data for prefix, format, suffix fields (@since 1.9.1)
+		$keys_to_check = [ 'prefix', 'format', 'suffix' ];
+
+		$fields = array_map(
+			function( $field ) use ( $keys_to_check ) {
+				$keys_to_render = array_intersect( array_keys( $field ), $keys_to_check );
+
+				foreach ( $keys_to_render as $key ) {
+					$field[ $key ] = $this->render_dynamic_data( $field[ $key ] );
+				}
+
+				return $field;
+			},
+			$fields
+		);
 
 		$this->set_attribute(
 			'_root',
@@ -206,28 +296,11 @@ class Element_Countdown extends Element {
 					'fields'     => $fields,
 					'action'     => $action,
 					'actionText' => $action_text,
+					'timezone'   => $timezone,
 				]
 			)
 		);
 
 		echo "<div {$this->render_attributes( '_root' )}></div>";
-	}
-
-	public static function render_builder() { ?>
-		<script type="text/x-template" id="tmpl-bricks-element-countdown">
-			<component
-				v-if="settings.fields && settings.date"
-				:is="tag"
-				:data-bricks-countdown-options="JSON.stringify({
-					date: settings.date,
-					fields: settings.fields,
-					action: settings.action ? settings.action : 'countdown',
-					actionText: settings.actionText ? settings.actionText : ''
-				})">
-			</component>
-
-			<div v-else v-html="renderElementPlaceholder()"></div>
-		</script>
-		<?php
 	}
 }

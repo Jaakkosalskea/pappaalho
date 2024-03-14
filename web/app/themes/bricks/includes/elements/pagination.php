@@ -105,7 +105,7 @@ class Pagination extends Element {
 			'css'   => [
 				[
 					'property' => 'font',
-					'selector' => '.bricks-pagination .page-numbers',
+					'selector' => '.bricks-pagination ul .page-numbers',
 				],
 			],
 		];
@@ -185,7 +185,7 @@ class Pagination extends Element {
 			'label'       => esc_html__( 'End Size', 'bricks' ),
 			'type'        => 'number',
 			'min'         => 1,
-			'placeholder' => 3,
+			'placeholder' => 1,
 			'description' => esc_html__( 'How many numbers on either the start and the end list edges.', 'bricks' ),
 		];
 
@@ -194,7 +194,7 @@ class Pagination extends Element {
 			'label'       => esc_html__( 'Mid Size', 'bricks' ),
 			'type'        => 'number',
 			'min'         => 1,
-			'placeholder' => 3,
+			'placeholder' => 2,
 			'description' => esc_html__( 'How many numbers on either side of the current page.', 'bricks' ),
 		];
 
@@ -229,7 +229,8 @@ class Pagination extends Element {
 				]
 			);
 
-			if ( $query_obj->object_type !== 'post' ) {
+			// Support pagination for post, user and term query object type (@since 1.9.1)
+			if ( ! in_array( $query_obj->object_type, [ 'post','user','term' ] ) ) {
 				return $this->render_element_placeholder(
 					[
 						'title' => esc_html__( 'This query type doesn\'t support pagination.', 'bricks' ),
@@ -237,12 +238,11 @@ class Pagination extends Element {
 				);
 			}
 
-			$query = $query_obj->query_result;
+			// Use Bricks query object to get the current page and total pages as global $wp_query might be changed and inconsistent (#86bwqwa31)
+			$current_page = isset( $query_obj->query_vars['paged'] ) ? max( 1, $query_obj->query_vars['paged'] ) : 1;
+			$total_pages  = $query_obj->max_num_pages;
 
-			$current_page = max( 1, $query->get( 'paged', 1 ) );
-			$total_pages  = $query->max_num_pages;
-
-			// We need to destroy the Query to explicitly remove it from the global store
+			// Destroy query to explicitly remove it from the global store
 			$query_obj->destroy();
 			unset( $query_obj );
 		}
@@ -250,9 +250,17 @@ class Pagination extends Element {
 		// Default: Main query
 		else {
 			global $wp_query;
-
 			$current_page = max( 1, $wp_query->get( 'paged', 1 ) );
 			$total_pages  = $wp_query->max_num_pages;
+		}
+
+		// Return: Less than two pages (@since 1.9.1)
+		if ( $total_pages <= 1 && ( bricks_is_builder_call() || bricks_is_builder() ) ) {
+			return $this->render_element_placeholder(
+				[
+					'title' => esc_html__( 'No pagination results.', 'bricks' ),
+				]
+			);
 		}
 
 		// Hooks
@@ -272,11 +280,7 @@ class Pagination extends Element {
 			);
 		}
 
-		// AJAX pagination
-		if ( isset( $settings['ajax'] ) && ! empty( $settings['queryId'] ) && $settings['queryId'] !== 'main' ) {
-			$this->set_attribute( '_root', 'class', 'brx-ajax-pagination' );
-			$this->set_attribute( '_root', 'data-query-element-id', $settings['queryId'] );
-		}
+		$this->set_ajax_attributes();
 
 		echo "<div {$this->render_attributes( '_root' )}>" . $pagination . '</div>';
 	}
@@ -302,4 +306,34 @@ class Pagination extends Element {
 
 		return $args;
 	}
+
+	/**
+	 * Set AJAX attributes
+	 */
+	private function set_ajax_attributes() {
+		$settings = $this->settings;
+
+		if ( ! isset( $settings['ajax'] ) || empty( $settings['queryId'] ) || $settings['queryId'] === 'main' ) {
+			return;
+		}
+
+		if ( ! Helpers::enabled_query_filters() ) {
+			// Normal AJAX pagination
+			$this->set_attribute( '_root', 'class', 'brx-ajax-pagination' );
+			$this->set_attribute( '_root', 'data-query-element-id', $settings['queryId'] );
+		} else {
+			// Filter type AJAX Pagination
+			$filter_settings = [
+				'filterId'            => $this->id,
+				'targetQueryId'       => $settings['queryId'],
+				'filterAction'        => 'filter',
+				'filterType'          => 'pagination',
+				'filterMethod'        => 'ajax',
+				'filterApplyOn'       => 'change',
+				'filterInputDebounce' => 500,
+			];
+			$this->set_attribute( '_root', 'data-brx-filter', wp_json_encode( $filter_settings ) );
+		}
+	}
+
 }

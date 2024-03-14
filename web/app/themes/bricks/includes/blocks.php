@@ -6,9 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 /**
  * Convert Gutenberg blocks to Bricks elements and vice versa
  */
-
 class Blocks {
-
 	// Bricks elements objects that are able to be converted
 	private $elements = [];
 
@@ -23,11 +21,9 @@ class Blocks {
 	/**
 	 * Load post gutenberg blocks
 	 *
-	 * @param integer $post_id
-	 * @return void
+	 * @param int $post_id
 	 */
 	public static function load_blocks( $post_id ) {
-
 		$post = get_post( $post_id );
 
 		if ( ! has_blocks( $post ) ) {
@@ -39,8 +35,6 @@ class Blocks {
 
 	/**
 	 * Prepare Bricks elements instances that are possible to be converted
-	 *
-	 * @return void
 	 */
 	public static function load_elements() {
 		$elements = [];
@@ -63,8 +57,7 @@ class Blocks {
 	/**
 	 * Convert gutenberg post content into bricks data
 	 *
-	 * @param integer $post_id
-	 * @return void
+	 * @param int $post_id
 	 */
 	public function convert_blocks_to_bricks( $post_id ) {
 		$this->output = [];
@@ -214,8 +207,9 @@ class Blocks {
 	/**
 	 * Add common block settings to Bricks data
 	 *
-	 * @param array $settings Bricks element settings
-	 * @param array $attributes GT block attributes
+	 * @param array $settings Bricks element settings.
+	 * @param array $attributes GT block attributes.
+	 *
 	 * @return array
 	 */
 	public function add_common_block_settings( $settings, $attributes ) {
@@ -234,7 +228,8 @@ class Blocks {
 	 * Generate blocks HTML string from Bricks content elements (to store as post_content)
 	 *
 	 * @param array $elements Array of all Bricks elements on a section.
-	 * @param int   $post_id Post ID
+	 * @param int   $post_id The post ID.
+	 *
 	 * @return string
 	 *
 	 * @since 1.0
@@ -263,5 +258,4 @@ class Blocks {
 			return join( "\n\n", $blocks );
 		}
 	}
-
 }

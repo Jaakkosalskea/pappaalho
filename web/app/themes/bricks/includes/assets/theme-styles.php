@@ -56,6 +56,9 @@ class Assets_Theme_Styles {
 				fclose( $file );
 
 				$file_names[] = $file_name;
+
+				// https://academy.bricksbuilder.io/article/action-bricks-generate_css_file (@since 1.9.5)
+				do_action( 'bricks/generate_css_file', 'theme-styles', $file_name );
 			}
 
 			// Delete empty theme style CSS file

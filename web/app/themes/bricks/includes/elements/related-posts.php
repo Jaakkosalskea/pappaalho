@@ -19,13 +19,13 @@ class Element_Related_Posts extends Element {
 			'tab'   => 'content',
 		];
 
-		$this->control_groups['fields'] = [
-			'title' => esc_html__( 'Fields', 'bricks' ),
+		$this->control_groups['layout'] = [
+			'title' => esc_html__( 'Layout', 'bricks' ),
 			'tab'   => 'content',
 		];
 
-		$this->control_groups['layout'] = [
-			'title' => esc_html__( 'Layout', 'bricks' ),
+		$this->control_groups['fields'] = [
+			'title' => esc_html__( 'Fields', 'bricks' ),
 			'tab'   => 'content',
 		];
 
@@ -47,7 +47,7 @@ class Element_Related_Posts extends Element {
 			'group'       => 'query',
 			'label'       => esc_html__( 'Post type', 'bricks' ),
 			'type'        => 'select',
-			'options'     => Helpers::get_registered_post_types(),
+			'options'     => bricks_is_builder() ? Helpers::get_registered_post_types() : [],
 			'clearable'   => true,
 			'inline'      => true,
 			'placeholder' => esc_html__( 'Default', 'bricks' ),
@@ -95,6 +95,45 @@ class Element_Related_Posts extends Element {
 				'post_tag'
 			],
 			'description' => esc_html__( 'Taxonomies related posts must have in common.', 'bricks' ),
+		];
+
+		// LAYOUT
+
+		$this->controls['gap'] = [
+			'tab'         => 'content',
+			'group'       => 'layout',
+			'label'       => esc_html__( 'Gap', 'bricks' ),
+			'type'        => 'number',
+			'units'       => true,
+			'css'         => [
+				[
+					'property' => 'gap',
+					'selector' => '',
+				],
+			],
+			'placeholder' => '30px',
+		];
+
+		$this->controls['columns'] = [
+			'tab'         => 'content',
+			'group'       => 'layout',
+			'label'       => esc_html__( 'Posts per row', 'bricks' ),
+			'type'        => 'number',
+			'min'         => 1,
+			'max'         => 6,
+			'css'         => [
+				[
+					'selector' => '',
+					'property' => 'grid-template-columns',
+					'value'    => 'repeat(%s, 1fr)', // NOTE: Undocumented (@since 1.3)
+				],
+				[
+					'selector' => '',
+					'property' => 'grid-auto-flow',
+					'value'    => 'unset',
+				],
+			],
+			'placeholder' => 3,
 		];
 
 		// FIELDS
@@ -151,7 +190,7 @@ class Element_Related_Posts extends Element {
 
 				'dynamicMargin'     => [
 					'label' => esc_html__( 'Margin', 'bricks' ),
-					'type'  => 'dimensions',
+					'type'  => 'spacing',
 					'css'   => [
 						[
 							'property' => 'margin',
@@ -161,7 +200,7 @@ class Element_Related_Posts extends Element {
 
 				'dynamicPadding'    => [
 					'label' => esc_html__( 'Padding', 'bricks' ),
-					'type'  => 'dimensions',
+					'type'  => 'spacing',
 					'css'   => [
 						[
 							'property' => 'padding',
@@ -201,51 +240,12 @@ class Element_Related_Posts extends Element {
 			],
 		];
 
-		// LAYOUT
-
-		$this->controls['gap'] = [
-			'tab'         => 'content',
-			'group'       => 'layout',
-			'label'       => esc_html__( 'Gap', 'bricks' ),
-			'type'        => 'number',
-			'units'       => true,
-			'css'         => [
-				[
-					'property' => 'gap',
-					'selector' => '',
-				],
-			],
-			'placeholder' => '30px',
-		];
-
-		$this->controls['columns'] = [
-			'tab'         => 'content',
-			'group'       => 'layout',
-			'label'       => esc_html__( 'Posts per row', 'bricks' ),
-			'type'        => 'number',
-			'min'         => 1,
-			'max'         => 6,
-			'breakpoints' => true,
-			'css'         => [
-				[
-					'selector' => '',
-					'property' => 'grid-template-columns',
-					'value'    => 'repeat(%s, 1fr)', // NOTE: Undocumented (@since 1.3)
-				],
-				[
-					'selector' => '',
-					'property' => 'grid-auto-flow',
-					'value'    => 'unset',
-				],
-			],
-		];
-
 		// IMAGE
 
 		$this->controls['noImage'] = [
 			'tab'   => 'content',
 			'group' => 'image',
-			'label' => esc_html__( 'No image', 'bricks' ),
+			'label' => esc_html__( 'Disable', 'bricks' ),
 			'type'  => 'checkbox',
 		];
 
@@ -277,13 +277,13 @@ class Element_Related_Posts extends Element {
 		];
 
 		$this->controls['imageHeight'] = [
-			'tab'         => 'content',
-			'group'       => 'image',
-			'label'       => esc_html__( 'Height', 'bricks' ),
-			'type'        => 'number',
-			'units'       => true,
-			'small'       => false,
-			'css'         => [
+			'tab'      => 'content',
+			'group'    => 'image',
+			'label'    => esc_html__( 'Height', 'bricks' ),
+			'type'     => 'number',
+			'units'    => true,
+			'small'    => false,
+			'css'      => [
 				[
 					'property' => 'height',
 					'selector' => '.post-thumbnail-wrapper',
@@ -291,11 +291,9 @@ class Element_Related_Posts extends Element {
 				[
 					'property' => 'padding-top',
 					'selector' => '.post-thumbnail-wrapper',
-					'value'    => 0,
 				],
 			],
-			'placeholder' => 200,
-			'required'    => [ 'noImage', '=', '' ],
+			'required' => [ 'noImage', '=', '' ],
 		];
 
 		$this->controls['imageWidth'] = [
@@ -317,8 +315,8 @@ class Element_Related_Posts extends Element {
 		$this->controls['imageMargin'] = [
 			'tab'      => 'content',
 			'group'    => 'image',
-			'label'    => esc_html__( 'Image margin', 'bricks' ),
-			'type'     => 'dimensions',
+			'label'    => esc_html__( 'Margin', 'bricks' ),
+			'type'     => 'spacing',
 			'css'      => [
 				[
 					'property' => 'margin',
@@ -348,7 +346,7 @@ class Element_Related_Posts extends Element {
 			'tab'   => 'content',
 			'group' => 'content',
 			'label' => esc_html__( 'Padding', 'bricks' ),
-			'type'  => 'dimensions',
+			'type'  => 'spacing',
 			'css'   => [
 				[
 					'property' => 'padding',
@@ -378,35 +376,33 @@ class Element_Related_Posts extends Element {
 		];
 
 		$this->controls['overlayAlignItems'] = [
-			'tab'          => 'content',
-			'group'        => 'content',
-			'label'        => esc_html__( 'Horizontal alignment', 'bricks' ),
-			'type'         => 'align-items',
-			'exclude'      => 'stretch',
-			'isHorizontal' => false,
-			'css'          => [
+			'tab'      => 'content',
+			'group'    => 'content',
+			'label'    => esc_html__( 'Horizontal alignment', 'bricks' ),
+			'type'     => 'align-items',
+			'exclude'  => 'stretch',
+			'css'      => [
 				[
 					'property' => 'align-items',
 					'selector' => '.post-content',
 				],
 			],
-			'required'     => [ 'overlay', '!=', '' ],
+			'required' => [ 'overlay', '!=', '' ],
 		];
 
 		$this->controls['overlayJustifyContent'] = [
-			'tab'          => 'content',
-			'group'        => 'content',
-			'label'        => esc_html__( 'Vertical alignment', 'bricks' ),
-			'type'         => 'justify-content',
-			'exclude'      => 'space',
-			'isHorizontal' => false,
-			'css'          => [
+			'tab'      => 'content',
+			'group'    => 'content',
+			'label'    => esc_html__( 'Vertical alignment', 'bricks' ),
+			'type'     => 'justify-content',
+			'exclude'  => 'space',
+			'css'      => [
 				[
 					'property' => 'justify-content',
 					'selector' => '.post-content',
 				],
 			],
-			'required'     => [ 'overlay', '!=', '' ],
+			'required' => [ 'overlay', '!=', '' ],
 		];
 	}
 
@@ -417,40 +413,6 @@ class Element_Related_Posts extends Element {
 		global $post;
 
 		$post = get_post( $post_id );
-
-		$args = [
-			'posts_per_page' => isset( $settings['count'] ) ? $settings['count'] : 3,
-			'post__not_in'   => [ $post_id ],
-			'no_found_rows'  => true, // No pagination
-			'orderby'        => isset( $settings['orderby'] ) ? $settings['orderby'] : 'rand',
-			'order'          => isset( $settings['order'] ) ? $settings['order'] : 'DESC',
-		];
-
-		if ( ! empty( $settings['post_type'] ) ) {
-			$args['post_type'] = $settings['post_type'];
-		}
-
-		$taxonomies = ! empty( $settings['taxonomies'] ) ? $settings['taxonomies'] : [];
-
-		foreach ( $taxonomies as $taxonomy ) {
-			$terms_ids = wp_get_post_terms(
-				$post_id,
-				$taxonomy,
-				[ 'fields' => 'ids' ]
-			);
-
-			if ( ! empty( $terms_ids ) ) {
-				$args['tax_query'][] = [
-					'taxonomy' => $taxonomy,
-					'field'    => 'term_id',
-					'terms'    => $terms_ids,
-				];
-			}
-		}
-
-		if ( count( $taxonomies ) > 1 && isset( $args['tax_query'] ) ) {
-			$args['tax_query']['relation'] = 'OR';
-		}
 
 		$root_classes = [ 'bricks-related-posts' ];
 
@@ -464,22 +426,31 @@ class Element_Related_Posts extends Element {
 
 		$this->set_attribute( '_root', 'class', $root_classes );
 
-		$args['post_status'] = 'publish';
+		// NOTE: $this->element['settings'] is not updated by bricks/element/settings filter. Best if we update in base.php (#86bwkh7y2; @since 1.9.4)
+		$this->element['settings'] = $this->settings;
 
-		// NOTE: Undocumented
-		$args = apply_filters( 'bricks/related_posts/query_vars', $args, $settings );
+		// Use Bricks Query instead of WP_Query (@since 1.9.3)
+		$args = Helpers::populate_query_vars_for_element( $this->element, $post_id );
 
-		$related_posts_query = new \WP_Query( $args );
+		// Add query_settings to element_settings under query key
+		$this->element['settings']['query'] = $args;
 
-		$content_fields = empty( $settings['content'] ) ? false : $settings['content'];
-		$image_size     = empty( $settings['imageSize'] ) ? 'medium' : $settings['imageSize'];
+		// Run Bricks query
+		$related_posts_query   = new Query( $this->element );
+		$related_posts_results = $related_posts_query->query_result;
 
-		if ( $related_posts_query->post_count && ( $content_fields || ! isset( $settings['noImage'] ) ) ) {
+		// Destroy query to explicitly remove it from the global store
+		$related_posts_query->destroy();
+
+		$content_fields = $settings['content'] ?? false;
+		$image_size     = $settings['imageSize'] ?? 'medium';
+
+		if ( $related_posts_query->count && ( $content_fields || ! isset( $settings['noImage'] ) ) ) {
 			echo "<ul {$this->render_attributes( '_root' )}>";
 
 			global $post;
 
-			foreach ( $related_posts_query->posts as $post ) {
+			foreach ( $related_posts_results->posts as $post ) {
 				setup_postdata( $post );
 
 				echo '<li class="repeater-item">';

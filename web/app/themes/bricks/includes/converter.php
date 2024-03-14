@@ -29,18 +29,15 @@ class Converter {
 	public function get_converter_items() {
 		$items_to_convert = [];
 
-		$convert = is_array( $_POST['convert'] ) ? $_POST['convert'] : [];
-
-		// Always add '_position': relative if top/right/left/bottom value is set (@since 1.5)
-		$convert[] = 'positionRelative';
+		$convert = $_POST['convert'] ?? [];
 
 		// Convert theme styles
-		if ( in_array( 'container', $_POST['convert'] ) ) {
+		if ( in_array( 'container', $convert ) ) {
 			$items_to_convert[] = 'themeStyles';
 		}
 
 		// Convert element IDs & classes
-		if ( in_array( 'elementClasses', $_POST['convert'] ) ) {
+		if ( in_array( 'elementClasses', $convert ) ) {
 			$items_to_convert[] = 'globalSettings';
 		}
 
@@ -71,16 +68,12 @@ class Converter {
 	/**
 	 * Run converter
 	 *
-	 * @param string $data Source string to apply search & replace for.
-	 *
-	 * @return string
-	 *
-	 * @since 1.4   Convert element IDs & class names for 1.4 ('bricks-element-' to 'brxe-')
+	 * @since 1.4 Convert element IDs & class names for 1.4 ('bricks-element-' to 'brxe-')
 	 * @since 1.5 Convert elements to nestable elements
 	 */
 	public function run_converter() {
-		$data    = isset( $_POST['data'] ) ? $_POST['data'] : false;
-		$convert = isset( $_POST['convert'] ) ? $_POST['convert'] : [];
+		$data    = $_POST['data'] ?? false;
+		$convert = $_POST['convert'] ?? [];
 		$updated = [];
 		$label   = '';
 
@@ -110,7 +103,7 @@ class Converter {
 
 				if ( isset( $converter_response['count'] ) && $converter_response['count'] > 0 ) {
 					$label            = esc_html__( 'Global classes', 'bricks' );
-					$updated[ $data ] = update_option( BRICKS_DB_GLOBAL_CLASSES, $converter_response['data'] );
+					$updated[ $data ] = Helpers::save_global_classes_in_db( $converter_response['data'], 'run_converter' );
 				}
 				break;
 
@@ -169,8 +162,7 @@ class Converter {
 							// Generate label to show in Bricks settings
 							$post_type_object = get_post_type_object( $post_type );
 							$post_type        = $post_type_object ? $post_type_object->labels->singular_name : $post_type;
-
-							$label = "$post_type: " . get_the_title( $post_id );
+							$label            = "$post_type: " . get_the_title( $post_id );
 						}
 					}
 
@@ -224,7 +216,7 @@ class Converter {
 				$elements_to_remove = 1;
 				array_splice( $elements, $index, $elements_to_remove, $nestable_elements );
 				array_values( $elements );
-				$count += 1;
+				$count++;
 			}
 		}
 
@@ -578,7 +570,7 @@ class Converter {
 				$slider['settings'][ $control_key ] = $settings[ $control_key ];
 			}
 
-			foreach ( Setup::$breakpoints as $breakpoint ) {
+			foreach ( Breakpoints::$breakpoints as $breakpoint ) {
 				$control_key = "{$control_key}:{$breakpoint['key']}";
 
 				if ( ! empty( $settings[ $control_key ] ) ) {
@@ -637,7 +629,7 @@ class Converter {
 				$slider['settings'][ $splide_key ] = $settings[ $swiper_key ];
 			}
 
-			foreach ( Setup::$breakpoints as $breakpoint ) {
+			foreach ( Breakpoints::$breakpoints as $breakpoint ) {
 				$control_key = "{$swiper_key}:{$breakpoint['key']}";
 
 				if ( ! empty( $settings[ $control_key ] ) ) {
@@ -676,6 +668,144 @@ class Converter {
 		$count = 0;
 
 		/**
+		 * STEP: Convert entry animation ('_animation') to interaction
+		 *
+		 * '_animation' controls (Style > Layout > Misc > Animation) are deprecated since 1.6 too.
+		 *
+		 * @since 1.6
+		 */
+		if ( in_array( 'entryAnimationToInteraction', $convert ) ) {
+			$elements = $data;
+
+			foreach ( $elements as $index => $element ) {
+				$settings  = ! empty( $element['settings'] ) ? $element['settings'] : [];
+				$animation = ! empty( $settings['_animation'] ) ? $settings['_animation'] : false;
+
+				// Skip: Element has no old entry animation
+				if ( ! $animation ) {
+					continue;
+				}
+
+				// Create entry animation under interactions & delete old '_animation' settings
+				$new_animation = [
+					'id'            => Helpers::generate_random_id( false ),
+					'trigger'       => 'enterView',
+					'action'        => 'startAnimation',
+					'animationType' => $animation,
+				];
+
+				unset( $elements[ $index ]['settings']['_animation'] );
+
+				if ( isset( $settings['_animationDuration'] ) ) {
+					if ( $settings['_animationDuration'] === 'very-slow' ) {
+						$new_animation['animationDuration'] = '2s';
+					} elseif ( $settings['_animationDuration'] === 'slow' ) {
+						$new_animation['animationDuration'] = '1.5s';
+					} elseif ( $settings['_animationDuration'] === 'fast' ) {
+						$new_animation['animationDuration'] = '0.5s';
+					} elseif ( $settings['_animationDuration'] === 'very-fast' ) {
+						$new_animation['animationDuration'] = '0.25s';
+					}
+
+					unset( $elements[ $index ]['settings']['_animationDuration'] );
+				}
+
+				if ( isset( $settings['_animationDurationCustom'] ) ) {
+					$new_animation['animationDuration'] = $settings['_animationDurationCustom'];
+
+					unset( $elements[ $index ]['settings']['_animationDurationCustom'] );
+				}
+
+				if ( isset( $settings['_animationDelay'] ) ) {
+					$new_animation['animationDelay'] = $settings['_animationDelay'];
+
+					unset( $elements[ $index ]['settings']['_animationDelay'] );
+				}
+
+				$new_animation['titleEditable'] = 'Entry animation';
+
+				$interactions = ! empty( $settings['_interactions'] ) ? $settings['_interactions'] : [];
+
+				$interactions[] = $new_animation;
+
+				$elements[ $index ]['settings']['_interactions'] = $interactions;
+
+				$count++;
+			}
+
+			$data = $elements;
+		}
+
+		/**
+		 * STEP: Add position: relative as needed
+		 *
+		 * @since 1.5.1
+		 */
+		if ( in_array( 'addPositionRelative', $convert ) ) {
+			$elements = $data;
+
+			foreach ( $elements as $index => $element ) {
+				$settings = ! empty( $element['settings'] ) ? $element['settings'] : [];
+
+				foreach ( $settings as $key => $value ) {
+					// STEP: Element has '_top', '_right', '_bottom', '_left' set, but no '_position'
+					$directions = [ '_top', '_right', '_bottom', '_left', '_zIndex' ];
+
+					foreach ( $directions as $direction ) {
+						// Setting starts with direction key (to capture all breakpoint & pseudo-class settings, etc.)
+						if ( strpos( $key, $direction ) === 0 ) {
+							$position_key = str_replace( $direction, '_position', $key );
+
+							// Position not set: Set to 'relative'
+							if ( empty( $settings[ $position_key ] ) ) {
+								$elements[ $index ]['settings'][ $position_key ] = 'relative';
+								$count++;
+							}
+						}
+					}
+
+					// STEP: Element has 'position: absolute': Set 'position: relative' on parent element
+					if ( strpos( $key, '_position' ) === 0 && $value === 'absolute' ) {
+						$parent_id = ! empty( $element['parent'] ) ? $element['parent'] : false;
+
+						if ( $parent_id ) {
+							foreach ( $elements as $i => $el ) {
+								if ( isset( $el['id'] ) && $el['id'] === $parent_id && ! isset( $el['settings']['_position'] ) ) {
+									if ( ! isset( $el['settings'] ) ) {
+										$elements[ $i ]['settings'] = [];
+									}
+
+									$elements[ $i ]['settings']['_position'] = 'relative';
+									$count++;
+								}
+							}
+						}
+					}
+
+					// STEP: Element has _gradient.applyTo === 'overlay' set
+					if ( strpos( $key, '_gradient' ) === 0 && ! empty( $settings[ $key ]['applyTo'] ) && $settings[ $key ]['applyTo'] === 'overlay' ) {
+						$child_ids = ! empty( $element['children'] ) ? $element['children'] : [];
+
+						// Add position: relative to direct children of element with gradient
+						foreach ( $elements as $i => $el ) {
+							if ( ! empty( $el['id'] ) && in_array( $el['id'], $child_ids ) && ! isset( $el['settings']['_position'] ) ) {
+
+								if ( ! isset( $el['settings'] ) ) {
+									$elements[ $i ]['settings'] = [];
+								}
+
+								$elements[ $i ]['settings']['_position'] = 'relative';
+								$count++;
+							}
+						}
+					}
+				}
+			}
+
+			$data = $elements;
+		}
+
+		/**
 		 * STEP: Convert element IDs & class name 'bricks-element-' to 'brxe-'
 		 *
 		 * @since 1.4
@@ -686,7 +816,7 @@ class Converter {
 			$is_array = is_array( $data );
 
 			if ( $is_array ) {
-				$data = json_encode( $data );
+				$data = wp_json_encode( $data );
 			}
 
 			// Search for (key) & replace with (value)
@@ -727,42 +857,6 @@ class Converter {
 		// }
 
 		/**
-		 * STEP: Add 'position' = 'relative' if top/right/bottom/left/_zIndex value is set
-		 *
-		 * As default now is relative: static
-		 *
-		 * @since 1.?
-		 *
-		 * NOTE: Not yet in use!
-		 */
-		// if ( is_array( $data ) && ( $source === 'globalClasses' || $source === 'globalElements' || is_numeric( $source ) ) ) {
-		// $elements = $data;
-
-		// $directions = ['_top', '_right', '_bottom', '_left', '_zIndex'];
-
-		// foreach ( $elements as $index => $element ) {
-		// $element_settings = ! empty( $element['settings'] ) ? $element['settings'] : [];
-
-		// foreach ( $element_settings as $setting_key => $value ) {
-		// Has a direction ('_top', '_right', '_bottom', '_left'), but no '_position' setting: Set position to relative
-		// foreach ( $directions as $direction ) {
-		// Setting starts with check (to capture all breakpoint & pseudo-class settings, etc.)
-		// if ( strpos( $setting_key, $direction ) === 0 ) {
-		// $position_key = str_replace( $direction, '_position', $setting_key );
-
-		// if ( empty( $element_settings[$position_key] ) ) {
-		// $elements[$index]['settings'][$position_key] = 'relative';
-		// $count += 1;
-		// }
-		// }
-		// }
-		// }
-		// }
-
-		// $data = $elements;
-		// }
-
-		/**
 		 * STEP: Convert 'container' to 'section' & 'block' element & theme styles
 		 *
 		 * @since 1.5
@@ -798,7 +892,7 @@ class Converter {
 									// Root container margin to section margin
 									if ( $key === 'sectionMargin' ) {
 										$section_settings['margin'] = $value;
-										$count                     += 1;
+										$count++;
 
 										unset( $theme_styles[ $style_id ]['settings'][ $group ][ $key ] );
 									}
@@ -806,7 +900,7 @@ class Converter {
 									// Root container padding to section padding
 									elseif ( $key === 'sectionPadding' ) {
 										$section_settings['padding'] = $value;
-										$count                      += 1;
+										$count++;
 
 										unset( $theme_styles[ $style_id ]['settings'][ $group ][ $key ] );
 									}
@@ -814,7 +908,7 @@ class Converter {
 									// Root container max-width to container width
 									elseif ( $key === 'containerMaxWidth' ) {
 										$container_settings['width'] = $value;
-										$count                      += 1;
+										$count++;
 
 										unset( $theme_styles[ $style_id ]['settings'][ $group ][ $key ] );
 									}
@@ -868,7 +962,7 @@ class Converter {
 						unset( $elements[ $index ]['label'] );
 					}
 
-					$count += 1;
+					$count++;
 				}
 			}
 
@@ -892,7 +986,7 @@ class Converter {
 						$converted_container_ids[] = $elements[ $index ]['id'];
 					}
 
-					$count += 1;
+					$count++;
 				}
 			}
 		}

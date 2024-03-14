@@ -51,7 +51,7 @@ class Element_Alert extends Element {
 		}
 
 		if ( isset( $this->settings['dismissable'] ) ) {
-			$close_svg = Helpers::get_file_contents( BRICKS_URL_ASSETS . 'svg/frontend/close.svg' );
+			$close_svg = Helpers::file_get_contents( BRICKS_PATH_ASSETS . 'svg/frontend/close.svg' );
 			$classes[] = 'dismissable';
 		}
 
@@ -60,10 +60,12 @@ class Element_Alert extends Element {
 
 		$output = "<div {$this->render_attributes( '_root' )}>";
 
-		if ( ! empty( $this->settings['content'] ) ) {
-			$content = $this->render_dynamic_data( $this->settings['content'] );
+		$content = ! empty( $this->settings['content'] ) ? $this->settings['content'] : false;
 
-			$output .= "<div {$this->render_attributes( 'content' )}>" . apply_filters( 'the_content', $content ) . '</div>';
+		if ( $content ) {
+			$content = $this->render_dynamic_data( $content );
+
+			$output .= "<div {$this->render_attributes( 'content' )}>" . Helpers::parse_editor_content( $content ) . '</div>';
 		}
 
 		if ( $close_svg ) {

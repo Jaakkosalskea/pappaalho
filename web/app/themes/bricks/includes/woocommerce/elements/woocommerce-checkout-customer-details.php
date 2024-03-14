@@ -42,7 +42,9 @@ class Woocommerce_Checkout_Customer_Details extends Element {
 
 		if ( ! empty( $checkout_fields['shipping'] ) && is_array( $checkout_fields['shipping'] ) ) {
 			foreach ( $checkout_fields['shipping'] as $key => $field ) {
-				$shipping_fields[ $key ] = $field['label'];
+				if ( isset( $field['label'] ) ) {
+					$shipping_fields[ $key ] = $field['label'];
+				}
 			}
 		}
 
@@ -125,7 +127,7 @@ class Woocommerce_Checkout_Customer_Details extends Element {
 
 		$this->controls['labelMargin'] = [
 			'tab'         => 'content',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
 			'css'         => [
 				[
@@ -212,12 +214,20 @@ class Woocommerce_Checkout_Customer_Details extends Element {
 
 		// Hooks
 		add_filter( 'woocommerce_form_field_args', [ $this, 'woocommerce_form_field_args' ], 10, 3 );
-
-		// Render WooCommerce part
-		do_action( 'woocommerce_checkout_before_customer_details' );
 		?>
 
 		<div <?php echo $this->render_attributes( '_root' ); ?>>
+			<?php
+			/**
+			 * Render WooCommerce part only on front end (avoid adding HTML outside of root node)
+			 * As sibling of #customer_details like native WooCommerce (#862k74j78)
+			 *
+			 * @since 1.8.5
+			 */
+			if ( ! bricks_is_builder() && ! bricks_is_builder_call() ) {
+				do_action( 'woocommerce_checkout_before_customer_details' );
+			}
+			?>
 			<div class="col2-set" id="customer_details">
 				<div class="col-1">
 					<?php
@@ -235,11 +245,15 @@ class Woocommerce_Checkout_Customer_Details extends Element {
 					?>
 				</div>
 			</div>
+			<?php
+			// Render WooCommerce part only on front end (avoid adding HTML outside of root node)
+			if ( ! bricks_is_builder() && ! bricks_is_builder_call() ) {
+				do_action( 'woocommerce_checkout_after_customer_details' );
+			}
+			?>
 		</div>
 
 		<?php
-		do_action( 'woocommerce_checkout_after_customer_details' );
-
 		// Remove hooks
 		remove_filter( 'woocommerce_form_field_args', [ $this, 'woocommerce_form_field_args' ], 10, 3 );
 	}

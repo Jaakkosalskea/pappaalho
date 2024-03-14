@@ -14,13 +14,12 @@ class Product_Content extends Element {
 
 	public function set_controls() {
 		$edit_link = Helpers::get_preview_post_link( get_the_ID() );
-
-		$label = esc_html__( 'Edit product content in WordPress.', 'bricks' );
+		$label     = esc_html__( 'Edit product content in WordPress.', 'bricks' );
 
 		$this->controls['info'] = [
 			'tab'     => 'content',
 			'type'    => 'info',
-			'content' => $edit_link ? sprintf( '<a href="' . $edit_link . '" target="_blank">%s</a>', $label ) : $label,
+			'content' => $edit_link ? '<a href="' . esc_url( $edit_link ) . '" target="_blank">' . $label . '</a>' : $label,
 		];
 	}
 
@@ -48,7 +47,8 @@ class Product_Content extends Element {
 			);
 		}
 
-		$content = apply_filters( 'the_content', $content );
+		$content = $this->render_dynamic_data( $content );
+		$content = Helpers::parse_editor_content( $content );
 		$content = str_replace( ']]>', ']]&gt;', $content );
 
 		echo "<div {$this->render_attributes( '_root' )}>" . $content . '</div>';

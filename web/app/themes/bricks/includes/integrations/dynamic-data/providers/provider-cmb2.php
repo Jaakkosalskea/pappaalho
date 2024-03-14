@@ -4,7 +4,6 @@ namespace Bricks\Integrations\Dynamic_Data\Providers;
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class Provider_Cmb2 extends Base {
-
 	public static function load_me() {
 		return class_exists( 'CMB2' );
 	}
@@ -65,8 +64,9 @@ class Provider_Cmb2 extends Base {
 	/**
 	 * Helper function to map raw field object to internal format
 	 *
-	 * @param array $list (final list)
-	 * @param array $fields (raw)
+	 * @param array $list Final list.
+	 * @param array $fields raw.
+	 *
 	 * @return array
 	 */
 	public static function add_fields_to_list( $list = [], $fields = [] ) {
@@ -105,7 +105,6 @@ class Provider_Cmb2 extends Base {
 	}
 
 	public function get_tag_value( $tag, $post, $args, $context ) {
-
 		$post_id = isset( $post->ID ) ? $post->ID : '';
 
 		$field = $this->tags[ $tag ]['field'];
@@ -122,7 +121,6 @@ class Provider_Cmb2 extends Base {
 		$filters['separator'] = '<br>';
 
 		switch ( $field['type'] ) {
-
 			case 'file_list':
 				$filters['object_type'] = 'media';
 				$filters['link']        = true;
@@ -142,7 +140,7 @@ class Provider_Cmb2 extends Base {
 				break;
 
 			case 'textarea_code':
-				$theme_styles = Theme_Styles::$active_settings;
+				$theme_styles = \Bricks\Theme_Styles::$active_settings;
 				$classes      = isset( $theme_styles['code']['prettify'] ) ? 'prettyprint ' . $theme_styles['code']['prettify'] : '';
 
 				foreach ( $value as $key => $item ) {
@@ -187,13 +185,9 @@ class Provider_Cmb2 extends Base {
 			case 'wysiwyg':
 				$filters['separator'] = ' ';
 
-				remove_filter( 'the_content', 'wpautop' );
-
 				foreach ( $value as $key => $item ) {
-					$value[ $key ] = apply_filters( 'the_content', $item );
+					$value[ $key ] = \Bricks\Helpers::parse_editor_content( $item );
 				}
-
-				add_filter( 'the_content', 'wpautop' );
 				break;
 
 			case 'oembed':
@@ -206,7 +200,6 @@ class Provider_Cmb2 extends Base {
 					}
 				}
 				break;
-
 		}
 
 		// STEP: Apply context (text, link, image, media)
@@ -254,11 +247,8 @@ class Provider_Cmb2 extends Base {
 			'file'                             => [ self::CONTEXT_TEXT, self::CONTEXT_LINK, self::CONTEXT_IMAGE, self::CONTEXT_VIDEO, self::CONTEXT_MEDIA ],
 			'file_list'                        => [ self::CONTEXT_TEXT, self::CONTEXT_LINK, self::CONTEXT_IMAGE, self::CONTEXT_VIDEO, self::CONTEXT_MEDIA ],
 			'oembed'                           => [ self::CONTEXT_TEXT, self::CONTEXT_LINK, self::CONTEXT_VIDEO, self::CONTEXT_MEDIA ],
-
 		];
 
 		return $fields;
 	}
-
-
 }

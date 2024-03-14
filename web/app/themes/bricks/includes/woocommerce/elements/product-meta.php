@@ -33,8 +33,8 @@ class Product_Meta extends Element {
 			'units'       => true,
 			'css'         => [
 				[
-					'selector' => '.separator',
-					'property' => 'min-width',
+					'property' => 'gap',
+					'selector' => '',
 				]
 			],
 			'placeholder' => 0,
@@ -64,7 +64,7 @@ class Product_Meta extends Element {
 		$this->controls['prefixTypography'] = [
 			'tab'   => 'content',
 			'type'  => 'typography',
-			'label' => esc_html__( 'Prefix typography', 'bricks' ),
+			'label' => esc_html__( 'Typography', 'bricks' ) . ': ' . esc_html__( 'Prefix', 'bricks' ),
 			'css'   => [
 				[
 					'selector' => '.prefix',
@@ -76,10 +76,22 @@ class Product_Meta extends Element {
 		$this->controls['suffixTypography'] = [
 			'tab'   => 'content',
 			'type'  => 'typography',
-			'label' => esc_html__( 'Suffix typography', 'bricks' ),
+			'label' => esc_html__( 'Typography', 'bricks' ) . ': ' . esc_html__( 'Suffix', 'bricks' ),
 			'css'   => [
 				[
 					'selector' => '.suffix',
+					'property' => 'font',
+				],
+			],
+		];
+
+		$this->controls['linkTypography'] = [
+			'tab'   => 'content',
+			'type'  => 'typography',
+			'label' => esc_html__( 'Typography', 'bricks' ) . ': ' . esc_html__( 'Link', 'bricks' ),
+			'css'   => [
+				[
+					'selector' => 'a',
 					'property' => 'font',
 				],
 			],
@@ -161,7 +173,8 @@ class Product_Meta extends Element {
 
 		foreach ( $settings['fields'] as $index => $field ) {
 			$value = ! empty( $field['dynamicData'] ) ? trim( $field['dynamicData'] ) : '';
-			$value = Integrations\Dynamic_Data\Providers::render_content( $value, $this->post_id );
+
+			$value = bricks_render_dynamic_data( $value, $this->post_id );
 
 			if ( ! $value ) {
 				continue;
@@ -186,8 +199,6 @@ class Product_Meta extends Element {
 			}
 		}
 
-		$separator = isset( $settings['separator'] ) ? $settings['separator'] : '';
-
 		// Add Woo class "product_meta" to enable the Woo fragments (e.g. SKU for variations)
 		$this->set_attribute( '_root', 'class', 'product_meta' );
 
@@ -198,7 +209,9 @@ class Product_Meta extends Element {
 
 		do_action( 'woocommerce_product_meta_start' );
 
-		echo join( '<span class="separator">' . $separator . '</span>', $field_data );
+		$separator = ! empty( $settings['separator'] ) ? '<span class="separator">' . $settings['separator'] . '</span>' : '';
+
+		echo join( $separator, $field_data );
 
 		do_action( 'woocommerce_product_meta_end' );
 

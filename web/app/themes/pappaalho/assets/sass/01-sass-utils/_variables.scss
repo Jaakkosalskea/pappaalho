@@ -49,13 +49,16 @@ $width-full: 100%;
   --color-east-bay: #666;
   --color-science-blue: #0049d1;
   --color-valhalla: #333;
+  --color-malachite: #26E31F;
 
   // Main element colors
   --color-heading: var(--color-main);
+  --color-heading-wh: var(--color-white);
   --color-footer-bg: var(--color-black);
   --color-footer: var(--color-white);
-  --color-main: var(--color-valhalla);
-  --color-paragraph: var(--color-east-bay);
+  --color-main: var(--color-black);
+  --color-paragraph: var(--color-black);
+  --color-highlight: var(--color-malachite);
 
   // Modern link that has background effect on hover
   --color-link-border-bottom: var(--color-science-blue);
@@ -171,7 +174,7 @@ $width-full: 100%;
 
 :root {
   --font-serif: sans-serif;
-  --font-sans: 'Open Sans', -apple-system, sans-serif;
+  --font-sans: 'Manrope','Open Sans', -apple-system, sans-serif;
   --font-monospace: 'Inconsolata', 'Menlo', 'Monaco', 'Consolas', 'Andale Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
 
   // Fonts in use for content
@@ -183,9 +186,9 @@ $width-full: 100%;
 :root {
   // Heading font sizes
   --font-size-hero:   5.2rem;
-  --font-size-h1:     3.6rem;
-  --font-size-h2:     3.6rem;
-  --font-size-h3:     2.4rem;
+  --font-size-h1:     6.0rem;
+  --font-size-h2:     3.8rem;
+  --font-size-h3:     3.5rem;
   --font-size-h4:     2.2rem;
   --font-size-h5:     1.6rem;
   --font-size-h6:     1.4rem;
@@ -206,8 +209,8 @@ $width-full: 100%;
   --font-size-30: 3rem;
 
   // Element font sizes
-  --font-size-default: var(--font-size-17);
-  --font-size-paragraphs: var(--font-size-17);
+  --font-size-default: var(--font-size-18);
+  --font-size-paragraphs: var(--font-size-18);
   --font-size-captions: var(--font-size-14);
 
   // Line-heights
@@ -224,10 +227,21 @@ $width-full: 100%;
   --font-weight-headings: var(--font-weight-bold);
 
   // Heading font sizes in mobile
+  @media (max-width: $container-ipad) {
+    --font-size-hero: 3.8rem;
+    --font-size-h1: 2.6rem;
+    --font-size-h2: 2.0rem;
+    --font-size-h3: 2.1rem;
+    --font-size-h4: 1.8rem;
+    --font-size-h5: 1.4rem;
+    --font-size-h6: 1.2rem;
+  }
+
+  // Heading font sizes in mobile
   @media (max-width: $container-mobile) {
     --font-size-hero: 3.8rem;
-    --font-size-h1: 3.2rem;
-    --font-size-h2: 2.4rem;
+    --font-size-h1: 2.6rem;
+    --font-size-h2: 2.0rem;
     --font-size-h3: 2.1rem;
     --font-size-h4: 1.8rem;
     --font-size-h5: 1.4rem;

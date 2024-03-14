@@ -175,6 +175,20 @@ class Element_Post_Author extends Element {
 			'default' => true,
 		];
 
+		$this->controls['postsPadding'] = [
+			'tab'      => 'content',
+			'group'    => 'posts',
+			'label'    => esc_html__( 'Padding', 'bricks' ),
+			'type'     => 'spacing',
+			'css'      => [
+				[
+					'property' => 'padding',
+					'selector' => '.bricks-button',
+				],
+			],
+			'required' => [ 'postsLink', '!=', '' ],
+		];
+
 		$this->controls['postsText'] = [
 			'tab'            => 'content',
 			'group'          => 'posts',
@@ -207,20 +221,6 @@ class Element_Post_Author extends Element {
 			'required'    => [ 'postsLink', '!=', '' ],
 			'placeholder' => esc_html__( 'None', 'bricks' ),
 			'default'     => 'primary',
-		];
-
-		$this->controls['postsPadding'] = [
-			'tab'      => 'content',
-			'group'    => 'posts',
-			'label'    => esc_html__( 'Padding', 'bricks' ),
-			'type'     => 'dimensions',
-			'css'      => [
-				[
-					'property' => 'padding',
-					'selector' => '.bricks-button',
-				],
-			],
-			'required' => [ 'postsLink', '!=', '' ],
 		];
 
 		$this->controls['postsBackgroundColor'] = [

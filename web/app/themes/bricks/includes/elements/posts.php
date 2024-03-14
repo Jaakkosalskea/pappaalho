@@ -20,7 +20,8 @@ class Element_Posts extends Element {
 	public function enqueue_scripts() {
 		$layout = ! empty( $this->settings['layout'] ) ? $this->settings['layout'] : 'grid';
 
-		if ( $layout === 'masonry' || $layout === 'metro' || isset( $this->settings['filter'] ) ) {
+		// Load IsotopeJS
+		if ( isset( $this->settings['filter'] ) || $layout === 'masonry' ) {
 			wp_enqueue_script( 'bricks-isotope' );
 			wp_enqueue_style( 'bricks-isotope' );
 		}
@@ -95,21 +96,20 @@ class Element_Posts extends Element {
 			'inline'      => true,
 		];
 
-		// New in 1.2.1 (replaces deprecated 'imagePosition' to set alignment for every breakpoint)
+		// @since 1.2.1 (replaces deprecated 'imagePosition' to set alignment for every breakpoint)
 		$this->controls['direction'] = [
-			'tab'       => 'content',
-			'group'     => 'layout',
-			'label'     => esc_html__( 'Direction', 'bricks' ) . ' (' . esc_html__( 'Item', 'bricks' ) . ')',
-			'type'      => 'direction',
-			'css'       => [
+			'tab'      => 'content',
+			'group'    => 'layout',
+			'label'    => esc_html__( 'Direction', 'bricks' ) . ' (' . esc_html__( 'Item', 'bricks' ) . ')',
+			'type'     => 'direction',
+			'css'      => [
 				[
 					'property' => 'flex-direction',
 					'selector' => '.bricks-layout-wrapper[data-layout=list] .bricks-layout-inner',
 				],
 			],
-			'inline'    => true,
-			'direction' => 'row',
-			'required'  => [ 'layout', '=', 'list' ],
+			'inline'   => true,
+			'required' => [ 'layout', '=', 'list' ],
 		];
 
 		$this->controls['columns'] = [
@@ -118,40 +118,31 @@ class Element_Posts extends Element {
 			'label'       => esc_html__( 'Columns', 'bricks' ),
 			'type'        => 'number',
 			'min'         => 1,
-			'breakpoints' => true,
+			'css'         => [
+				[
+					'property' => '--columns',
+					'selector' => '.bricks-layout-wrapper',
+				],
+			],
+			'rerender'    => true,
 			'placeholder' => 2,
-			'required'    => [ 'layout', '=', [ '', 'grid', 'masonry' ] ],
+			'required'    => [ 'layout', '!=', [ 'list', 'metro' ] ],
 		];
 
 		$this->controls['gutter'] = [
-			'tab'     => 'content',
-			'group'   => 'layout',
-			'label'   => esc_html__( 'Spacing', 'bricks' ),
-			'type'    => 'number',
-			'units'   => true,
-			'css'     => [
+			'tab'      => 'content',
+			'group'    => 'layout',
+			'label'    => esc_html__( 'Spacing', 'bricks' ),
+			'type'     => 'number',
+			'units'    => true,
+			'css'      => [
 				[
-					'property' => 'padding-right',
-					'selector' => '.bricks-layout-item',
-				],
-				[
-					'property' => 'padding-bottom',
-					'selector' => '.bricks-layout-item',
-				],
-
-				// NOTE: Undocumented
-				[
-					'property' => 'margin-right',
+					'property' => '--gutter',
 					'selector' => '.bricks-layout-wrapper',
-					'invert'   => true,
-				],
-				[
-					'property' => 'margin-bottom',
-					'selector' => '.bricks-layout-wrapper',
-					'invert'   => true,
 				],
 			],
-			'default' => '30px',
+			'rerender' => true,
+			'default'  => '30px',
 		];
 
 		$this->controls['firstPostFullWidth'] = [
@@ -159,7 +150,23 @@ class Element_Posts extends Element {
 			'group'    => 'layout',
 			'label'    => esc_html__( 'First post full width', 'bricks' ),
 			'type'     => 'checkbox',
-			'required' => [ 'layout', '=', [ '', 'grid', 'masonry' ] ],
+			'css'      => [
+				// CSS Grid
+				[
+					'selector' => '[data-layout="grid"] .bricks-layout-item:first-child',
+					'property' => 'grid-column',
+					'value'    => '1 / -1',
+				],
+
+				// IsotopeJS ('filter' on)
+				[
+					'selector' => '[data-layout="grid"] .bricks-layout-item:first-child',
+					'property' => 'width',
+					'value'    => '100%',
+				],
+			],
+			'rerender' => true,
+			'required' => [ 'layout', '!=', [ 'list', 'masonry', 'metro' ] ],
 		];
 
 		// IMAGE
@@ -262,7 +269,7 @@ class Element_Posts extends Element {
 			'options'     => $this->control_options['imageRatio'],
 			'inline'      => true,
 			'description' => esc_html__( 'Precedes image height setting.', 'bricks' ),
-			'placeholder' => esc_html__( 'Square', 'bricks' ),
+			'placeholder' => esc_html__( 'None', 'bricks' ),
 			'required'    => [ 'layout', '=', [ '', 'grid' ] ],
 		];
 
@@ -314,48 +321,6 @@ class Element_Posts extends Element {
 			'required'    => [ 'filter', '!=', '' ],
 		];
 
-		$this->controls['filterTypography'] = [
-			'tab'      => 'content',
-			'group'    => 'filter',
-			'type'     => 'typography',
-			'label'    => esc_html__( 'Typography', 'bricks' ),
-			'css'      => [
-				[
-					'property' => 'font',
-					'selector' => '.bricks-isotope-filters',
-				],
-			],
-			'required' => [ 'filter', '!=', '' ],
-		];
-
-		$this->controls['filterTypographyActive'] = [
-			'tab'      => 'content',
-			'group'    => 'filter',
-			'type'     => 'typography',
-			'label'    => esc_html__( 'Typography active', 'bricks' ),
-			'css'      => [
-				[
-					'property' => 'font',
-					'selector' => '.bricks-isotope-filters .active',
-				],
-			],
-			'required' => [ 'filter', '!=', '' ],
-		];
-
-		$this->controls['filterBorder'] = [
-			'tab'      => 'content',
-			'group'    => 'filter',
-			'type'     => 'border',
-			'label'    => esc_html__( 'Border', 'bricks' ),
-			'css'      => [
-				[
-					'property' => 'border',
-					'selector' => '.bricks-isotope-filters li',
-				],
-			],
-			'required' => [ 'filter', '!=', '' ],
-		];
-
 		$this->controls['filterBackground'] = [
 			'tab'      => 'content',
 			'group'    => 'filter',
@@ -384,10 +349,52 @@ class Element_Posts extends Element {
 			'required' => [ 'filter', '!=', '' ],
 		];
 
+		$this->controls['filterBorder'] = [
+			'tab'      => 'content',
+			'group'    => 'filter',
+			'type'     => 'border',
+			'label'    => esc_html__( 'Border', 'bricks' ),
+			'css'      => [
+				[
+					'property' => 'border',
+					'selector' => '.bricks-isotope-filters li',
+				],
+			],
+			'required' => [ 'filter', '!=', '' ],
+		];
+
+		$this->controls['filterTypography'] = [
+			'tab'      => 'content',
+			'group'    => 'filter',
+			'type'     => 'typography',
+			'label'    => esc_html__( 'Typography', 'bricks' ),
+			'css'      => [
+				[
+					'property' => 'font',
+					'selector' => '.bricks-isotope-filters li',
+				],
+			],
+			'required' => [ 'filter', '!=', '' ],
+		];
+
+		$this->controls['filterTypographyActive'] = [
+			'tab'      => 'content',
+			'group'    => 'filter',
+			'type'     => 'typography',
+			'label'    => esc_html__( 'Typography active', 'bricks' ),
+			'css'      => [
+				[
+					'property' => 'font',
+					'selector' => '.bricks-isotope-filters .active',
+				],
+			],
+			'required' => [ 'filter', '!=', '' ],
+		];
+
 		$this->controls['filterMargin'] = [
 			'tab'         => 'content',
 			'group'       => 'filter',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Margin', 'bricks' ),
 			'css'         => [
 				[
@@ -407,7 +414,7 @@ class Element_Posts extends Element {
 		$this->controls['filterPadding'] = [
 			'tab'         => 'content',
 			'group'       => 'filter',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Padding', 'bricks' ),
 			'css'         => [
 				[
@@ -437,7 +444,7 @@ class Element_Posts extends Element {
 			'deprecated'  => true, // @since 1.5
 			'tab'         => 'content',
 			'group'       => 'pagination',
-			'type'        => 'dimensions',
+			'type'        => 'spacing',
 			'label'       => esc_html__( 'Spacing', 'bricks' ),
 			'css'         => [
 				[
@@ -636,22 +643,30 @@ class Element_Posts extends Element {
 	}
 
 	public function render() {
-		$settings           = $this->settings;
-		$is_frontend        = $this->is_frontend;
-		$layout             = ! empty( $settings['layout'] ) ? $settings['layout'] : 'grid';
-		$filter             = ! empty( $settings['filter'] ) ? $settings['filter'] : false;
-		$columns            = ! empty( $settings['columns'] ) ? $settings['columns'] : 2;
-		$breakpoint_classes = $layout !== 'metro' ? $this->generate_columns_per_breakpoint_css_classes( $columns, $settings ) : [];
+		$settings    = $this->settings;
+		$is_frontend = $this->is_frontend;
+		$layout      = ! empty( $settings['layout'] ) ? $settings['layout'] : 'grid';
+		$filter      = ! empty( $settings['filter'] ) ? $settings['filter'] : false;
+		$columns     = ! empty( $settings['columns'] ) ? $settings['columns'] : 2;
+		$use_isotope = $layout === 'masonry' || $filter;
 
-		// Do not render the wrappers on an infinite scroll request
-		if ( ! $is_frontend || ( $is_frontend && ! bricks_is_rest_call() ) ) {
-			// Isotope: Item sizer (li)
-			$item_sizer_classes = [ 'bricks-isotope-sizer' ];
+		/**
+		 * Check if current request is a load more/infinite scroll request
+		 *
+		 * If so, do not render wrappers.
+		 *
+		 * 'query_result' API call is also considered a load more/infinite scroll request.
+		 *
+		 * @since 1.8.1
+		 */
+		$is_load_more_request = Api::is_current_endpoint( 'load_query_page' ) || Api::is_current_endpoint( 'query_result' );
 
+		// Skip rendering wrappers if this is a load more request
+		if ( ! $is_load_more_request ) {
 			$wrapper_classes = [ 'bricks-layout-wrapper' ];
 
-			// Set isotopeJS CSS class (masonry/metro layout OR has filters enabled)
-			if ( $layout === 'masonry' || $layout === 'metro' || $filter ) {
+			// Load IsotopeJS
+			if ( $use_isotope ) {
 				$wrapper_classes[] = 'isotope';
 			}
 
@@ -660,19 +675,12 @@ class Element_Posts extends Element {
 					$wrapper_classes[] = 'alternate';
 				}
 
-				if ( ! isset( $settings['imageDisable'] ) && isset( $settings['imagePosition'] ) ) {
-					$wrapper_classes[] = 'image-position-' . $settings['imagePosition'];
-				}
-			} else {
-				// Set index for 'isotope_column_width' to 1 (to utilize .bricks-col-25 for metro layout)
-				$item_sizer_classes[] = 'bricks-col-' . $this->isotope_column_width( 1, $columns );
-
-				if ( count( $breakpoint_classes ) ) {
-					$item_sizer_classes = array_unique( array_merge( $breakpoint_classes, $item_sizer_classes ) );
+				if ( ! isset( $settings['imageDisable'] ) && ! empty( $settings['imagePosition'] ) ) {
+					$wrapper_classes[] = "image-position-{$settings['imagePosition']}";
 				}
 			}
 
-			$this->set_attribute( 'item-sizer', 'class', $item_sizer_classes );
+			$this->set_attribute( 'item-sizer', 'class', 'bricks-isotope-sizer' );
 
 			$this->set_attribute( 'ul', 'class', $wrapper_classes );
 
@@ -706,7 +714,8 @@ class Element_Posts extends Element {
 			$posts_query->the_post();
 			$post = get_post();
 
-			$item_classes = [ 'bricks-layout-item', 'repeater-item' ];
+			// Include brxe-{element.id} class for AJAX calls if Pagination element AJAX enabled (@see #33nr345)
+			$item_classes = [ 'bricks-layout-item', 'repeater-item', "brxe-{$this->id}" ];
 
 			// Filter by category/post_tag
 			if ( $filter ) {
@@ -716,19 +725,6 @@ class Element_Posts extends Element {
 					// Skip 'uncategorized' category
 					if ( $term->slug !== 'uncategorized' ) {
 						$item_classes[] = $term->slug;
-					}
-				}
-			}
-
-			if ( $layout === 'list' ) {
-				$item_classes[] = 'bricks-col-100';
-			} elseif ( $layout === 'grid' || $layout === 'masonry' ) {
-				// Set index for 'isotope_column_width' (to utilize .bricks-col-25 for metro layout)
-				if ( isset( $settings['firstPostFullWidth'] ) && $post_index === 0 ) {
-					$item_classes[] = 'bricks-col-100';
-				} else {
-					if ( count( $breakpoint_classes ) ) {
-						$item_classes = array_merge( $item_classes, $breakpoint_classes );
 					}
 				}
 			}
@@ -747,8 +743,8 @@ class Element_Posts extends Element {
 
 		// STEP: Render
 
-		// Do not render the wrappers on an infinite scroll request
-		if ( ! $is_frontend || ( $is_frontend && ! bricks_is_rest_call() ) ) {
+		// Do not render the wrappers on infinite scroll request
+		if ( ! $is_load_more_request ) {
 			echo "<div {$this->render_attributes( '_root' )}>";
 
 			if ( $filter ) {
@@ -833,7 +829,11 @@ class Element_Posts extends Element {
 			echo "<div {$this->render_attributes( "post-wrapper-$post_index" )}>";
 
 			// Image
-			if ( ! isset( $settings['imageDisable'] ) && has_post_thumbnail( $post->ID ) ) {
+			$disable_image = isset( $settings['imageDisable'] );
+			$has_image     = ! $disable_image && has_post_thumbnail( $post->ID );
+
+			// Render overlay_wrapper_html for layout 'metro' & 'list' even if there is no featured image (@since 1.5.1)
+			if ( $has_image || ( $layout === 'metro' || $layout === 'list' ) ) {
 				$overlay_has_links = strpos( $overlay_wrapper_html, '<a ' ) !== false;
 
 				if ( isset( $settings['imageLink'] ) && ! $overlay_has_links ) {
@@ -842,35 +842,38 @@ class Element_Posts extends Element {
 
 				if ( $layout === 'masonry' ) {
 					$this->set_attribute( "masonry-wrapper-$post_index", 'class', $image_classes );
+
 					echo "<div {$this->render_attributes( "masonry-wrapper-$post_index" )}>";
-
-					// if ( $this->lazy_load() ) {
 					echo wp_get_attachment_image( get_post_thumbnail_id( $post->ID ), BRICKS_DEFAULT_IMAGE_SIZE, false, [ 'class' => 'bricks-lazy-load-isotope' ] );
-					// } else {
-					// $this->set_attribute( "masonry-img-$post_index", 'src', get_the_post_thumbnail_url( $post->ID, BRICKS_DEFAULT_IMAGE_SIZE ) );
-					// $this->set_attribute( "masonry-img-$post_index", 'alt', get_post_meta( get_post_thumbnail_id( $post->ID ), '_wp_attachment_image_alt', true ) );
-
-					// echo '<img ' . $this->render_attributes( "masonry-img-$post_index" ) . '>';
-					// }
-
 					echo $overlay_wrapper_html;
-
 					echo '</div>';
 				} else {
 					$this->set_attribute( "image-wrapper-$post_index", 'class', $image_wrapper_classes );
-					$this->set_attribute( "image-$post_index", 'class', $image_classes );
-					$this->set_attribute( "image-$post_index", 'role', 'img' );
-					$this->set_attribute( "image-$post_index", 'aria-label', get_post_meta( get_post_thumbnail_id( $post->ID ), '_wp_attachment_image_alt', true ) );
 
-					$this->set_attribute( "image-$post_index", $this->lazy_load() ? 'data-style' : 'style', 'background-image: url(' . get_the_post_thumbnail_url( $post->ID, isset( $settings['imageSize'] ) ? $settings['imageSize'] : BRICKS_DEFAULT_IMAGE_SIZE ) . ')' );
+					$direction = ! empty( $settings['direction'] ) ? $settings['direction'] : 'column';
 
-					echo "<div {$this->render_attributes( "image-wrapper-$post_index" )}>";
+					// Render .image-wrapper if direction is 'row' OR 'column' and post has featured image
+					$render_image_wrapper = $layout !== 'list' || ( $layout === 'list' && ! $disable_image && ( strpos( $direction, 'row' ) !== false || ( $direction === 'column' && $has_image ) ) );
 
-					echo "<div {$this->render_attributes( "image-$post_index" )}></div>";
+					if ( $render_image_wrapper ) {
+						echo "<div {$this->render_attributes( "image-wrapper-$post_index" )}>";
+					}
+
+					if ( $has_image ) {
+						$this->set_attribute( "image-$post_index", 'class', $image_classes );
+						$this->set_attribute( "image-$post_index", 'role', 'img' );
+						$this->set_attribute( "image-$post_index", 'aria-label', get_post_meta( get_post_thumbnail_id( $post->ID ), '_wp_attachment_image_alt', true ) );
+
+						$this->set_attribute( "image-$post_index", $this->lazy_load() ? 'data-style' : 'style', 'background-image: url(' . get_the_post_thumbnail_url( $post->ID, isset( $settings['imageSize'] ) ? $settings['imageSize'] : BRICKS_DEFAULT_IMAGE_SIZE ) . ')' );
+
+						echo "<div {$this->render_attributes( "image-$post_index" )}></div>";
+					}
 
 					echo $overlay_wrapper_html;
 
-					echo '</div>';
+					if ( $render_image_wrapper ) {
+						echo '</div>';
+					}
 				}
 
 				if ( isset( $settings['imageLink'] ) && ! $overlay_has_links ) {
@@ -915,9 +918,14 @@ class Element_Posts extends Element {
 		// Add infinite scroll information to isotope sizer
 		$this->render_query_loop_trail( $posts_query, 'item-sizer' );
 
-		// Do not render the wrappers on an infinite scroll request
-		if ( ! $is_frontend || ( $is_frontend && ! bricks_is_rest_call() ) ) {
+		// Skip rendering wrappers if this is a load more request
+		if ( ! $is_load_more_request ) {
+			// 'item-sizer' used to add infinite scroll attributes
 			echo "<li {$this->render_attributes( 'item-sizer' )}></li>";
+
+			if ( $use_isotope ) {
+				echo '<li class="bricks-gutter-sizer"></li>';
+			}
 
 			echo '</ul>';
 

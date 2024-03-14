@@ -40,7 +40,7 @@ abstract class Settings_Base {
 			'controlGroups' => $this->control_groups,
 		];
 
-		// NOTE: Undocumented
+		// https://academy.bricksbuilder.io/article/filter-builder-settings-type-controls_data/
 		return apply_filters( "builder/settings/{$this->setting_type}/controls_data", $data );
 	}
 }

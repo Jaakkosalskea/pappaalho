@@ -25,7 +25,7 @@ $controls['background'] = [
 	'css'   => [
 		[
 			'property' => 'background-color',
-			'selector' => '.bricks-button',
+			'selector' => '.bricks-button:not([class*="bricks-background-"]):not([class*="bricks-color-"])',
 		],
 	],
 ];
@@ -61,7 +61,6 @@ $controls['transition'] = [
 		],
 	],
 	'type'        => 'text',
-	'placeholder' => 'all 0.2s ease-in',
 	'description' => sprintf( '<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Transitions/Using_CSS_transitions" target="_blank">%s</a>', esc_html__( 'Learn more about CSS transitions', 'bricks' ) ),
 ];
 
@@ -78,7 +77,7 @@ $controls['primaryTypography'] = [
 	'css'   => [
 		[
 			'property' => 'font',
-			'selector' => '.bricks-button.bricks-background-primary',
+			'selector' => ':root .bricks-button[class*="primary"]',
 		],
 	],
 ];
@@ -89,7 +88,7 @@ $controls['primaryBackground'] = [
 	'css'   => [
 		[
 			'property' => 'background-color',
-			'selector' => '.bricks-button.bricks-background-primary',
+			'selector' => ':root .bricks-button[class*="primary"]:not(.outline)',
 		],
 	],
 ];
@@ -100,7 +99,7 @@ $controls['primaryBorder'] = [
 	'css'   => [
 		[
 			'property' => 'border',
-			'selector' => '.bricks-button.bricks-background-primary',
+			'selector' => ':root .bricks-button[class*="primary"]',
 		],
 	],
 ];
@@ -111,7 +110,7 @@ $controls['primaryBoxShadow'] = [
 	'css'   => [
 		[
 			'property' => 'box-shadow',
-			'selector' => '.bricks-button.bricks-background-primary',
+			'selector' => ':root .bricks-button[class*="primary"]',
 		],
 	],
 ];
@@ -129,7 +128,7 @@ $controls['secondaryTypography'] = [
 	'css'   => [
 		[
 			'property' => 'font',
-			'selector' => '.bricks-button.bricks-background-secondary',
+			'selector' => ':root .bricks-button[class*="secondary"]',
 		],
 	],
 ];
@@ -140,7 +139,7 @@ $controls['secondaryBackground'] = [
 	'css'   => [
 		[
 			'property' => 'background-color',
-			'selector' => '.bricks-button.bricks-background-secondary',
+			'selector' => ':root .bricks-button[class*="secondary"]:not(.outline)',
 		],
 	],
 ];
@@ -151,7 +150,7 @@ $controls['secondaryBorder'] = [
 	'css'   => [
 		[
 			'property' => 'border',
-			'selector' => '.bricks-button.bricks-background-secondary',
+			'selector' => ':root .bricks-button[class*="secondary"]',
 		],
 	],
 ];
@@ -162,7 +161,7 @@ $controls['secondaryBoxShadow'] = [
 	'css'   => [
 		[
 			'property' => 'box-shadow',
-			'selector' => '.bricks-button.bricks-background-secondary',
+			'selector' => ':root .bricks-button[class*="secondary"]',
 		],
 	],
 ];
@@ -180,7 +179,7 @@ $controls['lightTypography'] = [
 	'css'   => [
 		[
 			'property' => 'font',
-			'selector' => '.bricks-button.bricks-background-light',
+			'selector' => ':root .bricks-button[class*="light"]',
 		],
 	],
 ];
@@ -191,7 +190,7 @@ $controls['lightBackground'] = [
 	'css'   => [
 		[
 			'property' => 'background-color',
-			'selector' => '.bricks-button.bricks-background-light',
+			'selector' => ':root .bricks-button[class*="light"]:not(.outline):not(.bricks-lightbox)',
 		],
 	],
 ];
@@ -202,7 +201,7 @@ $controls['lightBorder'] = [
 	'css'   => [
 		[
 			'property' => 'border',
-			'selector' => '.bricks-button.bricks-background-light',
+			'selector' => ':root .bricks-button[class*="light"]',
 		],
 	],
 ];
@@ -213,7 +212,7 @@ $controls['lightBoxShadow'] = [
 	'css'   => [
 		[
 			'property' => 'box-shadow',
-			'selector' => '.bricks-button.bricks-background-light',
+			'selector' => ':root .bricks-button[class*="light"]',
 		],
 	],
 ];
@@ -231,7 +230,7 @@ $controls['darkTypography'] = [
 	'css'   => [
 		[
 			'property' => 'font',
-			'selector' => '.bricks-button.bricks-background-dark',
+			'selector' => ':root .bricks-button[class*="dark"]',
 		],
 	],
 ];
@@ -242,7 +241,7 @@ $controls['darkBackground'] = [
 	'css'   => [
 		[
 			'property' => 'background-color',
-			'selector' => '.bricks-button.bricks-background-dark',
+			'selector' => ':root .bricks-button[class*="dark"]:not(.outline)',
 		],
 	],
 ];
@@ -253,7 +252,7 @@ $controls['darkBorder'] = [
 	'css'   => [
 		[
 			'property' => 'border',
-			'selector' => '.bricks-button.bricks-background-dark',
+			'selector' => ':root .bricks-button[class*="dark"]',
 		],
 	],
 ];
@@ -264,8 +263,32 @@ $controls['darkBoxShadow'] = [
 	'css'   => [
 		[
 			'property' => 'box-shadow',
-			'selector' => '.bricks-button.bricks-background-dark',
+			'selector' => ':root .bricks-button[class*="dark"]',
 		],
+	],
+];
+
+// Size - Default
+
+$controls['sizeDefaultSeparator'] = [
+	'type'  => 'separator',
+	'label' => esc_html__( 'Size - Default', 'bricks' ),
+];
+
+$controls['sizeDefaultPadding'] = [
+	'type'        => 'spacing',
+	'label'       => esc_html__( 'Padding', 'bricks' ),
+	'css'         => [
+		[
+			'property' => 'padding',
+			'selector' => '.bricks-button',
+		],
+	],
+	'placeholder' => [
+		'top'    => '0.5em',
+		'right'  => '1em',
+		'bottom' => '0.5em',
+		'left'   => '1em',
 	],
 ];
 
@@ -276,19 +299,8 @@ $controls['sizeSmSeparator'] = [
 	'label' => esc_html__( 'Size - Small', 'bricks' ),
 ];
 
-$controls['sizeSmTypography'] = [
-	'type'  => 'typography',
-	'label' => esc_html__( 'Typography', 'bricks' ),
-	'css'   => [
-		[
-			'property' => 'font',
-			'selector' => '.bricks-button.sm',
-		],
-	],
-];
-
 $controls['sizeSmPadding'] = [
-	'type'        => 'dimensions',
+	'type'        => 'spacing',
 	'label'       => esc_html__( 'Padding', 'bricks' ),
 	'css'         => [
 		[
@@ -304,6 +316,17 @@ $controls['sizeSmPadding'] = [
 	],
 ];
 
+$controls['sizeSmTypography'] = [
+	'type'  => 'typography',
+	'label' => esc_html__( 'Typography', 'bricks' ),
+	'css'   => [
+		[
+			'property' => 'font',
+			'selector' => '.bricks-button.sm',
+		],
+	],
+];
+
 // Size - Medium
 
 $controls['sizeMdSeparator'] = [
@@ -311,19 +334,8 @@ $controls['sizeMdSeparator'] = [
 	'label' => esc_html__( 'Size - Medium', 'bricks' ),
 ];
 
-$controls['sizeMdTypography'] = [
-	'type'  => 'typography',
-	'label' => esc_html__( 'Typography', 'bricks' ),
-	'css'   => [
-		[
-			'property' => 'font',
-			'selector' => '.bricks-button.md',
-		],
-	],
-];
-
 $controls['sizeMdPadding'] = [
-	'type'        => 'dimensions',
+	'type'        => 'spacing',
 	'label'       => esc_html__( 'Padding', 'bricks' ),
 	'css'         => [
 		[
@@ -339,6 +351,18 @@ $controls['sizeMdPadding'] = [
 	],
 ];
 
+
+$controls['sizeMdTypography'] = [
+	'type'  => 'typography',
+	'label' => esc_html__( 'Typography', 'bricks' ),
+	'css'   => [
+		[
+			'property' => 'font',
+			'selector' => '.bricks-button.md',
+		],
+	],
+];
+
 // Size - Large
 
 $controls['sizeLgSeparator'] = [
@@ -346,19 +370,8 @@ $controls['sizeLgSeparator'] = [
 	'label' => esc_html__( 'Size - Large', 'bricks' ),
 ];
 
-$controls['sizeLgTypography'] = [
-	'type'  => 'typography',
-	'label' => esc_html__( 'Typography', 'bricks' ),
-	'css'   => [
-		[
-			'property' => 'font',
-			'selector' => '.bricks-button.lg',
-		],
-	],
-];
-
 $controls['sizeLgPadding'] = [
-	'type'        => 'dimensions',
+	'type'        => 'spacing',
 	'label'       => esc_html__( 'Padding', 'bricks' ),
 	'css'         => [
 		[
@@ -374,6 +387,17 @@ $controls['sizeLgPadding'] = [
 	],
 ];
 
+$controls['sizeLgTypography'] = [
+	'type'  => 'typography',
+	'label' => esc_html__( 'Typography', 'bricks' ),
+	'css'   => [
+		[
+			'property' => 'font',
+			'selector' => '.bricks-button.lg',
+		],
+	],
+];
+
 // Size - Extra Large
 
 $controls['sizeXlSeparator'] = [
@@ -381,19 +405,8 @@ $controls['sizeXlSeparator'] = [
 	'label' => esc_html__( 'Size - Extra Large', 'bricks' ),
 ];
 
-$controls['sizeXlTypography'] = [
-	'type'  => 'typography',
-	'label' => esc_html__( 'Typography', 'bricks' ),
-	'css'   => [
-		[
-			'property' => 'font',
-			'selector' => '.bricks-button.xl',
-		],
-	],
-];
-
 $controls['sizeXlPadding'] = [
-	'type'        => 'dimensions',
+	'type'        => 'spacing',
 	'label'       => esc_html__( 'Padding', 'bricks' ),
 	'css'         => [
 		[
@@ -406,6 +419,17 @@ $controls['sizeXlPadding'] = [
 		'right'  => '1em',
 		'bottom' => '0.8em',
 		'left'   => '1em',
+	],
+];
+
+$controls['sizeXlTypography'] = [
+	'type'  => 'typography',
+	'label' => esc_html__( 'Typography', 'bricks' ),
+	'css'   => [
+		[
+			'property' => 'font',
+			'selector' => '.bricks-button.xl',
+		],
 	],
 ];
 

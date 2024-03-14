@@ -21,7 +21,7 @@ $controls['headerSeparator'] = [
 
 $controls['headerPadding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',
@@ -83,7 +83,7 @@ $controls['priceSeparator'] = [
 
 $controls['pricePadding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',
@@ -164,7 +164,7 @@ $controls['featuresSeparator'] = [
 
 $controls['featuresPadding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',
@@ -226,7 +226,7 @@ $controls['footerSeparator'] = [
 
 $controls['footerPadding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',

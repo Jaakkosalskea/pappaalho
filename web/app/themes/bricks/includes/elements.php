@@ -6,9 +6,6 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 class Elements {
 	public static $elements = [];
 
-	/**
-	 * @see https://codex.wordpress.org/Plugin_API/Action_Reference
-	 */
 	public function __construct() {
 		// Init elements on init hook (to get custom registered taxonomies, etc.)
 		add_action( 'init', [ $this, 'init_elements' ] );
@@ -18,12 +15,11 @@ class Elements {
 	}
 
 	public static function init_elements() {
-
 		// Load abstract element base class
 		require_once BRICKS_PATH . 'includes/elements/base.php';
 
 		$element_names = [
-			// Layout
+			// Layout (nestable elements)
 			'container',
 			'section', // @since 1.5
 			'block', // @since 1.5
@@ -33,18 +29,24 @@ class Elements {
 			'heading',
 			'text-basic', // @since 1.3.6
 			'text',
+			'text-link', // @since 1.8
 			'button',
 			'icon',
 			'image',
 			'video',
 
 			// General
+			'nav-nested', // @since 1.8
+			'dropdown', // @since 1.8
+			'offcanvas', // @since 1.8
+			'toggle', // @since 1.8
+
 			'divider',
 			'icon-box',
-			'social-icons', // @since 1.4 (Label: Icon List)
+			'social-icons',
 			'list',
 			'accordion',
-			'accordion-nested',
+			'accordion-nested', // @since 1.5
 			'tabs',
 			'tabs-nested', // @since 1.5
 			'form',
@@ -63,14 +65,16 @@ class Elements {
 			'template',
 			'logo',
 			'facebook-page',
+			'breadcrumbs', // @since 1.8.1
 
 			// Media
 			'image-gallery',
 			'audio',
 			'carousel',
 			'slider',
-			'slider-nested',
+			'slider-nested', // @since 1.5
 			'svg',
+			'instagram-feed',
 
 			// WordPress
 			'wordpress',
@@ -92,7 +96,27 @@ class Elements {
 			'post-comments',
 			'post-taxonomy',
 			'post-navigation',
+
+			'post-reading-time',
+			'post-reading-progress-bar',
+			'post-toc',
 		];
+
+		// Load filter element base class (@since 1.9.6)
+		if ( Helpers::enabled_query_filters() ) {
+			require_once BRICKS_PATH . 'includes/elements/filter-base.php';
+			$input_elements = [
+				'filter-checkbox',
+				'filter-datepicker',
+				'filter-radio',
+				'filter-range',
+				'filter-search',
+				'filter-select',
+				'filter-submit',
+			];
+
+			$element_names = array_merge( $element_names, $input_elements );
+		}
 
 		$element_names = apply_filters( 'bricks/builder/elements', $element_names );
 
@@ -127,16 +151,20 @@ class Elements {
 			$element_class_name   = end( $get_declared_classes );
 		}
 
+		$element_label = '';
+
 		// Init element to get element name
 		if ( empty( $element_name ) ) {
 			$element_instance = new $element_class_name();
 			$element_name     = $element_instance->name;
+			$element_label    = $element_instance->get_label();
 		}
 
 		// Store elements
 		self::$elements[ $element_name ] = [
 			'class' => $element_class_name,
 			'name'  => $element_name,
+			'label' => $element_label,
 		];
 	}
 
@@ -205,7 +233,7 @@ class Elements {
 		];
 
 		/**
-		 * Rendered HTML output for nestable non-layout elements (slider, accordion, tabs, etc.
+		 * Rendered HTML output for nestable non-layout elements (slider, accordion, tabs, etc.)
 		 *
 		 * To use inside BricksNestable.vue on mount()
 		 *
@@ -260,6 +288,6 @@ class Elements {
 			return [];
 		}
 
-		return self::$elements[ $element_name ][ $element_property ];
+		return $element_property ? self::$elements[ $element_name ][ $element_property ] : self::$elements[ $element_name ];
 	}
 }

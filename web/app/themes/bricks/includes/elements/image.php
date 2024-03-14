@@ -28,10 +28,25 @@ class Element_Image extends Element {
 	}
 
 	public function set_controls() {
+		// Get breakpoints for "Sources" control
+		$breakpoints        = Breakpoints::$breakpoints;
+		$breakpoint_options = [];
+
+		foreach ( $breakpoints as $index => $breakpoint ) {
+			$breakpoint_options[ $breakpoint['key'] ] = isset( $breakpoint['base'] ) ? $breakpoint['label'] . ' (' . esc_html__( 'Base breakpoint', 'bricks' ) . ')' : $breakpoint['label'];
+		}
+
+		if ( ! Breakpoints::$is_mobile_first ) {
+			$breakpoint_options = array_reverse( $breakpoint_options );
+		}
+
+		// Underscorce prefix to prevent conflict with user-created custom breakpoint
+		$breakpoint_options['_custom'] = esc_html__( 'Custom', 'bricks' ) . ' (' . esc_html__( 'Media query', 'bricks' ) . ')';
+
 		// Apply CSS filters only to img tag
 		$this->controls['_cssFilters']['css'] = [
 			[
-				'selector' => '&:is(img)',
+				'selector' => '&:not(.tag)',
 				'property' => 'filter',
 			],
 			[
@@ -42,16 +57,13 @@ class Element_Image extends Element {
 
 		$this->controls['_typography']['css'][0]['selector'] = 'figcaption';
 
-		// Image
+		// IMAGE
 
 		$this->controls['image'] = [
-			'tab'  => 'content',
 			'type' => 'image',
 		];
 
-		// @since 1.4
 		$this->controls['tag'] = [
-			'tab'         => 'content',
 			'label'       => esc_html__( 'HTML tag', 'bricks' ),
 			'type'        => 'select',
 			'options'     => [
@@ -63,70 +75,111 @@ class Element_Image extends Element {
 			'lowercase'   => true,
 			'inline'      => true,
 			'placeholder' => '-',
+			'required'    => [ 'sources', '=', '' ],
 		];
 
 		$this->controls['customTag'] = [
-			'tab'            => 'content',
-			'label'          => esc_html__( 'Custom tag', 'bricks' ),
-			'type'           => 'text',
-			'inline'         => true,
-			'hasDynamicData' => false,
-			'placeholder'    => 'div',
-			'required'       => [ 'tag', '=', 'custom' ],
-		];
-
-		// @since 1.3.7
-		$this->controls['_objectFit'] = [
-			'tab'         => 'content',
-			'label'       => esc_html__( 'Object fit', 'bricks' ),
-			'type'        => 'select',
-			'options'     => [
-				'fill'       => esc_html__( 'Fill', 'bricks' ),
-				'contain'    => esc_html__( 'Contain', 'bricks' ),
-				'cover'      => esc_html__( 'Cover', 'bricks' ),
-				'none'       => esc_html__( 'None', 'bricks' ),
-				'scale-down' => esc_html__( 'Scale down', 'bricks' ),
-				'fill'       => esc_html__( 'Fill', 'bricks' ),
-			],
-			'css'         => [
-				[
-					'property' => 'object-fit',
-					'selector' => '',
-				],
-				[
-					'property' => 'object-fit',
-					'selector' => 'img',
-				],
-			],
+			'label'       => esc_html__( 'Custom tag', 'bricks' ),
+			'type'        => 'text',
 			'inline'      => true,
-			'placeholder' => esc_html__( 'Fill', 'bricks' ),
+			'dd'          => false,
+			'placeholder' => 'div',
+			'required'    => [ 'tag', '=', 'custom' ],
 		];
 
-		// @since 1.3.7
+		$this->controls['sources'] = [
+			'label'         => esc_html__( 'Sources', 'bricks' ),
+			'type'          => 'repeater',
+			'titleProperty' => 'breakpoint',
+			'description'   => '<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/picture" target="_blank">' . esc_html__( 'Show different images per breakpoint.', 'bricks' ) . '</a>',
+			'placeholder'   => esc_html__( 'Source', 'bricks' ),
+			'fields'        => [
+				'breakpoint' => [
+					'label'       => esc_html__( 'Breakpoint', 'bricks' ),
+					'type'        => 'select',
+					'options'     => $breakpoint_options,
+					'placeholder' => esc_html__( 'Select', 'bricks' ),
+				],
+				'media'      => [
+					'label'       => esc_html__( 'Media query', 'bricks' ),
+					'type'        => 'text',
+					'placeholder' => '(max-width: 600px)',
+					'required'    => [ 'breakpoint', '=', '_custom' ],
+				],
+				'image'      => [
+					'label'    => esc_html__( 'Image', 'bricks' ),
+					'type'     => 'image',
+					'required' => [ 'breakpoint', '!=', '' ],
+				],
+			],
+		];
+
+		$this->controls['sourcesInfo'] = [
+			'type'     => 'info',
+			'content'  => esc_html__( 'Order matters. Start at smallest breakpoint. If using mobile-first start at largest breakpoint.', 'bricks' ) . ' ' . esc_html__( 'Set source image at base breakpoint to use main image as fallback image.', 'bricks' ),
+			'required' => [ 'sources', '!=', '' ],
+		];
+
+		// Delete '_aspectRatio' control to add it here before the '_objectFit' (@since 1.9)
+		if ( isset( $this->controls['_aspectRatio'] ) ) {
+			unset( $this->controls['_aspectRatio'] );
+
+			$this->controls['_aspectRatio'] = [
+				'label'       => esc_html__( 'Aspect ratio', 'bricks' ),
+				'type'        => 'text',
+				'inline'      => true,
+				'dd'          => false,
+				'placeholder' => '',
+				'css'         => [
+					[
+						'property' => 'aspect-ratio',
+						'selector' => '&:not(.tag)',
+					],
+					[
+						'property' => 'aspect-ratio',
+						'selector' => 'img',
+					],
+				],
+			];
+		}
+
+		$this->controls['_objectFit'] = [
+			'label'   => esc_html__( 'Object fit', 'bricks' ),
+			'type'    => 'select',
+			'inline'  => true,
+			'options' => $this->control_options['objectFit'],
+			'css'     => [
+				[
+					'property' => 'object-fit',
+					'selector' => '&:not(.tag)',
+				],
+				[
+					'property' => 'object-fit',
+					'selector' => 'img',
+				],
+			],
+		];
+
 		$this->controls['_objectPosition'] = [
-			'tab'            => 'content',
-			'label'          => esc_html__( 'Object position', 'bricks' ),
-			'type'           => 'text',
-			'css'            => [
+			'label'  => esc_html__( 'Object position', 'bricks' ),
+			'type'   => 'text',
+			'inline' => true,
+			'dd'     => false,
+			'css'    => [
 				[
 					'property' => 'object-position',
-					'selector' => '',
+					'selector' => '&:not(.tag)',
 				],
 				[
 					'property' => 'object-position',
 					'selector' => 'img',
 				],
 			],
-			'inline'         => true,
-			'placeholder'    => '50% 50%',
-			'hasDynamicData' => false,
-			'required'       => [ '_objectFit' ],
 		];
 
 		// Alt text
 
 		$this->controls['altText'] = [
-			'tab'      => 'content',
 			'label'    => esc_html__( 'Custom alt text', 'bricks' ),
 			'type'     => 'text',
 			'inline'   => true,
@@ -135,30 +188,49 @@ class Element_Image extends Element {
 		];
 
 		// Caption
+		$caption_options = [
+			'none'       => esc_html__( 'No caption', 'bricks' ),
+			'attachment' => esc_html__( 'Attachment', 'bricks' ),
+			'custom'     => esc_html__( 'Custom', 'bricks' ),
+		];
+
+		// Get caption placeholder from theme option value
+		$show_caption = ! empty( $this->theme_styles['caption'] ) ? $this->theme_styles['caption'] : 'attachment';
 
 		$this->controls['caption'] = [
-			'tab'         => 'content',
 			'label'       => esc_html__( 'Caption Type', 'bricks' ),
 			'type'        => 'select',
-			'options'     => [
-				'none'       => esc_html__( 'No caption', 'bricks' ),
-				'attachment' => esc_html__( 'Attachment', 'bricks' ),
-				'custom'     => esc_html__( 'Custom', 'bricks' ),
-			],
+			'options'     => $caption_options,
 			'inline'      => true,
-			'placeholder' => esc_html__( 'Select', 'bricks' ),
+			'placeholder' => ! empty( $caption_options[ $show_caption ] ) ? $caption_options[ $show_caption ] : esc_html__( 'Attachment', 'bricks' ),
 		];
 
 		$this->controls['captionCustom'] = [
-			'tab'         => 'content',
 			'label'       => esc_html__( 'Custom caption', 'bricks' ),
 			'type'        => 'text',
 			'placeholder' => esc_html__( 'Here goes your caption ...', 'bricks' ),
 			'required'    => [ 'caption', '=', 'custom' ],
 		];
 
+		$this->controls['loading'] = [
+			'label'       => esc_html__( 'Loading', 'bricks' ),
+			'type'        => 'select',
+			'inline'      => true,
+			'options'     => [
+				'eager' => 'eager',
+				'lazy'  => 'lazy',
+			],
+			'placeholder' => 'lazy',
+		];
+
+		$this->controls['showTitle'] = [
+			'label'    => esc_html__( 'Show title', 'bricks' ),
+			'type'     => 'checkbox',
+			'inline'   => true,
+			'required' => [ 'image', '!=', '' ],
+		];
+
 		$this->controls['stretch'] = [
-			'tab'   => 'content',
 			'label' => esc_html__( 'Stretch', 'bricks' ),
 			'type'  => 'checkbox',
 			'css'   => [
@@ -169,16 +241,26 @@ class Element_Image extends Element {
 			],
 		];
 
-		// Link To
+		$this->controls['popupOverlay'] = [
+			// 'deprecated' => true, // Redundant: Use _gradient settings instead
+			'label'    => esc_html__( 'Image Overlay', 'bricks' ),
+			'type'     => 'color',
+			'css'      => [
+				[
+					'property' => 'background-color',
+					'selector' => '&.overlay::before',
+				],
+			],
+			'rerender' => true,
+		];
 
-		$this->controls['linkToSeparator'] = [
-			'tab'   => 'content',
+		// Link To
+		$this->controls['linkToSep'] = [
 			'type'  => 'separator',
 			'label' => esc_html__( 'Link To', 'bricks' ),
 		];
 
 		$this->controls['link'] = [
-			'tab'         => 'content',
 			'type'        => 'select',
 			'options'     => [
 				'lightbox'   => esc_html__( 'Lightbox', 'bricks' ),
@@ -190,138 +272,111 @@ class Element_Image extends Element {
 			'placeholder' => esc_html__( 'None', 'bricks' ),
 		];
 
+		// @since 1.8.1
+		$this->controls['lightboxImageSize'] = [
+			'label'       => esc_html__( 'Lightbox image size', 'bricks' ),
+			'type'        => 'select',
+			'options'     => $this->control_options['imageSizes'],
+			'placeholder' => esc_html__( 'Full', 'bricks' ),
+			'required'    => [ 'link', '=', 'lightbox' ],
+		];
+
+		// @since 1.8.4
+		$this->controls['lightboxAnimationType'] = [
+			'label'       => esc_html__( 'Lightbox animation type', 'bricks' ),
+			'type'        => 'select',
+			'options'     => $this->control_options['lightboxAnimationTypes'],
+			'placeholder' => esc_html__( 'Zoom', 'bricks' ),
+			'required'    => [ 'link', '=', 'lightbox' ],
+		];
+
+		$this->controls['lightboxId'] = [
+			'label'       => esc_html__( 'Lightbox ID', 'bricks' ),
+			'type'        => 'text',
+			'inline'      => true,
+			'required'    => [ 'link', '=', 'lightbox' ],
+			'description' => esc_html__( 'Images of the same lightbox ID are grouped together.', 'bricks' ),
+		];
+
 		$this->controls['newTab'] = [
-			'tab'      => 'content',
 			'label'    => esc_html__( 'Open in new tab', 'bricks' ),
 			'type'     => 'checkbox',
 			'required' => [ 'link', '=', [ 'attachment', 'media' ] ],
 		];
 
 		$this->controls['url'] = [
-			'tab'      => 'content',
 			'type'     => 'link',
 			'required' => [ 'link', '=', 'url' ],
 		];
 
-		$this->controls['popupOverlay'] = [
-			// 'deprecated' => true, // Redundant: Use _gradient settings instead
-			'tab'      => 'content',
-			'label'    => esc_html__( 'Image overlay', 'bricks' ),
-			'type'     => 'color',
-			'css'      => [
-				[
-					'property' => 'background-color',
-					'selector' => '&.overlay::before',
-				],
-			],
-			'rerender' => true,
-			'required' => [ 'link', '!=', '' ],
-		];
-
 		// Icon
 
-		$this->controls['popupSeparator'] = [
-			'tab'      => 'content',
-			'label'    => esc_html__( 'Icon', 'bricks' ),
-			'type'     => 'separator',
-			'inline'   => true,
-			'small'    => true,
-			'required' => [ 'link', '!=', '' ],
+		$this->controls['popupSep'] = [
+			'label'  => esc_html__( 'Icon', 'bricks' ),
+			'type'   => 'separator',
+			'inline' => true,
+			'small'  => true,
 		];
 
-		// To hide icon for specific elements when image icon set in styles
+		// To hide icon for specific elements when image icon set in theme styles
 		$this->controls['popupIconDisable'] = [
-			'tab'   => 'content',
 			'label' => esc_html__( 'Disable icon', 'bricks' ),
+			'info'  => esc_html__( 'Settings', 'bricks' ) . ' > ' . esc_html__( 'Theme styles', 'bricks' ) . ' > ' . esc_html__( 'Image', 'bricks' ),
 			'type'  => 'checkbox',
 		];
 
 		$this->controls['popupIcon'] = [
-			'tab'      => 'content',
 			'label'    => esc_html__( 'Icon', 'bricks' ),
 			'type'     => 'icon',
 			'inline'   => true,
 			'small'    => true,
 			'rerender' => true,
-			'required' => [ 'link', '!=', '' ],
 		];
 
 		// NOTE: Set popup CSS control outside of control 'link' (CSS is not applied to nested controls)
 		$this->controls['popupIconBackgroundColor'] = [
-			'tab'      => 'content',
 			'label'    => esc_html__( 'Icon background color', 'bricks' ),
 			'type'     => 'color',
 			'css'      => [
 				[
 					'property' => 'background-color',
-					'selector' => '.icon',
+					'selector' => '&{pseudo} .icon',
 				],
 			],
 			'required' => [ 'popupIcon', '!=', '' ],
 		];
 
 		$this->controls['popupIconBorder'] = [
-			'tab'      => 'content',
 			'label'    => esc_html__( 'Icon border', 'bricks' ),
 			'type'     => 'border',
 			'css'      => [
 				[
 					'property' => 'border',
-					'selector' => '.icon',
+					'selector' => '&{pseudo} .icon',
 				],
 			],
 			'required' => [ 'popupIcon', '!=', '' ],
 		];
 
 		$this->controls['popupIconBoxShadow'] = [
-			'tab'      => 'content',
 			'label'    => esc_html__( 'Icon box shadow', 'bricks' ),
 			'type'     => 'box-shadow',
 			'css'      => [
 				[
 					'property' => 'box-shadow',
-					'selector' => '.icon',
-				],
-			],
-			'required' => [ 'popupIcon', '!=', '' ],
-		];
-
-		$this->controls['popupIconHeight'] = [
-			'tab'      => 'content',
-			'label'    => esc_html__( 'Icon height', 'bricks' ),
-			'type'     => 'number',
-			'units'    => true,
-			'css'      => [
-				[
-					'property' => 'line-height',
-					'selector' => '.icon',
-				],
-			],
-			'required' => [ 'popupIcon', '!=', '' ],
-		];
-
-		$this->controls['popupIconWidth'] = [
-			'tab'      => 'content',
-			'label'    => esc_html__( 'Icon width', 'bricks' ),
-			'type'     => 'number',
-			'units'    => true,
-			'css'      => [
-				[
-					'property' => 'width',
-					'selector' => '.icon',
+					'selector' => '&{pseudo} .icon',
 				],
 			],
 			'required' => [ 'popupIcon', '!=', '' ],
 		];
 
 		$this->controls['popupIconTypography'] = [
-			'tab'         => 'content',
 			'label'       => esc_html__( 'Icon typography', 'bricks' ),
 			'type'        => 'typography',
 			'css'         => [
 				[
 					'property' => 'font',
-					'selector' => '.icon',
+					'selector' => '&{pseudo} .icon',
 				],
 			],
 			'exclude'     => [
@@ -339,6 +394,221 @@ class Element_Image extends Element {
 			],
 			'required'    => [ 'popupIcon.icon', '!=', '' ],
 		];
+
+		$this->controls['popupIconHeight'] = [
+			'label'    => esc_html__( 'Icon height', 'bricks' ),
+			'type'     => 'number',
+			'units'    => true,
+			'css'      => [
+				[
+					'property' => 'line-height',
+					'selector' => '&{pseudo} .icon',
+				],
+			],
+			'required' => [ 'popupIcon', '!=', '' ],
+		];
+
+		$this->controls['popupIconWidth'] = [
+			'label'    => esc_html__( 'Icon width', 'bricks' ),
+			'type'     => 'number',
+			'units'    => true,
+			'css'      => [
+				[
+					'property' => 'width',
+					'selector' => '&{pseudo} .icon',
+				],
+			],
+			'required' => [ 'popupIcon', '!=', '' ],
+		];
+
+		$this->controls['popupIconTransition'] = [
+			'label'    => esc_html__( 'Icon transition', 'bricks' ),
+			'type'     => 'text',
+			'inline'   => true,
+			'css'      => [
+				[
+					'property' => 'transition',
+					'selector' => '&{pseudo} .icon',
+				],
+			],
+			'required' => [ 'popupIcon', '!=', '' ],
+		];
+
+		// Image masking (@since 1.8.5)
+
+		$this->controls['maskSep'] = [
+			'type'  => 'separator',
+			'label' => esc_html__( 'Mask', 'bricks' ),
+		];
+
+		$this->controls['mask'] = [
+			'label'       => esc_html__( 'Mask', 'bricks' ),
+			'type'        => 'select',
+			'inline'      => true,
+			'options'     => [
+				'custom'                          => esc_html__( 'Custom', 'bricks' ),
+				'mask-boom'                       => 'Boom',
+				'mask-box'                        => 'Box',
+				'mask-bubbles'                    => 'Bubbles',
+				'mask-cirlce-dots'                => 'Circle dots',
+				'mask-circle-line'                => 'Circle line',
+				'mask-circle-waves'               => 'Circle waves',
+				'mask-circle'                     => 'Circle',
+				'mask-drop-2'                     => 'Drop 2',
+				'mask-drop'                       => 'Drop',
+				'mask-fire'                       => 'Fire',
+				'mask-grid-circles'               => 'Grid circles',
+				'mask-grid-dots'                  => 'Grid dots',
+				'mask-grid-filled-diagonal'       => 'Grid filled diagonal',
+				'mask-grid-lines-diagonal'        => 'Grid lines diagonal',
+				'mask-grid'                       => 'Grid',
+				'mask-heart'                      => 'Heart',
+				'mask-hexagon-dent'               => 'Hexagon dent',
+				'mask-hexagon'                    => 'Hexagon',
+				'mask-hourglass'                  => 'Hourglass',
+				'mask-masonry'                    => 'Masonry',
+				'mask-ninja-star'                 => 'Ninja star',
+				'mask-octagon-dent'               => 'Octagon dent',
+				'mask-play'                       => 'Play',
+				'mask-plus'                       => 'Plus',
+				'mask-round-zig-zag'              => 'Round zig zag',
+				'mask-splash'                     => 'Splash',
+				'mask-square-rounded'             => 'Square rounded',
+				'mask-squares-3-by-3'             => 'Squares 3x3',
+				'mask-squares-4-by-4'             => 'Squares 4x4',
+				'mask-squares-4-diagonal-rounded' => 'Squares 4 diagonal rounded',
+				'mask-squares-4-diagonal'         => 'Squares 4 diagonal',
+				'mask-squares-diagonal'           => 'Squares diagonal',
+				'mask-squares-merged'             => 'Squares merged',
+				'mask-tiles-2'                    => 'Tiles 2',
+				'mask-tiles'                      => 'Tiles',
+				'mask-waves'                      => 'Waves',
+			],
+			'placeholder' => esc_html__( 'Select', 'bricks' ),
+		];
+
+		$this->controls['maskCustom'] = [
+			'type'     => 'image',
+			'unsplash' => false,
+			'required' => [ 'mask', '=', 'custom' ],
+		];
+
+		$this->controls['maskSize'] = [
+			'label'       => esc_html__( 'Size', 'bricks' ),
+			'type'        => 'select',
+			'inline'      => true,
+			'large'       => true,
+			'options'     => [
+				'auto'    => esc_html__( 'Auto', 'bricks' ),
+				'cover'   => esc_html__( 'Cover', 'bricks' ),
+				'contain' => esc_html__( 'Contain', 'bricks' ),
+				'custom'  => esc_html__( 'Custom', 'bricks' ),
+			],
+			'placeholder' => esc_html__( 'Contain', 'bricks' ),
+			'required'    => [ 'mask', '!=', '' ],
+		];
+
+		$this->controls['maskSizeCustom'] = [
+			'label'    => esc_html__( 'Custom size', 'bricks' ),
+			'type'     => 'number',
+			'units'    => true,
+			'large'    => true,
+			'required' => [ 'maskSize', '=', 'custom' ],
+		];
+
+		$this->controls['maskPosition'] = [
+			'label'       => esc_html__( 'Position', 'bricks' ),
+			'type'        => 'select',
+			'inline'      => true,
+			'options'     => [
+				'center center' => esc_html__( 'Center center', 'bricks' ),
+				'center left'   => esc_html__( 'Center left', 'bricks' ),
+				'center right'  => esc_html__( 'Center right', 'bricks' ),
+				'top center'    => esc_html__( 'Top center', 'bricks' ),
+				'top left'      => esc_html__( 'Top left', 'bricks' ),
+				'top right'     => esc_html__( 'Top right', 'bricks' ),
+				'bottom center' => esc_html__( 'Bottom center', 'bricks' ),
+				'bottom left'   => esc_html__( 'Bottom left', 'bricks' ),
+				'bottom right'  => esc_html__( 'Bottom right', 'bricks' ),
+			],
+			'placeholder' => esc_html__( 'Center center', 'bricks' ),
+			'required'    => [ 'mask', '!=', '' ],
+		];
+
+		$this->controls['maskRepeat'] = [
+			'label'       => esc_html__( 'Repeat', 'bricks' ),
+			'type'        => 'select',
+			'inline'      => true,
+			'options'     => [
+				'no-repeat' => esc_html__( 'No repeat', 'bricks' ),
+				'repeat'    => esc_html__( 'Repeat', 'bricks' ),
+				'repeat-x'  => esc_html__( 'Repeat-x', 'bricks' ),
+				'repeat-y'  => esc_html__( 'Repeat-y', 'bricks' ),
+				'round'     => esc_html__( 'Round', 'bricks' ),
+				'space'     => esc_html__( 'Space', 'bricks' ),
+			],
+			'placeholder' => esc_html__( 'No repeat', 'bricks' ),
+			'required'    => [ 'mask', '!=', '' ],
+		];
+	}
+
+	public function get_mask_url( $settings ) {
+		$mask     = ! empty( $settings['mask'] ) ? $settings['mask'] : '';
+		$mask_url = '';
+
+		// Custom mask file (SVG, PNG)
+		if ( $mask === 'custom' ) {
+			// Custom mask image from media library
+			if ( ! empty( $settings['maskCustom']['id'] ) ) {
+				$image_src = wp_get_attachment_image_src( $settings['maskCustom']['id'], 'full' );
+				$mask_url  = ! empty( $image_src[0] ) ? $image_src[0] : '';
+			}
+
+			// Dynamic data mask image
+			elseif ( ! empty( $settings['maskCustom']['useDynamicData'] ) ) {
+				$image_src = $this->render_dynamic_data_tag( $settings['maskCustom']['useDynamicData'], 'image' );
+
+				// Extract URL from the image tag 'src' attribute
+				preg_match( '/src="([^"]*)"/', $image_tag, $matches );
+				$mask_url = ! empty( $matches[1] ) ? $matches[1] : '';
+			}
+
+			// Custom URL image mask
+			elseif ( ! empty( $settings['maskCustom']['url'] ) ) {
+				$mask_url = $settings['maskCustom']['url'];
+			}
+		}
+
+		// Predefined mask file (SVG)
+		else {
+			$mask_url = BRICKS_URL_ASSETS . "svg/masks/{$mask}.svg";
+		}
+
+		return $mask_url;
+	}
+
+	protected function set_mask_attributes( $mask_url, $mask_settings ) {
+		if ( empty( $mask_settings['mask'] ) ) {
+			return;
+		}
+
+		// Mask size
+		$mask_size = ! empty( $mask_settings['maskSize'] ) ? $mask_settings['maskSize'] : 'contain';
+
+		// Custom mask size
+		if ( $mask_size === 'custom' && ! empty( $mask_settings['maskSizeCustom'] ) ) {
+			$mask_size = is_numeric( $mask_settings['maskSizeCustom'] ) ? $mask_settings['maskSizeCustom'] . 'px' : $mask_settings['maskSizeCustom'];
+		}
+
+		$mask_position = $mask_settings['maskPosition'] ?? 'center center';
+		$mask_repeat   = $mask_settings['maskRepeat'] ?? 'no-repeat';
+
+		// Mask inline style (webkit and standard)
+		$mask_style  = "-webkit-mask-image: url('{$mask_url}'); -webkit-mask-size: {$mask_size}; -webkit-mask-position: {$mask_position}; -webkit-mask-repeat: {$mask_repeat};";
+		$mask_style .= "mask-image: url('{$mask_url}'); mask-size: {$mask_size}; mask-position: {$mask_position}; mask-repeat: {$mask_repeat};";
+
+		// Apply mask style to image
+		$this->set_attribute( 'img', 'style', $mask_style );
 	}
 
 	public function get_normalized_image_settings( $settings ) {
@@ -357,7 +627,6 @@ class Element_Image extends Element {
 
 		// Image ID or URL from dynamic data
 		if ( ! empty( $image['useDynamicData'] ) ) {
-
 			$images = $this->render_dynamic_data_tag( $image['useDynamicData'], 'image', [ 'size' => $image['size'] ] );
 
 			if ( ! empty( $images[0] ) ) {
@@ -367,6 +636,11 @@ class Element_Image extends Element {
 					$image['url'] = $images[0];
 				}
 			}
+
+			// No dynamic data image found (@since 1.6)
+			else {
+				return;
+			}
 		}
 
 		$image['id'] = empty( $image['id'] ) ? 0 : $image['id'];
@@ -374,6 +648,9 @@ class Element_Image extends Element {
 		// If External URL, $image['url'] is already set
 		if ( ! isset( $image['url'] ) ) {
 			$image['url'] = ! empty( $image['id'] ) ? wp_get_attachment_image_url( $image['id'], $image['size'] ) : false;
+		} else {
+			// Parse dynamic data in the external URL
+			$image['url'] = $this->render_dynamic_data( $image['url'] );
 		}
 
 		return $image;
@@ -382,15 +659,29 @@ class Element_Image extends Element {
 	public function render() {
 		$settings   = $this->settings;
 		$link       = ! empty( $settings['link'] ) ? $settings['link'] : false;
+		$sources    = ! empty( $settings['sources'] ) ? $settings['sources'] : false;
 		$image      = $this->get_normalized_image_settings( $settings );
-		$image_id   = $image['id'];
-		$image_url  = $image['url'];
-		$image_size = $image['size'];
+		$image_id   = isset( $image['id'] ) ? $image['id'] : '';
+		$image_url  = isset( $image['url'] ) ? $image['url'] : '';
+		$image_size = isset( $image['size'] ) ? $image['size'] : '';
+
+		// STEP: Dynamic data image not found: Show placeholder text
+		if ( ! empty( $settings['image']['useDynamicData'] ) && ! $image ) {
+			return $this->render_element_placeholder(
+				[
+					'title' => esc_html__( 'Dynamic data is empty.', 'bricks' )
+				]
+			);
+		}
 
 		$image_placeholder_url = \Bricks\Builder::get_template_placeholder_image();
 
 		// STEP: Image caption
-		$show_caption = isset( $settings['caption'] ) ? $settings['caption'] : 'attachment';
+		$show_caption = isset( $this->theme_styles['caption'] ) ? $this->theme_styles['caption'] : 'attachment';
+
+		if ( isset( $settings['caption'] ) ) {
+			$show_caption = $settings['caption'];
+		}
 
 		$image_caption = false;
 
@@ -403,23 +694,23 @@ class Element_Image extends Element {
 			$image_caption = $image_data ? $image_data->post_excerpt : '';
 		}
 
-		$has_html_tag = $image_caption || isset( $settings['popupOverlay'] ) || isset( $settings['_gradient'] ) || isset( $settings['tag'] );
+		$has_overlay = isset( $settings['popupOverlay'] );
 
-		// Check: Global classes on Image element for '_gradient' setting
-		$element_global_classes = ! empty( $settings['_cssGlobalClasses'] ) ? $settings['_cssGlobalClasses'] : false;
+		$has_html_tag = $image_caption || $has_overlay || isset( $settings['_gradient'] ) || isset( $settings['tag'] );
 
-		if ( ! $has_html_tag && is_array( $element_global_classes ) ) {
-			$all_global_classes = Database::$global_data['globalClasses'];
+		// Check: Element classes for 'popupOverlay' setting to add .overlay class to make ::before work
+		if ( ! $has_overlay && $this->element_classes_have( 'popupOverlay' ) ) {
+			$has_overlay = true;
+		}
 
-			foreach ( $element_global_classes as $element_global_class ) {
-				$index        = array_search( $element_global_class, array_column( $all_global_classes, 'id' ) );
-				$global_class = ! empty( $all_global_classes[ $index ] ) ? $all_global_classes[ $index ] : false;
+		// Default: 'figure' HTML tag (needed to apply overlay::before to as not possible on self-closing 'img' tag)
+		if ( $has_overlay ) {
+			$has_html_tag = true;
+		}
 
-				// Global class has 'gradient' setting: Add HTML tag to Image element to make ::before work
-				if ( $global_class && strpos( json_encode( $global_class ), '_gradient' ) ) {
-					$has_html_tag = true;
-				}
-			}
+		// Check: Element classes for 'gradient' setting to add HTML tag to Image element to make ::before work
+		if ( ! $has_html_tag && $this->element_classes_have( '_gradient' ) ) {
+			$has_html_tag = true;
 		}
 
 		// Check: No image selected: No image ID provided && not a placeholder URL
@@ -429,55 +720,122 @@ class Element_Image extends Element {
 
 		// Check: Image with ID doesn't exist
 		if ( ! isset( $image['external'] ) && ! $image_url ) {
+			// translators: %s: Image ID
 			return $this->render_element_placeholder( [ 'title' => sprintf( esc_html__( 'Image ID (%s) no longer exist. Please select another image.', 'bricks' ), $image_id ) ] );
-		}
-
-		// STEP: Dynamic Data not found: Show placeholder text
-		if ( ! empty( $image['useDynamicData'] ) && ! $image_url ) {
-			return $this->render_element_placeholder(
-				[
-					'title' => esc_html__( 'Dynamic data is empty.', 'bricks' )
-				]
-			);
 		}
 
 		$this->set_attribute( 'img', 'class', 'css-filter' );
 
-		if ( $link === 'lightbox' ) {
-			$this->set_attribute( 'img', 'class', 'bricks-lightbox' );
-
-			$image_src = $image_id ? wp_get_attachment_image_src( $image_id, 'full' ) : [ $image_placeholder_url, 800, 600 ];
-
-			$this->set_attribute( 'img', 'data-bricks-lightbox-source', $image_src[0] );
-			$this->set_attribute( 'img', 'data-bricks-lightbox-width', $image_src[1] );
-			$this->set_attribute( 'img', 'data-bricks-lightbox-height', $image_src[2] );
-			$this->set_attribute( 'img', 'data-bricks-lightbox-id', $this->id );
-
-			if ( Query::is_looping() ) {
-				$this->set_attribute( 'img', 'data-bricks-lightbox-index', Query::get_loop_index() );
-			}
-		}
-
 		$this->set_attribute( 'img', 'class', "size-$image_size" );
 
-		// Check for alternartive "Alt Text" setting
+		// Check for custom "Alt Text" setting
 		if ( ! empty( $settings['altText'] ) ) {
 			$this->set_attribute( 'img', 'alt', esc_attr( $settings['altText'] ) );
 		}
 
+		// Set 'loading' attribute: eager or lazy
+		if ( ! empty( $settings['loading'] ) ) {
+			$this->set_attribute( 'img', 'loading', esc_attr( $settings['loading'] ) );
+		}
+
+		// Show image 'title' attribute
+		if ( isset( $settings['showTitle'] ) ) {
+			$image_title = $image_id ? get_the_title( $image_id ) : false;
+
+			if ( $image_title ) {
+				$this->set_attribute( 'img', 'title', esc_attr( $image_title ) );
+			}
+		}
+
 		// Wrap image element in 'figure' to allow for image caption, overlay, icon
-		if ( isset( $settings['popupOverlay'] ) ) {
+		if ( $has_overlay ) {
 			$this->set_attribute( '_root', 'class', 'overlay' );
 		}
 
 		/**
 		 * Render: Wrap 'img' HTML tag in HTML tag (if 'tag' set) or anchor tag (if 'link' set)
 		 */
-		$output = '';
+		$output         = '';
+		$output_sources = '';
+
+		/**
+		 * Responsive images: Add 'sources'
+		 *
+		 * @since 1.8.5
+		 */
+		$width_range = Breakpoints::$is_mobile_first ? 'min-width' : 'max-width';
+
+		if ( is_array( $sources ) && count( $sources ) ) {
+			foreach ( $sources as $index => $source ) {
+				$breakpoint_key = ! empty( $source['breakpoint'] ) ? $source['breakpoint'] : false;
+
+				if ( ! $breakpoint_key ) {
+					continue;
+				}
+
+				$breakpoint = $breakpoint_key ? Breakpoints::get_breakpoint_by( 'key', $breakpoint_key ) : false;
+
+				// Set 'media' attribute from breakpoint width (if not 'base' breakpoint)
+				if ( ! empty( $breakpoint['width'] ) && ! isset( $breakpoint['base'] ) ) {
+					$this->set_attribute( "source_{$index}", 'media', "({$width_range}: {$breakpoint['width']}px)" );
+				}
+
+				// Set 'media' attribute from custom media query
+				if ( $breakpoint_key === '_custom' && ! empty( $source['media'] ) ) {
+					$this->set_attribute( "source_{$index}", 'media', esc_attr( $source['media'] ) );
+				}
+
+				// Get image ID, size, srcset (get_normalized_image_settings() in case image uses dynamic data)
+				$source          = $this->get_normalized_image_settings( $source );
+				$source_image    = ! empty( $source['image'] ) ? $source['image'] : $source;
+				$source_image_id = ! empty( $source_image['id'] ) ? $source_image['id'] : false;
+
+				if ( $source_image_id ) {
+					$source_image_size = ! empty( $source_image['size'] ) ? $source_image['size'] : 'large';
+					$source_image_url  = wp_get_attachment_image_url( $source_image_id, $source_image_size );
+
+					// Skip iteration if image ULR is empty
+					if ( ! $source_image_url ) {
+						continue;
+					}
+
+					$this->set_attribute( "source_{$index}", 'srcset', esc_attr( $source_image_url ) );
+
+					// Get MIME type of the image
+					$source_image_mime_type = get_post_mime_type( $source_image_id );
+
+					if ( $source_image_mime_type ) {
+						$this->set_attribute( "source_{$index}", 'type', $source_image_mime_type );
+					}
+				}
+
+				// External image URL
+				elseif ( ! empty( $source_image['url'] ) ) {
+					$this->set_attribute( "source_{$index}", 'srcset', esc_attr( $source_image['url'] ) );
+				}
+
+				$source_attributes = $this->render_attributes( "source_{$index}" );
+
+				if ( $source_attributes ) {
+					$output_sources .= "<source $source_attributes />";
+				}
+			}
+		}
+
+		// Sources set, but no link: Wrap image in 'picture' tag
+		if ( $output_sources && ! $link ) {
+			$this->tag    = 'picture';
+			$has_html_tag = true;
+		}
 
 		// Add _root attributes to outermost tag
 		if ( $has_html_tag ) {
 			$this->set_attribute( '_root', 'class', 'tag' );
+
+			// Has image caption (add position: relative through class)
+			if ( $image_caption ) {
+				$this->set_attribute( '_root', 'class', 'caption' );
+			}
 
 			$output .= "<{$this->tag} {$this->render_attributes( '_root' )}>";
 		}
@@ -491,6 +849,8 @@ class Element_Image extends Element {
 				}
 			}
 
+			$this->set_attribute( 'link', 'class', 'tag' );
+
 			if ( isset( $settings['newTab'] ) ) {
 				$this->set_attribute( 'link', 'target', '_blank' );
 			}
@@ -501,16 +861,58 @@ class Element_Image extends Element {
 				$this->set_attribute( 'link', 'href', get_permalink( $image_id ) );
 			} elseif ( $link === 'url' && ! empty( $settings['url'] ) ) {
 				$this->set_link_attributes( 'link', $settings['url'] );
+			} elseif ( $link === 'lightbox' ) {
+				$this->set_attribute( 'link', 'class', 'bricks-lightbox' );
+
+				// Lightbox image size (@since 1.8.1)
+				$lightbox_image_size = ! empty( $settings['lightboxImageSize'] ) ? $settings['lightboxImageSize'] : 'full';
+				$lightbox_image_src  = $image_id ? wp_get_attachment_image_src( $image_id, $lightbox_image_size ) : [ $image_placeholder_url, 800, 600 ];
+
+				$this->set_attribute( 'link', 'href', $lightbox_image_src[0] );
+				$this->set_attribute( 'link', 'data-pswp-src', $lightbox_image_src[0] );
+				$this->set_attribute( 'link', 'data-pswp-width', $lightbox_image_src[1] );
+				$this->set_attribute( 'link', 'data-pswp-height', $lightbox_image_src[2] );
+
+				if ( ! empty( $settings['lightboxId'] ) ) {
+					$this->set_attribute( 'link', 'data-pswp-id', esc_attr( $settings['lightboxId'] ) );
+				}
+
+				if ( ! empty( $settings['lightboxAnimationType'] ) ) {
+					$this->set_attribute( 'link', 'data-animation-type', esc_attr( $settings['lightboxAnimationType'] ) );
+				}
 			}
 
 			$output .= "<a {$this->render_attributes( 'link' )}>";
 		}
 
 		// Show popup icon if link is set
-		$icon = ! empty( $settings['popupIcon'] ) ? self::render_icon( $settings['popupIcon'], [ 'icon' ] ) : false;
+		$icon = ! empty( $settings['popupIcon'] ) ? $settings['popupIcon'] : false;
+
+		// Check: Theme style for video 'popupIcon' setting
+		if ( ! $icon && ! empty( $this->theme_styles['popupIcon'] ) ) {
+			$icon = $this->theme_styles['popupIcon'];
+		}
 
 		if ( ! isset( $settings['popupIconDisable'] ) && $link && $icon ) {
-			$output .= $icon;
+			$output .= self::render_icon( $icon, [ 'icon' ] );
+		}
+
+		// Render <source> tags
+		if ( $output_sources ) {
+			// Render <picture> tag if $link set
+			if ( $link ) {
+				$output .= '<picture>';
+			}
+
+			$output .= $output_sources;
+		}
+
+		// Determine the URL of the mask image
+		$mask_url = $this->get_mask_url( $settings );
+
+		// If a mask URL was found, apply the mask to the image
+		if ( $mask_url ) {
+			$this->set_mask_attributes( $mask_url, $settings );
 		}
 
 		// Lazy load atts set via 'wp_get_attachment_image_attributes' filter
@@ -546,6 +948,11 @@ class Element_Image extends Element {
 
 			$this->set_attribute( 'img', 'src', $image_url );
 
+			// Set empty 'alt' attribute for a11y (@since 1.9.2)
+			if ( ! isset( $this->attributes['img']['alt'] ) ) {
+				$this->set_attribute( 'img', 'alt', '' );
+			}
+
 			$output .= "<img {$this->render_attributes( 'img', true )}>";
 		}
 
@@ -555,6 +962,11 @@ class Element_Image extends Element {
 
 		if ( $link ) {
 			$output .= '</a>';
+		}
+
+		// Render <source> tags plus <picture> tag if $link set
+		if ( $output_sources && $link ) {
+			$output .= '</picture>';
 		}
 
 		if ( $has_html_tag ) {
@@ -596,6 +1008,8 @@ class Element_Image extends Element {
 		}
 
 		$block_html = "<figure {$this->render_attributes( 'figure' )}>";
+
+		$link = ! empty( $settings['link'] ) ? $settings['link'] : false;
 
 		if ( $link ) {
 			if ( $link === 'media' ) {
@@ -647,6 +1061,8 @@ class Element_Image extends Element {
 		if ( isset( $settings['_height'] ) && strpos( $settings['_height'], 'px' ) !== false ) {
 			$block['attrs']['height'] = intval( str_replace( 'px', '', $settings['_height'] ) );
 		}
+
+		$link = ! empty( $settings['link'] ) ? $settings['link'] : false;
 
 		if ( $link ) {
 			$block['attrs']['linkDestination'] = $link === 'media' ? 'media' : 'custom';

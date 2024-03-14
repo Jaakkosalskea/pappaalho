@@ -19,22 +19,22 @@ $controls['_display'] = [
 ];
 
 $controls['_direction'] = [
-	'label'     => esc_html__( 'Direction', 'bricks' ),
-	'tooltip'   => [
+	'label'       => esc_html__( 'Direction', 'bricks' ),
+	'tooltip'     => [
 		'content'  => 'flex-direction',
 		'position' => 'top-left',
 	],
-	'type'      => 'direction',
-	'css'       => [
+	'type'        => 'direction',
+	'css'         => [
 		[
 			'property' => 'flex-direction',
 			'selector' => '.brxe-div',
 		],
 	],
-	'inherited' => 'row',
-	'inline'    => true,
-	'rerender'  => true,
-	'required'  => [ '_display', '=', 'flex' ],
+	'inline'      => true,
+	'rerender'    => true,
+	'placeholder' => 'row',
+	'required'    => [ '_display', '=', 'flex' ],
 ];
 
 $controls['_justifyContent'] = [
@@ -109,9 +109,35 @@ $controls['widthMax'] = [
 	],
 ];
 
+$controls['_columnGap'] = [
+	'label'    => esc_html__( 'Column gap', 'bricks' ),
+	'type'     => 'number',
+	'units'    => true,
+	'css'      => [
+		[
+			'property' => 'column-gap',
+			'selector' => '.brxe-div',
+		],
+	],
+	'required' => [ '_display', '=', [ '', 'flex' ] ],
+];
+
+$controls['_rowGap'] = [
+	'label'    => esc_html__( 'Row gap', 'bricks' ),
+	'type'     => 'number',
+	'units'    => true,
+	'css'      => [
+		[
+			'property' => 'row-gap',
+			'selector' => '.brxe-div',
+		],
+	],
+	'required' => [ '_display', '=', [ '', 'flex' ] ],
+];
+
 $controls['margin'] = [
 	'label' => esc_html__( 'Margin', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'margin',
@@ -122,7 +148,7 @@ $controls['margin'] = [
 
 $controls['padding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',
@@ -134,5 +160,4 @@ $controls['padding'] = [
 return [
 	'name'     => 'div',
 	'controls' => $controls,
-	// 'cssSelector' => '.brxe-div',
 ];

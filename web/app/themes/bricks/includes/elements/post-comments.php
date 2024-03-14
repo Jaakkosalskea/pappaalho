@@ -8,16 +8,6 @@ class Element_Post_Comments extends Element {
 	public $name     = 'post-comments';
 	public $icon     = 'ti-comments';
 
-	public function add_actions() {
-		// Remove cookie consent checkbox
-		remove_action( 'set_comment_cookies', 'wp_set_comment_cookies' );
-
-		// Hide "logged in as" message in builder
-		// if ( bricks_is_builder() ) {
-		// add_filter( 'comment_form_logged_in', '__return_empty_string' );
-		// }
-	}
-
 	public function get_label() {
 		return esc_html__( 'Comments', 'bricks' );
 	}
@@ -31,32 +21,50 @@ class Element_Post_Comments extends Element {
 
 	public function set_control_groups() {
 		$this->control_groups['title'] = [
-			'title' => esc_html__( 'Title', 'bricks' ),
-			'tab'   => 'content',
+			'title'    => esc_html__( 'Title', 'bricks' ),
+			'tab'      => 'content',
+			'required' => [ 'source', '!=', 'wordpress' ],
 		];
 
 		$this->control_groups['avatar'] = [
-			'title' => esc_html__( 'Avatar', 'bricks' ),
-			'tab'   => 'content',
+			'title'    => esc_html__( 'Avatar', 'bricks' ),
+			'tab'      => 'content',
+			'required' => [ 'source', '!=', 'wordpress' ],
 		];
 
 		$this->control_groups['comment'] = [
-			'title' => esc_html__( 'Comment', 'bricks' ),
-			'tab'   => 'content',
+			'title'    => esc_html__( 'Comment', 'bricks' ),
+			'tab'      => 'content',
+			'required' => [ 'source', '!=', 'wordpress' ],
 		];
 
 		$this->control_groups['form'] = [
-			'title' => esc_html__( 'Form', 'bricks' ),
-			'tab'   => 'content',
+			'title'    => esc_html__( 'Form', 'bricks' ),
+			'tab'      => 'content',
+			'required' => [ 'source', '!=', 'wordpress' ],
 		];
 
 		$this->control_groups['submitButton'] = [
-			'title' => esc_html__( 'Submit button', 'bricks' ),
-			'tab'   => 'content',
+			'title'    => esc_html__( 'Submit button', 'bricks' ),
+			'tab'      => 'content',
+			'required' => [ 'source', '!=', 'wordpress' ],
 		];
 	}
 
 	public function set_controls() {
+		// Choose between Bricks and WordPress comments (@since 1.8)
+		$this->controls['source'] = [
+			'tab'         => 'content',
+			'label'       => esc_html__( 'Source', 'bricks' ),
+			'type'        => 'select',
+			'inline'      => true,
+			'options'     => [
+				'bricks'    => 'Bricks',
+				'wordpress' => 'WordPress',
+			],
+			'placeholder' => 'Bricks',
+		];
+
 		// Group: title
 
 		$this->controls['title'] = [
@@ -178,12 +186,12 @@ class Element_Post_Comments extends Element {
 			],
 		];
 
-		// Group: form
+		// FORM
 
 		$this->controls['formTitle'] = [
 			'tab'     => 'content',
 			'group'   => 'form',
-			'label'   => esc_html__( 'Show form title', 'bricks' ),
+			'label'   => esc_html__( 'Form title', 'bricks' ) . ': ' . esc_html__( 'Show', 'bricks' ),
 			'type'    => 'checkbox',
 			'default' => true,
 		];
@@ -191,9 +199,8 @@ class Element_Post_Comments extends Element {
 		$this->controls['formTitleText'] = [
 			'tab'         => 'content',
 			'group'       => 'form',
-			'label'       => esc_html__( 'Form title', 'bricks' ),
+			'label'       => esc_html__( 'Form title', 'bricks' ) . ': ' . esc_html__( 'Text', 'bricks' ),
 			'type'        => 'text',
-			'inline'      => true,
 			'placeholder' => esc_html__( 'Leave your comment', 'bricks' ),
 			'required'    => [ 'formTitle', '!=', '' ],
 		];
@@ -201,7 +208,7 @@ class Element_Post_Comments extends Element {
 		$this->controls['label'] = [
 			'tab'     => 'content',
 			'group'   => 'form',
-			'label'   => esc_html__( 'Show label', 'bricks' ),
+			'label'   => esc_html__( 'Label', 'bricks' ) . ': ' . esc_html__( 'Show', 'bricks' ),
 			'type'    => 'checkbox',
 			'default' => true,
 		];
@@ -209,7 +216,7 @@ class Element_Post_Comments extends Element {
 		$this->controls['labelTypography'] = [
 			'tab'      => 'content',
 			'group'    => 'form',
-			'label'    => esc_html__( 'Label typography', 'bricks' ),
+			'label'    => esc_html__( 'Label', 'bricks' ) . ': ' . esc_html__( 'Typography', 'bricks' ),
 			'type'     => 'typography',
 			'css'      => [
 				[
@@ -234,18 +241,51 @@ class Element_Post_Comments extends Element {
 			'required' => [ 'label', '=', '' ],
 		];
 
-		$this->controls['fieldFullWidth'] = [
-			'tab'     => 'content',
-			'group'   => 'form',
-			'label'   => esc_html__( 'Field full width', 'bricks' ),
-			'type'    => 'checkbox',
-			'default' => true,
+		// COOKIES
+
+		$this->controls['cookiesSep'] = [
+			'tab'   => 'content',
+			'group' => 'form',
+			'label' => esc_html__( 'Cookie consent', 'bricks' ),
+			'type'  => 'separator',
+		];
+
+		$this->controls['cookies'] = [
+			'tab'   => 'content',
+			'group' => 'form',
+			'label' => esc_html__( 'Cookie consent', 'bricks' ) . ': ' . esc_html__( 'Show', 'bricks' ),
+			'type'  => 'checkbox',
+		];
+
+		$this->controls['cookiesRequired'] = [
+			'tab'      => 'content',
+			'group'    => 'form',
+			'label'    => esc_html__( 'Cookie consent', 'bricks' ) . ': ' . esc_html__( 'Required', 'bricks' ),
+			'type'     => 'checkbox',
+			'required' => [ 'cookies', '!=', '' ],
+		];
+
+		$this->controls['cookiesText'] = [
+			'tab'      => 'content',
+			'group'    => 'form',
+			'label'    => esc_html__( 'Cookie consent', 'bricks' ) . ': ' . esc_html__( 'Text', 'bricks' ),
+			'type'     => 'text',
+			'required' => [ 'cookies', '!=', '' ],
+		];
+
+		// FIELD
+
+		$this->controls['fieldSep'] = [
+			'tab'   => 'content',
+			'group' => 'form',
+			'label' => esc_html__( 'Field', 'bricks' ),
+			'type'  => 'separator',
 		];
 
 		$this->controls['fieldBackgroundColor'] = [
 			'tab'   => 'content',
 			'group' => 'form',
-			'label' => esc_html__( 'Field background', 'bricks' ),
+			'label' => esc_html__( 'Background color', 'bricks' ),
 			'type'  => 'color',
 			'css'   => [
 				[
@@ -262,7 +302,7 @@ class Element_Post_Comments extends Element {
 		$this->controls['fieldBorder'] = [
 			'tab'   => 'content',
 			'group' => 'form',
-			'label' => esc_html__( 'Field border', 'bricks' ),
+			'label' => esc_html__( 'Border', 'bricks' ),
 			'type'  => 'border',
 			'css'   => [
 				[
@@ -279,7 +319,7 @@ class Element_Post_Comments extends Element {
 		$this->controls['fieldTypography'] = [
 			'tab'   => 'content',
 			'group' => 'form',
-			'label' => esc_html__( 'Field typography', 'bricks' ),
+			'label' => esc_html__( 'Typography', 'bricks' ),
 			'type'  => 'typography',
 			'css'   => [
 				[
@@ -368,7 +408,19 @@ class Element_Post_Comments extends Element {
 
 	public function render() {
 		$settings = $this->settings;
+		$source   = ! empty( $settings['source'] ) ? $settings['source'] : 'bricks';
 
+		// STEP: Render WordPress comments (comments_template() handles the rest)
+		if ( $source === 'wordpress' ) {
+			ob_start();
+			comments_template();
+			$comments_template = ob_get_clean();
+
+			echo "<div {$this->render_attributes( '_root' )}>" . $comments_template . '</div>';
+			return;
+		}
+
+		// STEP: Render Bricks comments
 		global $post;
 
 		$post = get_post( $this->post_id );
@@ -391,87 +443,99 @@ class Element_Post_Comments extends Element {
 			);
 		}
 
-		$title_tag = isset( $settings['titleTag'] ) ? $settings['titleTag'] : 'h3';
+		$title_tag = ! empty( $settings['titleTag'] ) ? $settings['titleTag'] : 'h3';
 
 		echo "<div {$this->render_attributes( '_root' )}>";
 		?>
 		<div id="comments">
 			<div class="bricks-comments-inner">
-				<?php if ( get_comments_number() ) { ?>
+				<?php
+				if ( get_comments_number() ) {
+					// Set comment pagination
+					$paged = get_query_var( 'cpage' ) ? get_query_var( 'cpage' ) : 1; // cpage = comments pagination query var
+
+					if ( ! get_query_var( 'cpage' ) ) {
+						set_query_var( 'cpage', $paged );
+					}
+
+					// Fetch approved comments for the post
+					$comments = get_comments(
+						[
+							'post_id' => get_the_ID(),
+							'status'  => [ 'approve', 'hold' ],
+						]
+					);
+
+					// Get Comments per page
+					$comments_per_page    = get_option( 'comments_per_page' );
+					$comments_total_pages = get_comment_pages_count( $comments, $comments_per_page );
+					?>
 
 					<?php if ( isset( $settings['title'] ) ) { ?>
 					<h3 class="comments-title">
-						<?php printf( esc_html( _n( '1 Comment', 'bricks', '%1$s Comments', get_comments_number(), 'bricks' ) ), number_format_i18n( get_comments_number() ), '<span>' . get_the_title() . '</span>' ); ?>
+						<?php
+						// translators: %1$s: number of comments
+						printf( esc_html( _n( '1 comment', '%1$s comments', get_comments_number(), 'bricks' ) ), number_format_i18n( get_comments_number() ) );
+						?>
 					</h3>
 					<?php } ?>
-
-					<?php if ( get_comment_pages_count() > 1 && get_option( 'page_comments' ) ) : ?>
+					<?php if ( $comments_total_pages > 1 && get_option( 'page_comments' ) ) { ?>
 					<nav class="navigation comment-navigation" id="comment-nav-above" role="navigation">
 						<h2 class="screen-reader-text"><?php esc_html_e( 'Comment navigation', 'bricks' ); ?></h2>
 						<div class="nav-links">
 							<div class="nav-previous"><?php previous_comments_link( esc_html__( 'Older Comments', 'bricks' ) ); ?></div>
-							<div class="nav-next"><?php next_comments_link( esc_html__( 'Newer Comments', 'bricks' ) ); ?></div>
+							<div class="nav-next"><?php next_comments_link( esc_html__( 'Newer Comments', 'bricks' ), $comments_total_pages ); ?></div>
 						</div>
 					</nav>
-					<?php endif; ?>
+					<?php } ?>
 
-					<ul class="comment-list
 					<?php
-					if ( ! isset( $settings['avatar'] ) ) {
-						echo ' no-avatar'; }
-					?>
-					">
-						<?php
-						$comments = get_comments(
-							[
-								'post_id' => get_the_ID(),
-								'status'  => 'approve',
-							]
-						);
+					echo '<ul class="comment-list' . ( ! isset( $settings['avatar'] ) ? ' no-avatar' : '' ) . '">';
 
-						wp_list_comments(
-							[
-								'walker'            => null,
-								'max_depth'         => '10',
-								'style'             => 'ul',
-								'callback'          => 'bricks_list_comments',
-								'end-callback'      => null,
-								'type'              => 'comment',
-								'reply_text'        => esc_html__( 'Reply', 'bricks' ),
-								'page'              => '',
-								'per_page'          => '',
-								'avatar_size'       => isset( $settings['avatarSize'] ) ? intval( $settings['avatarSize'] ) : 60,
-								'reverse_top_level' => null,
-								'reverse_children'  => '',
-								'format'            => 'html5',
-								'short_ping'        => true,
-								'echo'              => true,
-								// Custom settings
-								'bricks_avatar'     => isset( $settings['avatar'] ),
-							],
-							$comments
-						);
-						?>
+					wp_list_comments(
+						[
+							'walker'            => null,
+							'max_depth'         => '10',
+							'style'             => 'ul',
+							'callback'          => 'bricks_list_comments',
+							'end-callback'      => null,
+							'type'              => 'comment',
+							'reply_text'        => esc_html__( 'Reply', 'bricks' ),
+							'page'              => $paged,
+							'per_page'          => $comments_per_page,
+							'avatar_size'       => isset( $settings['avatarSize'] ) ? intval( $settings['avatarSize'] ) : 60,
+							// TODO: Fix ordering for main elements
+							// NOTE: This will need to be integrated with the WordPress settings
+							'reverse_top_level' => '',
+							'reverse_children'  => '',
+							'format'            => 'html5',
+							'short_ping'        => true,
+							'echo'              => true,
+							// Custom settings
+							'bricks_avatar'     => isset( $settings['avatar'] ),
+						],
+						$comments
+					);
+					?>
 					</ul>
 
-					<?php if ( get_comment_pages_count() > 1 && get_option( 'page_comments' ) ) : ?>
+					<?php if ( $comments_total_pages > 1 && get_option( 'page_comments' ) ) { ?>
 					<nav class="navigation comment-navigation" id="comment-nav-below" role="navigation">
 						<h2 class="screen-reader-text"><?php esc_html_e( 'Comment navigation', 'bricks' ); ?></h2>
 
 						<div class="nav-links">
 							<div class="nav-previous"><?php previous_comments_link( esc_html__( 'Older Comments', 'bricks' ) ); ?></div>
-							<div class="nav-next"><?php next_comments_link( esc_html__( 'Newer Comments', 'bricks' ) ); ?></div>
+							<div class="nav-next"><?php next_comments_link( esc_html__( 'Newer Comments', 'bricks' ), $comments_total_pages ); ?></div>
 						</div>
 					</nav>
-					<?php endif; ?>
-
-					<?php
+						<?php
+					}
 				}
 
 				// No comments
-				else {
-					// esc_html_e( 'No comments.', 'bricks' );
-				}
+				// else {
+				// echo '<h3 class="comments-title">' . esc_html__( 'No comments.', 'bricks' ) . '</h3>';
+				// }
 
 				// Comments are closed
 				if ( ! comments_open() && get_comments_number() && post_type_supports( get_post_type(), 'comments' ) ) {
@@ -480,63 +544,58 @@ class Element_Post_Comments extends Element {
 
 				$commenter           = wp_get_current_commenter();
 				$required_name_email = get_option( 'require_name_email' );
-				$required_aria       = ( $required_name_email ? ' aria-required="true"' : '' );
-				$required_star       = ( $required_name_email ? ' *' : '' );
+				$required_attribute  = $required_name_email ? ' required' : '';
+				$required_star       = $required_name_email ? ' *' : '';
 
 				$field_keys = [ 'author', 'email', 'url' ];
 				$fields     = [];
 
 				foreach ( $field_keys as $field ) {
-					if ( isset( $settings['fieldFullWidth'] ) ) {
-						$field_html = '<div class="form-group field-full-width">';
-					} else {
-						$field_html = '<div class="form-group bricks-col-100 bricks-col-mobile-landscape-100">';
-					}
+					$field_html = '<div class="form-group">';
 
 					switch ( $field ) {
 						case 'author':
 							if ( isset( $settings['label'] ) ) {
-								$field_html .= '<label>' . esc_html__( 'Name', 'bricks' ) . $required_star . '</label>';
-								$field_html .= '<input id="author" name="author" type="text" value="' . esc_attr( $commenter['comment_author'] ) . '"' . $required_aria . ' />';
+								$field_html .= '<label for="author">' . esc_html_x( 'Name', 'Author name', 'bricks' ) . $required_star . '</label>';
+								$field_html .= '<input id="author" name="author" type="text" value="' . esc_attr( $commenter['comment_author'] ) . '"' . $required_attribute . ' />';
 							} else {
-								$field_html .= '<input id="author" name="author" type="text" value="' . esc_attr( $commenter['comment_author'] ) . '"' . $required_aria . ' placeholder="' . esc_html__( 'Name', 'bricks' ) . $required_star . '" />';
+								$field_html .= '<input id="author" name="author" type="text" value="' . esc_attr( $commenter['comment_author'] ) . '"' . $required_attribute . ' placeholder="' . esc_html_x( 'Name', 'Author name', 'bricks' ) . $required_star . '" />';
 							}
 							break;
 
 						case 'email':
 							if ( isset( $settings['label'] ) ) {
-								$field_html .= '<label>' . esc_html__( 'Email', 'bricks' ) . $required_star . '</label>';
-								$field_html .= '<input id="email" name="email" type="text" value="' . esc_attr( $commenter['comment_author_email'] ) . '"' . $required_aria . ' />';
+								$field_html .= '<label for="email">' . esc_html__( 'Email', 'bricks' ) . $required_star . '</label>';
+								$field_html .= '<input id="email" name="email" type="email" value="' . esc_attr( $commenter['comment_author_email'] ) . '"' . $required_attribute . ' />';
 							} else {
-								$field_html .= '<input id="email" name="email" type="text" value="' . esc_attr( $commenter['comment_author_email'] ) . '"' . $required_aria . ' placeholder="' . esc_html__( 'Email', 'bricks' ) . $required_star . '" />';
+								$field_html .= '<input id="email" name="email" type="email" value="' . esc_attr( $commenter['comment_author_email'] ) . '"' . $required_attribute . ' placeholder="' . esc_html__( 'Email', 'bricks' ) . $required_star . '" />';
 							}
 							break;
 
 						case 'url':
 							if ( isset( $settings['label'] ) ) {
-								$field_html .= '<label>' . esc_html__( 'Website', 'bricks' ) . '</label>';
-								$field_html .= '<input id="url" name="url" type="text" value="' . esc_attr( $commenter['comment_author_url'] ) . '" />';
+								$field_html .= '<label for="url">' . esc_html__( 'Website', 'bricks' ) . '</label>';
+								$field_html .= '<input id="url" name="url" type="url" value="' . esc_attr( $commenter['comment_author_url'] ) . '" />';
 							} else {
-								$field_html .= '<input id="url" name="url" type="text" value="' . esc_attr( $commenter['comment_author_url'] ) . '" placeholder="' . esc_html__( 'Website', 'bricks' ) . '" />';
+								$field_html .= '<input id="url" name="url" type="url" value="' . esc_attr( $commenter['comment_author_url'] ) . '" placeholder="' . esc_html__( 'Website', 'bricks' ) . '" />';
 							}
 							break;
 					}
 
-					$field_html .= '</div>';
-
+					$field_html      .= '</div>';
 					$fields[ $field ] = $field_html;
 				}
 
 				if ( isset( $settings['label'] ) ) {
 					$comment_field =
-					'<div class="form-group field-full-width">
-						<label>' . esc_html__( 'Comment', 'bricks' ) . ' *</label>
-						<textarea id="comment" name="comment" cols="45" rows="8" aria-required="true"></textarea>
+					'<div class="form-group">
+						<label for="comment">' . esc_html__( 'Comment', 'bricks' ) . ' *</label>
+						<textarea id="comment" name="comment" cols="45" rows="8" required></textarea>
 					</div>';
 				} else {
 					$comment_field =
-					'<div class="form-group field-full-width">
-						<textarea id="comment" name="comment" cols="45" rows="8" aria-required="true" placeholder="' . esc_html__( 'Comment', 'bricks' ) . ' *"></textarea>
+					'<div class="form-group">
+						<textarea id="comment" name="comment" cols="45" rows="8" required placeholder="' . esc_html__( 'Comment', 'bricks' ) . ' *"></textarea>
 					</div>';
 				}
 
@@ -550,6 +609,25 @@ class Element_Post_Comments extends Element {
 
 				if ( isset( $settings['submitButtonSize'] ) ) {
 					$submit_button_classes[] = $settings['submitButtonSize'];
+				}
+
+				// Show cookie consent field to Bricks form (@since 1.8)
+				if ( ! empty( $settings['cookies'] ) ) {
+					$cookies_text = esc_html__( 'Save my name, email, and website in this browser for the next time I comment.', 'bricks' );
+
+					if ( ! empty( $settings['cookiesText'] ) ) {
+						$cookies_text = $settings['cookiesText'];
+					}
+
+					$cookies_required = isset( $settings['cookiesRequired'] ) ? ' required' : '';
+
+					$fields['cookies'] =
+					'<div class="form-group comment-form-cookies-consent">
+						<input id="wp-comment-cookies-consent" name="wp-comment-cookies-consent" type="checkbox" value="yes"' . $cookies_required . '>
+						<label for="wp-comment-cookies-consent">' . $cookies_text . '</label>
+					</div>';
+				} else {
+					$fields['cookies'] = '';
 				}
 
 				$custom_args = [

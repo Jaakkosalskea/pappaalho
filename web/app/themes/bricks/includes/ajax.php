@@ -6,18 +6,17 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 class Ajax {
 
 	public function __construct() {
+		// For builders
 		add_action( 'wp_ajax_bricks_download_image', [ $this, 'download_image' ] );
 		add_action( 'wp_ajax_bricks_get_image_metadata', [ $this, 'get_image_metadata' ] );
 		add_action( 'wp_ajax_bricks_get_image_from_custom_field', [ $this, 'get_image_from_custom_field' ] );
 
-		add_action( 'wp_ajax_bricks_get_content_from_custom_field', [ $this, 'get_content_from_custom_field' ] );
+		add_action( 'wp_ajax_bricks_get_dynamic_data_preview_content', [ $this, 'get_dynamic_data_preview_content' ] );
 
 		add_action( 'wp_ajax_bricks_get_posts', [ $this, 'get_posts' ] );
 		add_action( 'wp_ajax_bricks_get_terms_options', [ $this, 'get_terms_options' ] );
 		add_action( 'wp_ajax_bricks_get_users', [ $this, 'get_users' ] );
 
-		add_action( 'wp_ajax_bricks_get_sidebar', [ $this, 'get_sidebar' ] );
-		add_action( 'wp_ajax_bricks_get_shortcode_rendered', [ $this, 'get_shortcode_rendered' ] );
 		add_action( 'wp_ajax_bricks_render_data', [ $this, 'render_data' ] );
 
 		add_action( 'wp_ajax_bricks_publish_post', [ $this, 'publish_post' ] );
@@ -32,17 +31,31 @@ class Ajax {
 		add_action( 'wp_ajax_bricks_save_builder_width_locked', [ $this, 'save_builder_width_locked' ] );
 
 		add_action( 'wp_ajax_bricks_render_element', [ $this, 'render_element' ] );
-		add_action( 'wp_ajax_bricks_get_html_from_content', [ $this, 'get_html_from_content' ] );
 
 		add_action( 'wp_ajax_bricks_get_pages', [ $this, 'get_pages' ] );
 		add_action( 'wp_ajax_bricks_create_new_page', [ $this, 'create_new_page' ] );
 
 		add_action( 'wp_ajax_bricks_get_my_templates_data', [ $this, 'get_my_templates_data' ] );
 
-		// Get fresh remote template in builder via PopupTemplates
 		add_action( 'wp_ajax_bricks_get_remote_templates_data', [ $this, 'get_remote_templates_data' ] );
 
 		add_action( 'wp_ajax_bricks_get_current_user_id', [ $this, 'get_current_user_id' ] );
+
+		// @since 1.7.1 - Delete Bricks query random seed transient
+		add_action( 'wp_ajax_bricks_query_loop_delete_random_seed_transient', [ $this, 'query_loop_delete_random_seed_transient' ] );
+
+		// For Gutenberg
+		add_action( 'wp_ajax_bricks_get_html_from_content', [ $this, 'get_html_from_content' ] );
+
+		// Get template elements by template ID
+		add_action( 'wp_ajax_bricks_get_template_elements_by_id', [ $this, 'get_template_elements_by_id' ] );
+
+		// Get custom shape divider SVG from URL (@since 1.8.6)
+		add_action( 'wp_ajax_bricks_get_custom_shape_divider', [ $this, 'get_custom_shape_divider' ] );
+
+		// From nonce regeneration (@since 1.9.6)
+		add_action( 'wp_ajax_bricks_regenerate_nonce', [ $this, 'regenerate_nonce' ] );
+		add_action( 'wp_ajax_nopriv_bricks_regenerate_nonce', [ $this, 'regenerate_nonce' ] );
 	}
 
 	/**
@@ -59,6 +72,29 @@ class Ajax {
 	}
 
 	/**
+	 * Form elmeent: Regenerate nonce
+	 *
+	 * @since 1.9.6
+	 */
+	public function regenerate_nonce() {
+		echo wp_create_nonce( 'bricks-form-nonce' );
+		wp_die();
+	}
+
+	/**
+	 * Verify nonce used in AJAX call
+	 *
+	 * @since 1.5.4
+	 *
+	 * @return void
+	 */
+	public static function verify_nonce() {
+		if ( ! check_ajax_referer( 'bricks-nonce', 'nonce', false ) ) {
+			wp_send_json_error( 'verify_nonce: "bricks-nonce" is invalid.' );
+		}
+	}
+
+	/**
 	 * Verify request: nonce and user access
 	 *
 	 * Check for builder in order to not trigger on wp_auth_check
@@ -66,18 +102,13 @@ class Ajax {
 	 * @since 1.0
 	 */
 	public static function verify_request() {
-		if ( bricks_is_ajax_call() && bricks_is_builder() ) {
-			// Verify nonce
-			if ( ! check_ajax_referer( 'bricks-nonce', 'nonce', false ) ) {
-				wp_send_json_error( 'verify_nonce: "bricks-nonce" is invalid.' );
-			}
+		self::verify_nonce();
 
-			// Verfiy user access
-			$post_id = ! empty( $_POST['postId'] ) ? $_POST['postId'] : get_the_ID();
+		// Verify user access (get_the_ID() returns 0 in AJAX call)
+		$post_id = $_POST['postId'] ?? get_the_ID();
 
-			if ( ! Capabilities::current_user_can_use_builder( $post_id ) ) {
-				wp_send_json_error( 'verify_request: User can not use builder (' . get_current_user_id() . ')' );
-			}
+		if ( ! Capabilities::current_user_can_use_builder( $post_id ) ) {
+			wp_send_json_error( 'verify_request: User can not use builder (' . get_current_user_id() . ')' );
 		}
 	}
 
@@ -132,7 +163,9 @@ class Ajax {
 	 * @since 1.3.2
 	 */
 	public function save_builder_scale_off() {
-		$scale_off = $_POST['off'] == 'true';
+		self::verify_request();
+
+		$scale_off = isset( $_POST['off'] ) ? $_POST['off'] == 'true' : false;
 		$user_id   = get_current_user_id();
 
 		if ( $scale_off ) {
@@ -157,7 +190,9 @@ class Ajax {
 	 * @since 1.3.2
 	 */
 	public function save_builder_width_locked() {
-		$preview_width = intval( $_POST['width'] );
+		self::verify_request();
+
+		$preview_width = isset( $_POST['width'] ) ? intval( $_POST['width'] ) : false;
 		$user_id       = get_current_user_id();
 
 		if ( $preview_width ) {
@@ -185,7 +220,7 @@ class Ajax {
 		$query_args = [
 			'posts_per_page' => -1,
 			'post_status'    => 'any',
-			'post_type'      => ! empty( $_GET['postType'] ) ? $_GET['postType'] : 'page',
+			'post_type'      => $_GET['postType'] ?? 'page',
 			'fields'         => 'ids'
 		];
 
@@ -197,9 +232,14 @@ class Ajax {
 		$pages = [];
 
 		foreach ( $page_ids as $page_id ) {
+			$page_title = wp_kses_post( get_the_title( $page_id ) );
+
+			// NOTE: Undocumented
+			$page_title = apply_filters( 'bricks/builder/post_title', $page_title, $page_id );
+
 			$page_data = [
 				'id'      => $page_id,
-				'title'   => wp_kses_post( get_the_title( $page_id ) ),
+				'title'   => $page_title,
 				'status'  => get_post_status( $page_id ),
 				'slug'    => get_post_field( 'post_name', $page_id ),
 				'editUrl' => Helpers::get_builder_edit_link( $page_id ),
@@ -235,30 +275,38 @@ class Ajax {
 	}
 
 	/**
-	 * Builder: Render element HTML (pre-render & AJAX/REST API)
+	 * Render element HTML from settings
+	 *
+	 * builder.php (query_content_type_for_elements_html to generate HTML for builder load)
+	 * AJAX call / REST API call: In-builder (getHTML for PHP-rendered elements)
 	 *
 	 * @since 1.0
 	 */
-	public static function render_element( $element ) {
-		// Check: AJAX, REST API or builder
-		$is_ajax = false;
+	public static function render_element( $data ) {
+		$is_ajax = bricks_is_ajax_call();
 
-		// AJAX
-		if ( bricks_is_ajax_call() && isset( $_POST ) ) {
-			self::verify_request();
-
-			$element = isset( $_POST['element'] ) ? $_POST['element'] : $_POST;
-			$element = stripslashes_deep( $element );
-
-			$loop_element = ! empty( $_POST['loopElement'] ) ? $_POST['loopElement'] : false;
-
-			$is_ajax = true;
+		if ( $is_ajax && isset( $_POST ) ) {
+			$data = $_POST;
 		}
 
-		// REST API
+		$loop_element = $data['loopElement'] ?? false;
+		$element      = $data['element'] ?? false;
+		$element_name = $element['name'] ?? false;
+
+		// AJAX call
+		if ( $is_ajax ) {
+			// Check: Current user can use builder
+			self::verify_request();
+
+			$element = stripslashes_deep( $element );
+		}
+
+		// REST API call (Permissions already checked in the API->render_element_permissions_check())
 		elseif ( bricks_is_rest_call() ) {
-			$loop_element = ! empty( $element['loopElement'] ) ? $element['loopElement'] : false;
-			$element      = $element['element'];
+		}
+
+		// builder.php (query_content_type_for_elements_html)
+		else {
 		}
 
 		/**
@@ -278,7 +326,6 @@ class Ajax {
 		}
 
 		// Init element class (i.e. new Bricks\Element_Alert( $element ))
-		$element_name       = ! empty( $element['name'] ) ? $element['name'] : '';
 		$element_class_name = isset( Elements::$elements[ $element_name ]['class'] ) ? Elements::$elements[ $element_name ]['class'] : false;
 
 		if ( class_exists( $element_class_name ) ) {
@@ -291,11 +338,13 @@ class Ajax {
 			ob_start();
 			$element_instance->init();
 			$response = ob_get_clean();
-			$response = stripslashes( $response );
+			// NOTE: stripslashes no longer in use (@since 1.8.5) as they caused unicode characters to be escaped (e.g. \u00a0) (#862jxcrde; #862jxw1w7)
+			// $response = stripslashes( $response );
 		}
 
 		// Element doesn't exist
 		else {
+			// translators: %s: Element name
 			$response = '<div class="bricks-element-placeholder no-php-class">' . sprintf( esc_html__( 'Element "%s" doesn\'t exist.', 'bricks' ), $element_name ) . '</div>';
 		}
 
@@ -341,11 +390,29 @@ class Ajax {
 
 		$html = ! empty( $data ) ? Frontend::render_data( $data ) : '';
 
-		wp_send_json_success(
-			[
-				'html' => $html,
-			]
-		);
+		wp_send_json_success( [ 'html' => $html ] );
+	}
+
+	/**
+	 * Get template elements by template ID
+	 *
+	 * To generate global classes CSS in builder.
+	 *
+	 * @since 1.8.2
+	 */
+	public function get_template_elements_by_id() {
+		self::verify_request();
+
+		$template_ids            = ! empty( $_POST['templateIds'] ) ? self::decode( $_POST['templateIds'] ) : [];
+		$template_elements_by_id = [];
+
+		if ( is_array( $template_ids ) ) {
+			foreach ( $template_ids as $template_id ) {
+				$template_elements_by_id[ $template_id ] = get_post_meta( $template_id, BRICKS_DB_PAGE_CONTENT, true );
+			}
+		}
+
+		wp_send_json_success( $template_elements_by_id );
 	}
 
 	/**
@@ -399,7 +466,15 @@ class Ajax {
 	 * @since 1.0
 	 */
 	public static function get_posts() {
-		$post_type = ! empty( $_GET['postType'] ) && $_GET['postType'] !== 'any' ? $_GET['postType'] : get_post_types( [ 'public' => true ] );
+		self::verify_request();
+
+		if ( ! empty( $_GET['postType'] ) && $_GET['postType'] !== 'any' ) {
+			$post_type = $_GET['postType'];
+		} else {
+			$post_types = get_post_types( [ 'public' => true ] );
+
+			$post_type = array_keys( $post_types );
+		}
 
 		$query_args = [ 'post_type' => $post_type ];
 
@@ -414,7 +489,12 @@ class Ajax {
 
 		$posts = Helpers::get_posts_by_post_id( $query_args );
 
-		// // If Ajax request contains "include" parameter, make sure some post_ids are included in the response
+		foreach ( $posts as $post_id => $post_title ) {
+			// NOTE: Undocumented
+			$posts[ $post_id ] = apply_filters( 'bricks/builder/post_title', $post_title, $post_id );
+		}
+
+		// // If AJAX request contains "include" parameter, make sure some post_ids are included in the response
 		if ( ! empty( $_GET['include'] ) ) {
 			$include = (array) $_GET['include'];
 
@@ -497,41 +577,13 @@ class Ajax {
 	}
 
 	/**
-	 * Get sidebar
-	 *
-	 * @since 1.0
-	 */
-	public function get_sidebar() {
-		self::verify_request();
-
-		if ( is_active_sidebar( $_GET['sidebarId'] ) ) {
-			ob_start();
-			dynamic_sidebar( $_GET['sidebarId'] );
-			$sidebar_output = ob_get_clean();
-			wp_send_json_success( $sidebar_output );
-		} else {
-			wp_send_json_error( 'sidebar_doesnt_exist' );
-		}
-	}
-
-	/**
-	 * Shortcode output
-	 *
-	 * @since 1.0
-	 */
-	public function get_shortcode_rendered() {
-		self::verify_request();
-
-		echo do_shortcode( stripcslashes( $_GET['shortcode'] ) );
-		die();
-	}
-
-	/**
 	 * Render Bricks data for static header/content/footer and query loop preview HTML in builder
 	 *
 	 * @since 1.0
 	 */
 	public static function render_data() {
+		self::verify_request();
+
 		if ( empty( $_POST['elements'] ) ) {
 			return;
 		}
@@ -539,14 +591,85 @@ class Ajax {
 		$elements = self::decode( $_POST['elements'], false );
 
 		$elements = array_map( 'Bricks\Helpers::set_is_frontend_to_false', $elements );
-		$area     = ! empty( $_POST['area'] ) ? $_POST['area'] : 'content';
+		$area     = $_POST['area'] ?? 'content';
 
 		// Set Theme Styles (for correct preview of query loop nodes)
-		Theme_Styles::load_set_styles( $_POST['postId'] );
+		Theme_Styles::load_set_styles( $_POST['postId'] ?? '' );
+
+		// Use global elements data from builder (@since 1.7.1)
+		$global_elements = ! empty( $_POST['globalElements'] ) ? $_POST['globalElements'] : [];
+
+		if ( count( $global_elements ) ) {
+			foreach ( $elements as $index => $element ) {
+				$global_element_id = ! empty( $element['global'] ) ? $element['global'] : false;
+
+				if ( $global_element_id ) {
+					foreach ( $global_elements as $global_element ) {
+						if ( ! empty( $global_element['global'] ) && $global_element['global'] == $global_element_id ) {
+							$elements[ $index ]['settings'] = $global_element['settings'];
+
+							// To skip getting element setting from db in Frontend::render_data() > render_element() later on
+							$elements[ $index ]['global_settings_checked'] = true;
+						}
+					}
+				}
+			}
+		}
+
+		// Generate query loop styles for dynamic data (@since 1.8)
+		$post_id   = $_POST['postId'] ?? 0;
+		$loop_name = "loop_{$post_id}";
+
+		// Use loop element ID as loop_name if possible
+		if ( isset( $elements[0]['id'] ) ) {
+			$loop_name = "loop_{$elements[0]['id']}";
+		}
+
+		// Generate Assets before Frontend render to add 'data-query-loop-index' attribute successfully in builder
+		Assets::generate_css_from_elements( $elements, $loop_name );
+
+		$inline_css = Assets::$inline_css[ $loop_name ] ?? '';
 
 		$html = Frontend::render_data( $elements, $area );
 
-		wp_send_json_success( $html );
+		$inline_css .= Assets::$inline_css_dynamic_data;
+
+		/**
+		 * Add missing global classes in builder preview if template element loop
+		 *
+		 * @since 1.8.2 If not static area (global classes are already added in dynamic area)
+		 */
+		if ( ! isset( $_POST['staticArea'] ) ) {
+			$inline_css .= Assets::generate_global_classes();
+		}
+
+		$styles = ! empty( $inline_css ) ? "\n<style id=\"bricks-$loop_name\">/* {$loop_name} CSS */\n{$inline_css}</style>\n" : '';
+
+		$data = [
+			'html'   => $html,
+			'styles' => $styles,
+		];
+
+		// Run query to get query results count in builder (@since 1.9.1)
+		$element = ! empty( $_POST['element'] ) ? self::decode( $_POST['element'], false ) : false;
+
+		if ( $element ) {
+			$query               = new Query( $element );
+			$query_results_count = $query->count;
+
+			$data[ "query_results_count:{$element['id']}" ] = $query_results_count;
+		}
+
+		wp_send_json_success( $data );
+	}
+
+	/**
+	 * Don't check for chnage when creating revision as all that changed is the postmeta
+	 *
+	 * @since 1.7
+	 */
+	public function dont_check_for_revision_changes() {
+		return false;
 	}
 
 	/**
@@ -563,26 +686,58 @@ class Ajax {
 		}
 
 		$post_id = $_POST['postId'];
-
-		// Update post in order to update post date
 		$post    = get_post( $post_id );
-		$post_id = wp_update_post( $post );
+
+		// Update post at the very end (@since 1.6)
+		$the_post = false;
 
 		/**
 		 * Save revision in database
 		 */
+		$revision_id = 0;
 
-		// Disabled WordPress content diff check
-		add_filter( 'wp_save_post_revision_check_for_changes', '__return_false' );
+		// Check: Bricks elements data changed. If not, don't save post & don't create revision (@since 1.7.1)
+		$bricks_data_changed = isset( $_POST['header'] ) || isset( $_POST['content'] ) || isset( $_POST['footer'] );
 
-		$revision_id = wp_save_post_revision( $post );
+		// Page settings changed: Re-generate external CSS file (@since 1.8)
+		if ( ! $bricks_data_changed ) {
+			$bricks_data_changed = isset( $_POST['pageSettings'] );
+		}
+
+		/**
+		 * Create revision if data contains 'header', 'footer', or 'content'
+		 *
+		 * To avoid create false empty revision.
+		 *
+		 * @since 1.7.1 (if check added)
+		 */
+		if ( $bricks_data_changed ) {
+			// Disabled WordPress content diff check
+			add_filter( 'wp_save_post_revision_check_for_changes', [ $this, 'dont_check_for_revision_changes' ] );
+
+			$revision_id = wp_save_post_revision( $post );
+
+			// Delete autosave (@since 1.7)
+			if ( $revision_id ) {
+				$autosave = wp_get_post_autosave( $post_id );
+
+				if ( $autosave ) {
+					wp_delete_post_revision( $autosave );
+				}
+			}
+
+			remove_filter( 'wp_save_post_revision_check_for_changes', [ $this, 'dont_check_for_revision_changes' ] );
+		}
+
+		// Check user capabilities (@since 1.5.4)
+		$has_full_access = Capabilities::current_user_has_full_access();
 
 		/**
 		 * Save color palettes
 		 *
-		 * @since 1.4 If included in save data.
+		 * @since 1.4
 		 */
-		if ( isset( $_POST['colorPalette'] ) ) {
+		if ( isset( $_POST['colorPalette'] ) && $has_full_access ) {
 			$color_palette = self::decode( $_POST['colorPalette'], false );
 
 			if ( is_array( $color_palette ) && count( $color_palette ) ) {
@@ -595,24 +750,20 @@ class Ajax {
 		/**
 		 * Save global classes
 		 *
-		 * @since 1.4 If included in save data.
+		 * @since 1.4
 		 */
-		if ( isset( $_POST['globalClasses'] ) ) {
+		if ( isset( $_POST['globalClasses'] ) && $has_full_access ) {
 			$global_classes = self::decode( $_POST['globalClasses'], false );
 
-			if ( is_array( $global_classes ) && count( $global_classes ) ) {
-				update_option( BRICKS_DB_GLOBAL_CLASSES, $global_classes );
-			} else {
-				delete_option( BRICKS_DB_GLOBAL_CLASSES );
-			}
+			Helpers::save_global_classes_in_db( $global_classes, "ajax_save_post_id_$post_id" );
 		}
 
 		/**
 		 * Save global classes locked
 		 *
-		 * @since 1.4 If included in save data.
+		 * @since 1.4
 		 */
-		if ( isset( $_POST['globalClassesLocked'] ) ) {
+		if ( isset( $_POST['globalClassesLocked'] ) && $has_full_access ) {
 			$global_classes_locked = self::decode( $_POST['globalClassesLocked'], false );
 
 			if ( is_array( $global_classes_locked ) && count( $global_classes_locked ) ) {
@@ -623,11 +774,26 @@ class Ajax {
 		}
 
 		/**
+		 * Save global classes categories
+		 *
+		 * @since 1.9.4
+		 */
+		if ( isset( $_POST['globalClassesCategories'] ) && $has_full_access ) {
+			$global_classes_categories = self::decode( $_POST['globalClassesCategories'], false );
+
+			if ( is_array( $global_classes_categories ) && count( $global_classes_categories ) ) {
+				update_option( BRICKS_DB_GLOBAL_CLASSES_CATEGORIES, $global_classes_categories, false );
+			} else {
+				delete_option( BRICKS_DB_GLOBAL_CLASSES_CATEGORIES );
+			}
+		}
+
+		/**
 		 * Save global elements
 		 *
-		 * @since 1.4 If included in save data.
+		 * @since 1.4
 		 */
-		if ( isset( $_POST['globalElements'] ) ) {
+		if ( isset( $_POST['globalElements'] ) && $has_full_access ) {
 			$global_elements = self::decode( $_POST['globalElements'], false );
 
 			if ( is_array( $global_elements ) && count( $global_elements ) ) {
@@ -640,10 +806,10 @@ class Ajax {
 		/**
 		 * Save pinned elements
 		 *
-		 * @since 1.4 If included in save data.
+		 * @since 1.4
 		 */
 
-		if ( isset( $_POST['pinnedElements'] ) ) {
+		if ( isset( $_POST['pinnedElements'] ) && $has_full_access ) {
 			$pinned_elements = self::decode( $_POST['pinnedElements'], false );
 
 			if ( is_array( $pinned_elements ) && count( $pinned_elements ) ) {
@@ -656,9 +822,9 @@ class Ajax {
 		/**
 		 * Save pseudo-classes
 		 *
-		 * @since 1.4 If included in save data.
+		 * @since 1.4
 		 */
-		if ( isset( $_POST['pseudoClasses'] ) ) {
+		if ( isset( $_POST['pseudoClasses'] ) && $has_full_access ) {
 			$global_pseudo_classes = self::decode( $_POST['pseudoClasses'] );
 
 			if ( is_array( $global_pseudo_classes ) && count( $global_pseudo_classes ) ) {
@@ -671,9 +837,9 @@ class Ajax {
 		/**
 		 * Save theme styles
 		 *
-		 * @since 1.4 If included in save data.
+		 * @since 1.4
 		 */
-		if ( isset( $_POST['themeStyles'] ) ) {
+		if ( isset( $_POST['themeStyles'] ) && $has_full_access ) {
 			$theme_styles = self::decode( $_POST['themeStyles'], false );
 
 			foreach ( $theme_styles as $theme_style_id => $theme_style ) {
@@ -704,32 +870,26 @@ class Ajax {
 		/**
 		 * Save page setting
 		 *
-		 * @since 1.4 If included in save data.
+		 * @since 1.4
 		 */
-		if ( isset( $_POST['pageSettings'] ) ) {
+		if ( isset( $_POST['pageSettings'] ) && $has_full_access ) {
 			$page_settings = self::decode( $_POST['pageSettings'] );
 
 			if ( is_array( $page_settings ) && count( $page_settings ) ) {
-				// Update post name (= URL slug)
+				if ( ! empty( $page_settings['postName'] ) || ! empty( $page_settings['postTitle'] ) ) {
+					$the_post['ID'] = $post_id;
+				}
+
+				// Update post name (slug)
 				if ( ! empty( $page_settings['postName'] ) ) {
-					wp_update_post(
-						[
-							'ID'        => $post_id,
-							'post_name' => trim( $page_settings['postName'] ),
-						]
-					);
+					$the_post['post_name'] = trim( $page_settings['postName'] );
 
 					unset( $page_settings['postName'] );
 				}
 
 				// Update post title
 				if ( ! empty( $page_settings['postTitle'] ) ) {
-					wp_update_post(
-						[
-							'ID'         => $post_id,
-							'post_title' => trim( $page_settings['postTitle'] ),
-						]
-					);
+					$the_post['post_title'] = trim( $page_settings['postTitle'] );
 
 					unset( $page_settings['postTitle'] );
 				}
@@ -743,7 +903,7 @@ class Ajax {
 		/**
 		 * Bricks template
 		 *
-		 * @since 1.4 If included in save data.
+		 * @since 1.4
 		 */
 		if ( isset( $_POST['templateType'] ) ) {
 			$template_type = $_POST['templateType'];
@@ -754,6 +914,9 @@ class Ajax {
 				// Header template
 				case 'header':
 					if ( isset( $_POST['header'] ) ) {
+						// @since 1.5.4
+						$header = Helpers::security_check_elements_before_save( $header, $post_id, 'header' );
+
 						if ( is_array( $header ) && count( $header ) ) {
 							// Save revision in post meta ('update_post_meta' can't process post type 'revision'
 							if ( $revision_id ) {
@@ -770,6 +933,9 @@ class Ajax {
 				// Footer template
 				case 'footer':
 					if ( isset( $_POST['footer'] ) ) {
+						// @since 1.5.4
+						$footer = Helpers::security_check_elements_before_save( $footer, $post_id, 'footer' );
+
 						if ( is_array( $footer ) && count( $footer ) ) {
 							// Save revision in post meta ('update_post_meta' can't process post type 'revision'
 							if ( $revision_id ) {
@@ -786,6 +952,9 @@ class Ajax {
 				// Any other template type
 				default:
 					if ( isset( $_POST['content'] ) ) {
+						// @since 1.5.4
+						$content = Helpers::security_check_elements_before_save( $content, $post_id, 'content' );
+
 						if ( is_array( $content ) && count( $content ) ) {
 							// Save revision in post meta ('update_post_meta' can't process post type 'revision')
 							if ( $revision_id ) {
@@ -803,9 +972,9 @@ class Ajax {
 		/**
 		 * Template settings
 		 *
-		 * @since 1.4 If included in save data.
+		 * @since 1.4
 		 */
-		if ( isset( $_POST['templateSettings'] ) ) {
+		if ( isset( $_POST['templateSettings'] ) && $has_full_access ) {
 			$template_settings = self::decode( $_POST['templateSettings'], false );
 
 			if ( is_array( $template_settings ) && count( $template_settings ) ) {
@@ -821,18 +990,21 @@ class Ajax {
 		/**
 		 * Content (not a Bricks template)
 		 *
-		 * @since 1.4 If included in save data.
+		 * @since 1.4
 		 */
 		if ( isset( $_POST['content'] ) && get_post_type( $post_id ) !== BRICKS_DB_TEMPLATE_SLUG ) {
+			// @since 1.5.4
+			$content = Helpers::security_check_elements_before_save( $content, $post_id, 'content' );
+
 			if ( is_array( $content ) && count( $content ) ) {
 				// Update empty or existing Gutenberg post_content (preserve Classic Editor data)
 				$existing_post_content = $post->post_content;
 
-				if ( ( ! $existing_post_content || has_blocks( get_post( $post_id ) ) ) && Database::get_setting( 'bricks_to_wp' ) ) {
+				if ( Database::get_setting( 'bricks_to_wp' ) && ( ! $existing_post_content || has_blocks( get_post( $post_id ) ) ) ) {
 					$new_post_content = Blocks::serialize_bricks_to_blocks( $content, $post_id );
 
 					if ( $new_post_content ) {
-						wp_update_post(
+						$the_post = (
 							[
 								'ID'           => $post_id,
 								'post_content' => $new_post_content,
@@ -841,7 +1013,7 @@ class Ajax {
 					}
 				}
 
-				// Save revision in post meta ('update_post_meta' can't process post type 'revision'
+				// Save revision in post meta ('update_post_meta' can't process post type 'revision')
 				if ( $revision_id ) {
 					update_metadata( 'post', $revision_id, BRICKS_DB_PAGE_CONTENT, $content );
 				}
@@ -857,30 +1029,14 @@ class Ajax {
 		update_post_meta( $post_id, BRICKS_DB_EDITOR_MODE, 'bricks' );
 
 		/**
-		 * STEP: Generate page-specific CSS file of all elements
+		 * STEP: Update post to (1) update post date & (2) re-generate CSS file via 'save_post' in files.php
 		 *
-		 * Get latest data form post meta if elements aren't included in savePost.
+		 * Check $wp_post_updated to ensure wp_update_post did not already ran above.
 		 *
-		 * Enable: "CSS loading method" = 'file'
+		 * @since 1.5.7
 		 */
-		if ( Database::get_setting( 'cssLoading' ) === 'file' ) {
-			$area = ! empty( $_POST['area'] ) ? $_POST['area'] : 'content';
-
-			switch ( $area ) {
-				case 'header':
-					$elements = isset( $_POST['header'] ) ? self::decode( $_POST['header'] ) : get_post_meta( $post_id, BRICKS_DB_PAGE_HEADER, true );
-					break;
-
-				case 'footer':
-					$elements = isset( $_POST['footer'] ) ? self::decode( $_POST['footer'] ) : get_post_meta( $post_id, BRICKS_DB_PAGE_FOOTER, true );
-					break;
-
-				default:
-					$elements = isset( $_POST['content'] ) ? self::decode( $_POST['content'] ) : get_post_meta( $post_id, BRICKS_DB_PAGE_CONTENT, true );
-					break;
-			}
-
-			Assets_Files::generate_post_css_file( $post_id, $area, $elements );
+		if ( $bricks_data_changed ) {
+			$post_id = $the_post ? wp_update_post( $the_post ) : wp_update_post( $post );
 		}
 
 		wp_send_json_success( $_POST );
@@ -959,7 +1115,7 @@ class Ajax {
 	public function get_builder_url() {
 		self::verify_request();
 
-		wp_send_json_success( [ 'url' => Helpers::get_builder_edit_link( $_POST['postId'] ) ] );
+		wp_send_json_success( [ 'url' => Helpers::get_builder_edit_link( $_POST['postId'] ?? 0 ) ] );
 	}
 
 	/**
@@ -970,13 +1126,15 @@ class Ajax {
 	public function publish_post() {
 		self::verify_request();
 
-		if ( ! isset( $_POST['postId'] ) ) {
+		$post_id = $_POST['postId'] ?? 0;
+
+		if ( ! $post_id ) {
 			wp_send_json_error( 'No postId provided.' );
 		}
 
 		$response = wp_update_post(
 			[
-				'ID'          => $_POST['postId'],
+				'ID'          => $post_id,
 				'post_status' => 'publish',
 			]
 		);
@@ -1010,7 +1168,7 @@ class Ajax {
 				'height' => isset( $get_attachment_metadata['height'] ) ? $get_attachment_metadata['height'] : '',
 			],
 			'sizes'    => isset( $get_attachment_metadata['sizes'] ) ? $get_attachment_metadata['sizes'] : [],
-			'src'      => wp_get_attachment_image_src( $_POST['imageId'], $_POST['imageSize'] ),
+			'src'      => wp_get_attachment_image_src( $_POST['imageId'] ?? '', $_POST['imageSize'] ?? '' ),
 		];
 
 		wp_send_json_success( $response );
@@ -1028,13 +1186,15 @@ class Ajax {
 			wp_send_json_error( 'no custom field key provided' );
 		}
 
-		if ( ! isset( $_POST['postId'] ) ) {
+		$post_id = $_POST['postId'] ?? 0;
+
+		if ( ! $post_id ) {
 			wp_send_json_error( 'Error: No postId provided!' );
 		}
 
 		$meta_key = sanitize_text_field( $_POST['metaKey'] );
-		$post_id  = abs( $_POST['postId'] );
-		$size     = empty( $_POST['size'] ) ? BRICKS_DEFAULT_IMAGE_SIZE : sanitize_text_field( $_POST['size'] );
+		$post_id  = abs( $post_id );
+		$size     = ! empty( $_POST['size'] ) ? sanitize_text_field( $_POST['size'] ) : BRICKS_DEFAULT_IMAGE_SIZE;
 
 		// Get images from custom field
 		$images = Integrations\Dynamic_Data\Providers::render_tag( $meta_key, $post_id, 'image', [ 'size' => $size ] );
@@ -1079,12 +1239,12 @@ class Ajax {
 		// http://www.codingduniya.com/2016/07/generate-featured-image-for-post-using.html
 		$file_array = [];
 
-		$tmp = download_url( $_POST['download_url'] );
+		$tmp = download_url( $_POST['download_url'] ?? '' );
 
 		$file_array['tmp_name'] = $tmp;
 
 		// Manually add file extension as Unsplash download URL doesn't provide file extension
-		$file_array['name'] = $_POST['file_name'] . '.jpg';
+		$file_array['name'] = ! empty( $_POST['file_name'] ) ? $_POST['file_name'] . '.jpg' : '';
 
 		// Check for download errors
 		if ( is_wp_error( $tmp ) ) {
@@ -1095,57 +1255,104 @@ class Ajax {
 
 		// If error storing permanently, unlink
 		if ( is_wp_error( $id ) ) {
-			@unlink( $file_array['tmp_name'] );
+			if ( isset( $file_array['tmp_name'] ) ) {
+				@unlink( $file_array['tmp_name'] );
+			}
 		}
 
 		wp_send_json_success( $id );
 	}
 
-		/**
-		 * Get content from a custom field
-		 *
-		 * @since 1.0
-		 */
-	public function get_content_from_custom_field() {
+	/**
+	 * Parse content through dynamic data logic
+	 *
+	 * @since 1.5.1
+	 */
+	public function get_dynamic_data_preview_content() {
 		self::verify_request();
 
-		if ( ! isset( $_POST['metaKey'] ) ) {
-			wp_send_json_error( 'no custom field key provided' );
+		if ( ! isset( $_POST['content'] ) ) {
+			wp_send_json_error( 'Error: No content' );
 		}
 
 		if ( ! isset( $_POST['postId'] ) ) {
-			wp_send_json_error( 'Error: No postId provided!' );
+			wp_send_json_error( 'Error: No postId' );
 		}
 
-		// Get content from custom field
-		$content = Integrations\Dynamic_Data\Providers::render_tag( $_POST['metaKey'], $_POST['postId'], $_POST['context'] );
+		// Use stripslashes to unescape img URLs, etc. (@since 1.7)
+		$content = ! empty( $_POST['content'] ) ? $_POST['content'] : '';
+		$context = ! empty( $_POST['context'] ) ? $_POST['context'] : 'text';
 
-		if ( 'link' === $_POST['context'] ) {
-			$content = esc_url( $content );
-		} else {
-			// When output a code field, extract the content
-			if ( strpos( $content, '<pre' ) === 0 ) {
-				preg_match( '#<\s*?code\b[^>]*>(.*?)</code\b[^>]*>#s', $content, $matches );
-				$content = isset( $matches[1] ) ? $matches[1] : $content;
+		if ( is_string( $content ) ) {
+			$content = stripslashes( $content );
+		}
+
+		/**
+		 * Set up post data so WP core function like get_the_ID() work inside custom PHP functions called via DD 'echo:'
+		 *
+		 * @since 1.8
+		 */
+		global $post;
+		$post_id = $_POST['postId'];
+		$post    = get_post( $post_id );
+		setup_postdata( $post );
+
+		// Get content from custom field
+		if ( is_array( $content ) ) {
+			// Array format used to parse colors in the builder (@since 1.5.1)
+			foreach ( $content as $key => $data ) {
+				$content[ $key ]['value'] = bricks_render_dynamic_data( $data['value'], $post_id, $context );
 			}
+		} else {
+			// Preview composed links e.g. "https://my-domain.com/?user={wp_user_id}" (@since 1.5.4)
+			if ( $context == 'link' && ( strpos( $content, '{' ) !== 0 || substr_count( $content, '}' ) > 1 ) ) {
+				$context = 'text';
+			}
+
+			$content = bricks_render_dynamic_data( $content, $post_id, $context );
+		}
+
+		wp_reset_postdata();
+
+		if ( 'link' === $context ) {
+			$content = esc_url( $content );
+		}
+
+		// When output a code field, extract the content
+		elseif ( is_string( $content ) && strpos( $content, '<pre' ) === 0 ) {
+			preg_match( '#<\s*?code\b[^>]*>(.*?)</code\b[^>]*>#s', $content, $matches );
+			$content = isset( $matches[1] ) ? $matches[1] : $content;
+
 			// esc_html to escape code tags
 			$content = esc_html( $content );
 		}
 
+		/**
+		 * Run additional checks for non-basic text elements like removing extra <p> tags, etc.
+		 *
+		 * ContentEditable.js provides the element name.
+		 *
+		 * @since 1.7
+		 */
+		$element_name = ! empty( $_POST['elementName'] ) ? $_POST['elementName'] : false;
+
+		if ( $element_name && $element_name !== 'text-basic' ) {
+			$content = Helpers::parse_editor_content( $content );
+		}
+
+		// NOTE: We are not escaping text content since it could contain formatting tags like <strong> (@since 1.5.1 - preview dynamic data)
 		wp_send_json_success( [ 'content' => $content ] );
 	}
 
 	/**
-	 * Get remote templates
+	 * Get latest remote templates data in builder (PopupTemplates.vue)
 	 *
 	 * @since 1.0
 	 */
 	public function get_remote_templates_data() {
 		self::verify_request();
 
-		$look_in_db_first = isset( $_POST['db'] ) ? $_POST['db'] : false;
-
-		$remote_templates = Templates::get_remote_templates_data( $look_in_db_first );
+		$remote_templates = Templates::get_remote_templates_data();
 
 		wp_send_json_success( $remote_templates );
 	}
@@ -1156,7 +1363,14 @@ class Ajax {
 	 * @since 1.4
 	 */
 	public function get_my_templates_data() {
-		wp_send_json_success( Templates::get_templates( [ 'post_status' => 'any' ] ) );
+		wp_send_json_success(
+			Templates::get_templates(
+				[
+					'post_status' => 'any',
+					'lang'        => '', // Get all templates in builder for Polylang (@since 1.9.5)
+				]
+			)
+		);
 	}
 
 	/**
@@ -1170,5 +1384,46 @@ class Ajax {
 		self::verify_request();
 
 		wp_send_json_success( [ 'user_id' => get_current_user_id() ] );
+	}
+
+
+	/**
+	 * Delete bricks query loop random seed transient
+	 *
+	 * @see #863g44jcz
+	 *
+	 * @since 1.7.1
+	 */
+	public function query_loop_delete_random_seed_transient() {
+		self::verify_request();
+
+		$element_id = ! empty( $_POST['elementId'] ) ? $_POST['elementId'] : false;
+
+		if ( ! $element_id ) {
+			wp_send_json_error( 'Error: No element ID' );
+		}
+
+		// @see Bricks\Query->set_bricks_query_loop_random_order_seed()
+		$transient_name = "bricks_query_loop_random_seed_$element_id";
+
+		delete_transient( $transient_name );
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Get custom shape divider (SVG) from attachment ID
+	 *
+	 * Only allow to select SVG files from the media library for security reasons.
+	 *
+	 * @since 1.8.6
+	 */
+	public function get_custom_shape_divider() {
+		self::verify_request();
+
+		$svg_path = ! empty( $_POST['id'] ) ? get_attached_file( $_POST['id'] ) : false;
+		$svg      = $svg_path ? Helpers::file_get_contents( $svg_path ) : false;
+
+		wp_send_json_success( $svg );
 	}
 }

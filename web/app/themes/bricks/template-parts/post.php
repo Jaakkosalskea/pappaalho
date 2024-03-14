@@ -15,7 +15,13 @@ ob_start();
 <div class="<?php echo $post_header_classes; ?>"<?php echo $post_header_style; ?>>
 	<div class="brxe-container">
 		<?php
-		$post_title = new Element_Post_Title();
+		$post_title = new Element_Post_Title(
+			[
+				'settings' => [
+					'tag' => 'h1',
+				],
+			]
+		);
 		$post_title->load();
 		$post_title->init();
 
@@ -106,6 +112,7 @@ ob_start();
 
 		$related_posts = new Element_Related_Posts(
 			[
+				'name'     => 'related-posts',
 				'settings' => [
 					'content' => [
 						[

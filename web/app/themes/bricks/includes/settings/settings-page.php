@@ -11,8 +11,13 @@ class Settings_Page extends Settings_Base {
 			'fullAccess' => true,
 		];
 
+		$this->control_groups['scroll-snap'] = [
+			'title'      => esc_html__( 'Scroll snap', 'bricks' ),
+			'fullAccess' => true,
+		];
+
 		if ( get_post_type( get_the_ID() ) !== BRICKS_DB_TEMPLATE_SLUG || Templates::get_template_type( get_the_ID() ) === 'content' ) {
-			$this->control_groups['one-page-navigation'] = [
+			$this->control_groups['one-page'] = [
 				'title'      => esc_html__( 'One Page Navigation', 'bricks' ),
 				'fullAccess' => true,
 			];
@@ -20,7 +25,8 @@ class Settings_Page extends Settings_Base {
 
 		if ( empty( Database::$global_settings['disableSeo'] ) ) {
 			$this->control_groups['seo'] = [
-				'title' => esc_html__( 'SEO', 'bricks' ),
+				'title'      => esc_html__( 'SEO', 'bricks' ),
+				'fullAccess' => true,
 			];
 		}
 
@@ -35,13 +41,20 @@ class Settings_Page extends Settings_Base {
 			'title'      => esc_html__( 'Custom code', 'bricks' ),
 			'fullAccess' => true,
 		];
-
 	}
 
 	public function set_controls() {
 		$template_type = get_post_meta( get_the_ID(), BRICKS_DB_TEMPLATE_TYPE, true );
 
 		// GENERAL
+
+		$this->controls['bodyClasses'] = [
+			'group'       => 'general',
+			'type'        => 'text',
+			'inline'      => true,
+			'label'       => esc_html__( 'CSS classes', 'bricks' ) . ' (body)',
+			'description' => esc_html__( 'Space-separated list of CSS classes to add to the <body> tag of this page.', 'bricks' ),
+		];
 
 		if ( $template_type !== 'header' && $template_type !== 'footer' ) {
 			$this->controls['headerDisabled'] = [
@@ -55,6 +68,12 @@ class Settings_Page extends Settings_Base {
 				'type'  => 'checkbox',
 				'label' => esc_html__( 'Disable footer', 'bricks' ),
 			];
+
+			$this->controls['disableLazyLoad'] = [
+				'group' => 'general',
+				'type'  => 'checkbox',
+				'label' => esc_html__( 'Disable lazy load', 'bricks' ),
+			];
 		}
 
 		// Add Theme Styles "General" controls to page settings
@@ -62,6 +81,7 @@ class Settings_Page extends Settings_Base {
 
 		if ( count( $style_controls ) === 0 ) {
 			Theme_Styles::set_controls();
+
 			$style_controls = Theme_Styles::$controls;
 		}
 
@@ -78,6 +98,131 @@ class Settings_Page extends Settings_Base {
 				}
 			}
 		}
+
+		/**
+		 * Scroll snap
+		 *
+		 * Also used in elements/base.php
+		 *
+		 * https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Scroll_Snap
+		 *
+		 * @since 1.9.3
+		 */
+		$this->controls['scrollSnapSep'] = [
+			'group' => 'scroll-snap',
+			'label' => esc_html__( 'Scroll snap', 'bricks' ),
+			'desc'  => sprintf(
+				// translators: %s: Learn more link, %s: scroll snap
+				esc_html__( '%1$s about %2$s in the Bricks Academy.', 'bricks' ),
+				Helpers::article_link( 'scroll-snap', esc_html__( 'Learn more', 'bricks' ) ),
+				'scroll snap'
+			) . ' ' . esc_html__( 'View on frontend', 'bricks' ) . '.',
+			'type'  => 'separator',
+		];
+
+		$this->controls['scrollSnapType'] = [
+			'group'       => 'scroll-snap',
+			'label'       => esc_html__( 'Type', 'bricks' ),
+			'placeholder' => esc_html__( 'Select', 'bricks' ),
+			'tooltip'     => 'scroll-snap-type',
+			'type'        => 'select',
+			'inline'      => true,
+			'options'     => [
+				'unset'       => 'Unset',
+				'y mandatory' => 'Mandatory (' . esc_html__( 'y-axis', 'bricks' ) . ')',
+				'y proximity' => 'Proximity (' . esc_html__( 'y-axis', 'bricks' ) . ')',
+			],
+			'css'         => [
+				[
+					'selector' => 'html',
+					'property' => 'scroll-snap-type',
+				],
+				[
+					'selector' => '.brxe-section',
+					'property' => 'scroll-snap-align',
+					'value'    => 'start',
+				],
+			],
+		];
+
+		$this->controls['scrollSnapSelector'] = [
+			'group'       => 'scroll-snap',
+			'label'       => esc_html__( 'Selector', 'bricks' ),
+			'type'        => 'text',
+			'inline'      => true,
+			'dd'          => false,
+			'placeholder' => '.brxe-section',
+		];
+
+		$this->controls['scrollSnapAlign'] = [
+			'group'       => 'scroll-snap',
+			'label'       => esc_html__( 'Align', 'bricks' ),
+			'placeholder' => 'start',
+			'tooltip'     => 'scroll-snap-align',
+			'type'        => 'select',
+			'inline'      => true,
+			'options'     => [
+				'start'  => 'start',
+				'center' => 'center',
+				'end'    => 'end',
+			],
+			'css'         => [
+				[
+					'selector' => '.brxe-section',
+					'property' => 'scroll-snap-align',
+				],
+			],
+		];
+
+		$this->controls['scrollMargin'] = [
+			'group'   => 'scroll-snap',
+			'label'   => esc_html__( 'Margin', 'bricks' ),
+			'tooltip' => 'scroll-snap-margin',
+			'type'    => 'number',
+			'units'   => true,
+			'large'   => true,
+			'css'     => [
+				[
+					'selector' => '.brxe-section',
+					'property' => 'scroll-margin',
+				],
+			],
+		];
+
+		$this->controls['scrollPadding'] = [
+			'group'   => 'scroll-snap',
+			'label'   => esc_html__( 'Padding', 'bricks' ),
+			'tooltip' => 'scroll-snap-padding',
+			'type'    => 'number',
+			'units'   => true,
+			'large'   => true,
+			'css'     => [
+				[
+					'selector' => 'html',
+					'property' => 'scroll-padding',
+				],
+			],
+		];
+
+		$this->controls['scrollSnapStop'] = [
+			'group'       => 'scroll-snap',
+			'label'       => esc_html__( 'Stop', 'bricks' ),
+			'tooltip'     => 'scroll-snap-stop',
+			'placeholder' => 'normal',
+			'type'        => 'select',
+			'inline'      => true,
+			'small'       => true,
+			'options'     => [
+				'normal' => 'normal',
+				'always' => 'always',
+			],
+			'css'         => [
+				[
+					'selector' => '.brxe-section',
+					'property' => 'scroll-snap-stop',
+				],
+			],
+		];
 
 		// SEO
 
@@ -104,6 +249,13 @@ class Settings_Page extends Settings_Base {
 			'type'   => 'apply',
 			'reload' => false,
 			'label'  => esc_html__( 'Save new title/permalink', 'bricks' ),
+		];
+
+		$this->controls['documentTitle'] = [
+			'group'       => 'seo',
+			'label'       => esc_html__( 'Document title', 'bricks' ),
+			'type'        => 'text',
+			'description' => esc_html__( 'For frontend SEO purpose only. Not overwriting Post title. Recommended: Max. 60 characters.', 'bricks' ),
 		];
 
 		$this->controls['metaDescription'] = [
@@ -176,13 +328,13 @@ class Settings_Page extends Settings_Base {
 		 */
 
 		$this->controls['onePageNavigation'] = [
-			'group' => 'one-page-navigation',
+			'group' => 'one-page',
 			'type'  => 'checkbox',
 			'label' => esc_html__( 'Show navigation', 'bricks' ),
 		];
 
 		$this->controls['onePageNavigationItemSpacing'] = [
-			'group'       => 'one-page-navigation',
+			'group'       => 'one-page',
 			'type'        => 'number',
 			'units'       => true,
 			'label'       => esc_html__( 'Spacing', 'bricks' ),
@@ -196,7 +348,7 @@ class Settings_Page extends Settings_Base {
 		];
 
 		$this->controls['onePageNavigationItemHeight'] = [
-			'group'       => 'one-page-navigation',
+			'group'       => 'one-page',
 			'type'        => 'number',
 			'units'       => true,
 			'label'       => esc_html__( 'Height', 'bricks' ),
@@ -210,7 +362,7 @@ class Settings_Page extends Settings_Base {
 		];
 
 		$this->controls['onePageNavigationItemWidth'] = [
-			'group'       => 'one-page-navigation',
+			'group'       => 'one-page',
 			'type'        => 'number',
 			'units'       => true,
 			'label'       => esc_html__( 'Width', 'bricks' ),
@@ -224,7 +376,7 @@ class Settings_Page extends Settings_Base {
 		];
 
 		$this->controls['onePageNavigationItemColor'] = [
-			'group' => 'one-page-navigation',
+			'group' => 'one-page',
 			'type'  => 'color',
 			'label' => esc_html__( 'Color', 'bricks' ),
 			'css'   => [
@@ -236,7 +388,7 @@ class Settings_Page extends Settings_Base {
 		];
 
 		$this->controls['onePageNavigationItemBorder'] = [
-			'group' => 'one-page-navigation',
+			'group' => 'one-page',
 			'type'  => 'border',
 			'label' => esc_html__( 'Border', 'bricks' ),
 			'css'   => [
@@ -248,7 +400,7 @@ class Settings_Page extends Settings_Base {
 		];
 
 		$this->controls['onePageNavigationItemBoxShadow'] = [
-			'group'   => 'one-page-navigation',
+			'group'   => 'one-page',
 			'type'    => 'box-shadow',
 			'label'   => esc_html__( 'Box shadow', 'bricks' ),
 			'css'     => [
@@ -268,13 +420,13 @@ class Settings_Page extends Settings_Base {
 		// Active
 
 		$this->controls['onePageNavigationActiveSeparator'] = [
-			'group' => 'one-page-navigation',
+			'group' => 'one-page',
 			'label' => esc_html__( 'Active', 'bricks' ),
 			'type'  => 'separator',
 		];
 
 		$this->controls['onePageNavigationItemHeightActive'] = [
-			'group'       => 'one-page-navigation',
+			'group'       => 'one-page',
 			'type'        => 'number',
 			'units'       => true,
 			'label'       => esc_html__( 'Height', 'bricks' ),
@@ -288,7 +440,7 @@ class Settings_Page extends Settings_Base {
 		];
 
 		$this->controls['onePageNavigationItemWidthActive'] = [
-			'group'       => 'one-page-navigation',
+			'group'       => 'one-page',
 			'type'        => 'number',
 			'units'       => true,
 			'label'       => esc_html__( 'Width', 'bricks' ),
@@ -302,7 +454,7 @@ class Settings_Page extends Settings_Base {
 		];
 
 		$this->controls['onePageNavigationItemColorActive'] = [
-			'group' => 'one-page-navigation',
+			'group' => 'one-page',
 			'type'  => 'color',
 			'label' => esc_html__( 'Color', 'bricks' ),
 			'css'   => [
@@ -314,7 +466,7 @@ class Settings_Page extends Settings_Base {
 		];
 
 		$this->controls['onePageNavigationItemBorderActive'] = [
-			'group' => 'one-page-navigation',
+			'group' => 'one-page',
 			'type'  => 'border',
 			'label' => esc_html__( 'Border', 'bricks' ),
 			'css'   => [
@@ -326,7 +478,7 @@ class Settings_Page extends Settings_Base {
 		];
 
 		$this->controls['onePageNavigationItemBoxShadowActive'] = [
-			'group'   => 'one-page-navigation',
+			'group'   => 'one-page',
 			'type'    => 'box-shadow',
 			'label'   => esc_html__( 'Box shadow', 'bricks' ),
 			'css'     => [
@@ -352,6 +504,7 @@ class Settings_Page extends Settings_Base {
 			'type'        => 'code',
 			'mode'        => 'css',
 			'label'       => esc_html__( 'Custom CSS', 'bricks' ),
+			// translators: %s: <head>
 			'description' => sprintf( esc_html__( 'Adds inline CSS to %s tag.', 'bricks' ), htmlspecialchars( '<head>' ) ),
 		];
 
@@ -359,6 +512,7 @@ class Settings_Page extends Settings_Base {
 			'group'       => 'custom-code',
 			'type'        => 'code',
 			'label'       => esc_html__( 'Header scripts', 'bricks' ),
+			// translators: %s: </head>
 			'description' => sprintf( esc_html__( 'Adds scripts right before closing %s tag.', 'bricks' ), htmlspecialchars( '</head>' ) ),
 		];
 
@@ -366,6 +520,7 @@ class Settings_Page extends Settings_Base {
 			'group'       => 'custom-code',
 			'type'        => 'code',
 			'label'       => esc_html__( 'Body (header) scripts', 'bricks' ),
+			// translators: %s: <body>
 			'description' => sprintf( esc_html__( 'Adds scripts right after opening %s tag.', 'bricks' ), htmlspecialchars( '<body>' ) ),
 		];
 
@@ -373,6 +528,7 @@ class Settings_Page extends Settings_Base {
 			'group'       => 'custom-code',
 			'type'        => 'code',
 			'label'       => esc_html__( 'Body (footer) scripts', 'bricks' ),
+			// translators: %s: </body>
 			'description' => sprintf( esc_html__( 'Adds scripts right before closing %s tag.', 'bricks' ), htmlspecialchars( '</body>' ) ),
 		];
 	}

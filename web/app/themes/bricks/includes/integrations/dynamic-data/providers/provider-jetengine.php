@@ -41,7 +41,7 @@ class Provider_Jetengine extends Base {
 		}
 
 		// Repeater field (loop)
-		if ( in_array( $field['type'], [ 'repeater', 'posts' ] ) ) {
+		if ( in_array( $field['type'], [ 'repeater', 'posts' ], true ) ) {
 
 			// Add the 'posts' field to both loop and regular fields lists
 			if ( $field['type'] === 'posts' ) {
@@ -106,7 +106,7 @@ class Provider_Jetengine extends Base {
 				}
 
 				foreach ( $meta_fields as $field ) {
-					if ( $field['object_type'] !== 'field' || ! in_array( $field['type'], $supports ) ) {
+					if ( $field['object_type'] !== 'field' || ! in_array( $field['type'], $supports, true ) ) {
 						continue;
 					}
 
@@ -132,7 +132,7 @@ class Provider_Jetengine extends Base {
 			$page_label  = ! empty( $labels['name'] ) ? $labels['name'] : $option_page['slug'];
 
 			foreach ( $page_fields as $field ) {
-				if ( $field['object_type'] !== 'field' || ! in_array( $field['type'], $supports ) ) {
+				if ( $field['object_type'] !== 'field' || ! in_array( $field['type'], $supports, true ) ) {
 					continue;
 				}
 
@@ -202,55 +202,107 @@ class Provider_Jetengine extends Base {
 		// STEP: Get the value
 		$value = $this->get_raw_value( $tag, $post_id );
 
-		switch ( $field['type'] ) {
-			case 'date':
-				$filters['object_type'] = 'date';
-				break;
+		// @since 1.8 - New array_val filter. Once used, we don't want to process the field type logic
+		if ( isset( $filters['array_value'] ) && is_array( $value ) ) {
+			// Force context to text
+			$context = 'text';
+			$value   = $this->return_array_value( $value, $filters );
+		}
 
-			case 'datetime-local':
-				$filters['object_type'] = 'datetime';
-				break;
+		// Process field type logic
+		else {
+			switch ( $field['type'] ) {
+				case 'date':
+					if ( ! empty( $value ) ) {
+						if ( ! isset( $field['is_timestamp'] ) || ! $field['is_timestamp'] ) {
+							// The value is a date string, change to timestamp
+							$date = \DateTime::createFromFormat( 'Y-m-d', $value );
 
-			case 'media':
-				$filters['object_type'] = 'media';
-				$filters['separator']   = '';
-				if ( isset( $field['value_format'] ) ) {
-					if ( $field['value_format'] === 'url' ) {
-						$value = attachment_url_to_postid( $value );
-					} elseif ( $field['value_format'] === 'both' ) {
-						$value = isset( $value['id'] ) ? $value['id'] : '';
+							// Prevent error if date is not valid due to unexpected issue
+							if ( $date instanceof \DateTime ) {
+								$value = $date->format( 'U' );
+							}
+						}
+
+						$filters['object_type'] = 'date';
 					}
-				}
+					break;
 
-				$value = [ $value ];
-				break;
+				case 'datetime-local':
+					if ( ! empty( $value ) ) {
+						if ( ! isset( $field['is_timestamp'] ) || ! $field['is_timestamp'] ) {
+							// The value is a date string, change to timestamp
+							$date = \DateTime::createFromFormat( 'Y-m-d\TH:i', $value );
 
-			case 'gallery':
-				$filters['object_type'] = 'media';
-				$filters['separator']   = '';
+							// Prevent error if date is not valid due to unexpected issue
+							if ( $date instanceof \DateTime ) {
+								$value = $date->format( 'U' );
+							}
+						}
 
-				if ( isset( $field['value_format'] ) ) {
-					if ( $field['value_format'] === 'id' ) {
-						$value = explode( ',', $value );
-					} elseif ( $field['value_format'] === 'url' ) {
-						$value = explode( ',', $value );
-						$value = array_map( 'attachment_url_to_postid', $value );
-						$value = array_filter( $value );
-					} elseif ( $field['value_format'] === 'both' ) {
-						$value = wp_list_pluck( $value, 'id' );
+						$filters['object_type'] = 'datetime';
 					}
-				} else {
-					$value = explode( ',', $value );
-				}
+					break;
 
-				break;
+				case 'time':
+					if ( ! empty( $value ) ) {
+						// The value is always a string in 24-hour format, convert to timestamp
+						$value = strtotime( $value );
 
-			case 'posts':
-				$filters['object_type'] = 'post';
-				$filters['link']        = true;
+						if ( empty( $filters['meta_key'] ) ) {
+							// If no meta_key is set, we force the meta_key format so Bricks :time filter can work
+							$filters['meta_key'] = 'H:i';
+						}
 
-				break;
+						$filters['object_type'] = 'datetime';
+					}
+					break;
 
+				case 'media':
+					$filters['object_type'] = 'media';
+					$filters['separator']   = '';
+
+					if ( isset( $field['value_format'] ) ) {
+						if ( $field['value_format'] === 'url' ) {
+							$value = attachment_url_to_postid( $value );
+						} elseif ( $field['value_format'] === 'both' ) {
+							$value = isset( $value['id'] ) ? $value['id'] : '';
+						}
+					}
+
+					// Empty field value should return empty array to avoid default post title in text context. @see $this->format_value_for_context()
+					$value = ! empty( $value ) ? [ $value ] : [];
+					break;
+
+				case 'gallery':
+					$filters['object_type'] = 'media';
+					$filters['separator']   = '';
+
+					if ( isset( $field['value_format'] ) ) {
+						if ( $field['value_format'] === 'id' ) {
+							$value = explode( ',', $value );
+						} elseif ( $field['value_format'] === 'url' ) {
+							$value = explode( ',', $value );
+							$value = array_map( 'attachment_url_to_postid', $value );
+							$value = array_filter( $value );
+						} elseif ( $field['value_format'] === 'both' ) {
+							$value = wp_list_pluck( $value, 'id' );
+						}
+					} else {
+						// Empty field value should return empty array to avoid default post title in text context. @see $this->format_value_for_context()
+						$value = ! empty( $value ) ? explode( ',', $value ) : [];
+					}
+
+					break;
+
+				case 'posts':
+					if ( ! empty( $value ) ) {
+						$filters['object_type'] = 'post';
+						$filters['link']        = true;
+					}
+
+					break;
+			}
 		}
 
 		// STEP: Apply context (text, link, image, media)
@@ -276,11 +328,11 @@ class Provider_Jetengine extends Base {
 				if (
 					isset( $parent_tag['field']['id'] ) &&
 					isset( $tag_object['parent']['id'] ) &&
-					$parent_tag['field']['id'] == $tag_object['parent']['id']
+					$parent_tag['field']['id'] === $tag_object['parent']['id']
 				) {
 
 					// Sub-field belongs to a relationship
-					if ( $field['_brx_type'] == 'relationship' ) {
+					if ( $field['_brx_type'] === 'relationship' ) {
 						// Get the relation object (based on the _brx_object which contains the relation ID)
 						$relation = jet_engine()->relations->get_active_relations( $field['_brx_object'] );
 
@@ -336,23 +388,21 @@ class Provider_Jetengine extends Base {
 		$type        = $field['_brx_type']; // post, term, or user
 		$object_slug = $field['_brx_object']; // object slug or user
 
-		// In a Query Loop
 		if ( \Bricks\Query::is_looping() ) {
 			$object_type = \Bricks\Query::get_loop_object_type();
 
-			if ( $object_type == $type ) {
+			if ( $object_type === $type ) {
 				return \Bricks\Query::get_loop_object();
 			}
 		}
 
 		$queried_object = \Bricks\Helpers::get_queried_object( $post_id );
 
-		if ( $type == 'term' && is_a( $queried_object, 'WP_Term' ) ) {
+		if ( $type === 'term' && is_a( $queried_object, 'WP_Term' ) ) {
 			return $queried_object;
 		}
 
-		if ( $type == 'user' ) {
-
+		if ( $type === 'user' ) {
 			if ( is_a( $queried_object, 'WP_User' ) ) {
 				return $queried_object;
 			}
@@ -360,7 +410,6 @@ class Provider_Jetengine extends Base {
 			return wp_get_current_user();
 		}
 
-		// Default
 		return get_post( $post_id );
 	}
 
@@ -378,7 +427,9 @@ class Provider_Jetengine extends Base {
 
 		$field = $this->loop_tags[ $query->object_type ]['field'];
 
-		if ( \Bricks\Query::is_looping() && \Bricks\Query::get_loop_object_type() == 'post' ) {
+		$looping_query_id = \Bricks\Query::is_any_looping();
+
+		if ( ! empty( $looping_query_id ) && \Bricks\Query::get_loop_object_type( $looping_query_id ) === 'post' ) {
 			$post_id = get_the_ID();
 		} else {
 			// Get the $post_id or the template preview ID
@@ -386,7 +437,7 @@ class Provider_Jetengine extends Base {
 		}
 
 		// Relationship
-		if ( $field['_brx_type'] == 'relationship' ) {
+		if ( $field['_brx_type'] === 'relationship' ) {
 
 			$relation = jet_engine()->relations->get_active_relations( $field['id'] );
 
@@ -420,8 +471,7 @@ class Provider_Jetengine extends Base {
 
 					// Queried object type is the same as the field direction object type
 					if ( is_a( $queried_object, $object_class ) && $type == $object_type ) {
-
-						if ( $type == 'posts' && $queried_object->post_type == $subtype || $object_type == 'mix' && $subtype = 'users' ) {
+						if ( $type == 'posts' && $queried_object->post_type == $subtype || $object_type == 'mix' && $subtype == 'users' ) {
 							$object_id = $queried_object->ID;
 						} elseif ( $type == 'terms' && $queried_object->taxonomy == $subtype ) {
 							$object_id = $queried_object->term_id;
@@ -466,6 +516,11 @@ class Provider_Jetengine extends Base {
 			$results = $this->get_jetengine_value( $field, $post_id );
 		}
 
+		// If the field type is 'post' and the value is not an array, wrap it in an array (@since 1.9.4)
+		if ( ! empty( $results ) && ! is_array( $results ) && isset( $field['type'] ) && $field['type'] === 'posts' ) {
+			$results = [ $results ];
+		}
+
 		return ! empty( $results ) ? $results : [];
 	}
 
@@ -485,7 +540,7 @@ class Provider_Jetengine extends Base {
 		// Check if the JetEngine field is posts (list of posts)
 		$field = $this->loop_tags[ $query->object_type ]['field'];
 
-		if ( isset( $field['type'] ) && $field['type'] == 'posts' || is_a( $loop_object, 'WP_Post' ) ) {
+		if ( isset( $field['type'] ) && $field['type'] === 'posts' || is_a( $loop_object, 'WP_Post' ) ) {
 			global $post;
 			$post = get_post( $loop_object );
 			setup_postdata( $post );

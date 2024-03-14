@@ -4,15 +4,12 @@ namespace Bricks\Integrations\Dynamic_Data\Providers;
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class Provider_Toolset extends Base {
-
 	public static function load_me() {
 		return function_exists( 'wpcf_admin_fields_get_groups' );
 	}
 
 	public function register_tags() {
-
-		$fields = self::get_fields();
-
+		$fields   = self::get_fields();
 		$supports = self::get_supported_field_types();
 
 		foreach ( $fields as $field ) {
@@ -35,7 +32,6 @@ class Provider_Toolset extends Base {
 	}
 
 	public static function get_fields() {
-
 		$fields = [];
 
 		$groups = wpcf_admin_fields_get_groups();
@@ -48,6 +44,11 @@ class Provider_Toolset extends Base {
 			}
 
 			foreach ( $group_fields as $key => $field ) {
+				// Skip if $field is not an array, Example: '_repeatable_group_451' (@since 1.8.2)
+				if ( ! is_array( $field ) ) {
+					continue;
+				}
+
 				$field['group_name'] = $group['name'];
 				$fields[ $key ]      = $field;
 			}
@@ -57,10 +58,8 @@ class Provider_Toolset extends Base {
 	}
 
 	public function get_tag_value( $tag, $post, $args, $context ) {
-
 		$post_id = isset( $post->ID ) ? $post->ID : '';
-
-		$field = $this->tags[ $tag ]['field'];
+		$field   = $this->tags[ $tag ]['field'];
 
 		// STEP: Check for filter args
 		$filters = $this->get_filters_from_args( $args );
@@ -77,13 +76,13 @@ class Provider_Toolset extends Base {
 					'post_id'   => $post_id
 				]
 			);
+
 			$value = explode( '%BriCkS$', $value );
 		}
 
 		$filters['separator'] = '<br>';
 
 		switch ( $field['type'] ) {
-
 			case 'textarea':
 				$value = array_map( 'nl2br', $value );
 				// $filters['separator'] = '<br>';
@@ -120,11 +119,7 @@ class Provider_Toolset extends Base {
 				break;
 
 			case 'wysiwyg':
-				remove_filter( 'the_content', 'wpautop' );
-
-				$value = apply_filters( 'the_content', $value );
-
-				add_filter( 'the_content', 'wpautop' );
+				$value = \Bricks\Helpers::parse_editor_content( $value );
 				break;
 
 			case 'date':

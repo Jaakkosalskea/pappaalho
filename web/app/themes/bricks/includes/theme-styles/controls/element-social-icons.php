@@ -3,7 +3,7 @@ $controls = [];
 
 $controls['margin'] = [
 	'label' => esc_html__( 'Margin', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'margin',
@@ -14,7 +14,7 @@ $controls['margin'] = [
 
 $controls['padding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',

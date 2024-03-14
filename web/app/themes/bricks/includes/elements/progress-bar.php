@@ -31,11 +31,12 @@ class Element_Progress_Bar extends Element {
 				],
 
 				'percentage' => [
-					'label' => esc_html__( 'Percentage', 'bricks' ),
-					'type'  => 'number',
-					'min'   => 0,
-					'max'   => 100,
-					'step'  => 1,
+					'label'          => esc_html__( 'Percentage', 'bricks' ),
+					'type'           => 'number',
+					'min'            => 0,
+					'max'            => 100,
+					'step'           => 1,
+					'hasDynamicData' => 'text',
 				],
 				'color'      => [
 					'label' => esc_html__( 'Bar color', 'bricks' ),
@@ -146,22 +147,21 @@ class Element_Progress_Bar extends Element {
 		];
 
 		$this->controls['percentageTypography'] = [
-			'tab'   => 'content',
-			'label' => esc_html__( 'Percentage typography', 'bricks' ),
-			'type'  => 'typography',
-			'css'   => [
+			'tab'      => 'content',
+			'label'    => esc_html__( 'Percentage typography', 'bricks' ),
+			'type'     => 'typography',
+			'css'      => [
 				[
 					'property' => 'font',
 					'selector' => '.percentage',
 				],
 			],
+			'required' => [ 'showPercentage', '=', true ],
 		];
 	}
 
 	public function render() {
-		$bars = empty( $this->settings['bars'] ) ? false : $this->settings['bars'];
-
-		if ( ! $bars ) {
+		if ( empty( $this->settings['bars'] ) ) {
 			return $this->render_element_placeholder(
 				[
 					'title' => esc_html__( 'No progress bar created.', 'bricks' ),
@@ -171,27 +171,31 @@ class Element_Progress_Bar extends Element {
 
 		echo "<div {$this->render_attributes( '_root' )}>";
 
-		foreach ( $bars as $index => $bar ) {
-			$this->set_attribute( "bar-inner-{$index}", 'data-width', "{$bar['percentage']}%" );
-			?>
-			<div class="bar-wrapper">
-				<label>
-					<?php
-					if ( isset( $bar['title'] ) && ! empty( $bar['title'] ) ) {
-						echo '<span class="label">' . $bar['title'] . '</span>';
-					}
+		foreach ( $this->settings['bars'] as $index => $bar ) {
+			$percentage = isset( $bar['percentage'] ) ? $this->render_dynamic_data( $bar['percentage'] ) : 0;
+			$percentage = $percentage ? $percentage : 0;
 
-					if ( isset( $this->settings['showPercentage'] ) ) {
-						echo '<span class="percentage">' . $bar['percentage'] . '%</span>';
-					}
-					?>
-				</label>
+			$this->set_attribute( "bar-inner-{$index}", 'data-width', "{$percentage}%" );
 
-				<div class="bar">
-					<span <?php echo $this->render_attributes( "bar-inner-{$index}" ); ?>></span>
-				</div>
-			</div>
-			<?php
+			echo '<div class="bar-wrapper">';
+
+			echo '<label>';
+
+			$title = isset( $bar['title'] ) ? $this->render_dynamic_data( $bar['title'] ) : null;
+
+			if ( $title ) {
+				echo '<span class="label">' . $title . '</span>';
+			}
+
+			if ( isset( $this->settings['showPercentage'] ) ) {
+				echo '<span class="percentage">' . $percentage . '%</span>';
+			}
+
+			echo '</label>';
+
+			echo '<div class="bar"><span ' . $this->render_attributes( "bar-inner-{$index}" ) . '></span></div>';
+
+			echo '</div>';
 		}
 
 		echo '</div>';

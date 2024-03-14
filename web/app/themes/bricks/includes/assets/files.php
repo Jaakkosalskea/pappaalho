@@ -4,23 +4,164 @@ namespace Bricks;
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class Assets_Files {
-
 	public function __construct() {
 		if ( ! bricks_is_builder() ) {
 			add_action( 'wp_enqueue_scripts', [ $this, 'load_css_files' ] );
 		}
 
+		add_action( 'save_post', [ $this, 'save_post' ], 10, 2 );
 		add_action( 'deleted_post', [ $this, 'deleted_post' ], 10, 2 );
 
 		add_action( 'wp_ajax_bricks_get_css_files_list', [ $this, 'get_css_files_list' ] );
 		add_action( 'wp_ajax_bricks_regenerate_css_file', [ $this, 'regenerate_css_file' ] );
+
+		// add_action( 'upgrader_process_complete', [ $this, 'upgrader_process_complete' ], 10, 2 );
+		add_action( 'upgrader_post_install', [ $this, 'upgrader_post_install' ], 10, 3 );
+
+		// Cron job to regenerate CSS files after theme update using the code base of the uploaded, not the installed version
+		add_action( 'bricks_regenerate_css_files', [ $this, 'regenerate_css_files' ] );
+	}
+
+	/**
+	 * Auto-regenerate CSS files after theme update
+	 *
+	 * Runs after updating the theme via the one-click updater!
+	 *
+	 * NOTE: Not in use
+	 *
+	 * @since 1.8.1
+	 */
+	public function __upgrader_process_complete( $upgrader, $hook_extra ) { // phpcs:ignore
+		if ( $hook_extra['action'] === 'update' && $hook_extra['type'] === 'theme' ) {
+			$theme = wp_get_theme();
+
+			if ( $theme->get( 'Name' ) === 'Bricks' ) {
+				if ( Database::get_setting( 'cssLoading' ) === 'file' ) {
+					self::schedule_css_file_regeneration();
+
+					// Show admin notice after theme update
+					update_option( BRICKS_CSS_FILES_ADMIN_NOTICE, time() );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Auto-regenerate CSS files after theme update
+	 *
+	 * Runs after manual theme upload!
+	 *
+	 * @since 1.8.1
+	 */
+	public function upgrader_post_install( $response, $hook_extra, $result ) {
+		$is_bricks = false;
+
+		// Manual upload
+		if ( isset( $hook_extra['type'] ) ? $hook_extra['type'] === 'theme' : false ) {
+			$theme = wp_get_theme();
+
+			$active_theme_name = $theme->parent() ? $theme->parent()->get( 'Name' ) : $theme->get( 'Name' );
+			$is_bricks         = $active_theme_name === 'Bricks';
+		}
+
+		// One-click update
+		elseif ( isset( $hook_extra['theme'] ) ? $hook_extra['theme'] === 'bricks' : false ) {
+			$is_bricks = true;
+		}
+
+		if ( $is_bricks ) {
+			if ( Database::get_setting( 'cssLoading' ) === 'file' ) {
+				self::schedule_css_file_regeneration();
+
+				// Show admin notice after theme update
+				update_option( BRICKS_CSS_FILES_ADMIN_NOTICE, time() );
+			}
+		}
+
+		return $result; // true
+	}
+
+	/**
+	 * Schedule single WP cron job to regenerate CSS files after theme update (one-click & manual upload)
+	 *
+	 * Runs 'bricks_regenerate_css_files' after 1 second to make sure the theme is updated.
+	 *
+	 * @since 1.8.1
+	 */
+	public static function schedule_css_file_regeneration() {
+		// Regenerate CSS files immediately after theme update
+		if ( ! wp_next_scheduled( 'bricks_regenerate_css_files' ) ) {
+			$timestamp = time() + 1;
+			$hook      = 'bricks_regenerate_css_files';
+			wp_schedule_single_event( $timestamp, $hook );
+		}
+	}
+
+	/**
+	 * Regenerate CSS files automatically after theme update
+	 *
+	 * @since 1.8.1
+	 */
+	public static function regenerate_css_files() {
+		$css_files                = self::get_css_files_list( true );
+		$generated_css_file_names = [];
+
+		if ( is_array( $css_files ) ) {
+			foreach ( $css_files as $index => $css_file ) {
+				$file_name = self::regenerate_css_file( $css_file, $index, true );
+
+				if ( is_array( $file_name ) ) {
+					foreach ( $file_name as $name ) {
+						$generated_css_file_names[] = $name;
+					}
+				}
+
+				// Single post, etc.
+				else {
+					if ( $file_name ) {
+						$generated_css_file_names[] = $file_name;
+					}
+				}
+			}
+		}
+
+		return $generated_css_file_names;
+	}
+
+	/**
+	 * Regenerate CSS file on every post save
+	 *
+	 * Catches Bricks builder & WordPress editor saves (CU #3kavbt2)
+	 *
+	 * Example: User updates a custom field like ACF color, etc. in WP editor
+	 *
+	 * @since 1.5.7
+	 */
+	public function save_post( $post_id, $post ) {
+		if ( wp_is_post_revision( $post ) ) {
+			return;
+		}
+
+		if ( Database::get_setting( 'cssLoading' ) !== 'file' ) {
+			return;
+		}
+
+		if ( ! Helpers::render_with_bricks( $post_id ) ) {
+			return;
+		}
+
+		$area = Templates::get_template_type( $post_id );
+
+		$elements = Database::get_data( $post_id, $area );
+
+		self::generate_post_css_file( $post_id, $area, $elements );
 	}
 
 	/**
 	 * Post deleted: Delete post CSS file
 	 *
-	 * @param integer $post_id The post ID.
-	 * @param object  $post The post object.
+	 * @param int    $post_id The post ID.
+	 * @param object $post The post object.
 	 *
 	 * @since 1.3.4
 	 */
@@ -33,7 +174,7 @@ class Assets_Files {
 	}
 
 	/**
-	 * Frotend: Load assets (CSS & JS files) on requested page
+	 * Frontend: Load assets (CSS & JS files) on requested page
 	 *
 	 * @since 1.3.4
 	 */
@@ -66,13 +207,26 @@ class Assets_Files {
 			}
 		}
 
-		// STEP: Enqueue header, content, footer CSS files
-		$types = [ 'header', 'content', 'footer' ];
+		// STEP: Enqueue header, content, footer, popup (= array) CSS files
+		$types = [
+			'header',
+			'content',
+			'footer',
+			'popup',
+		];
 
 		foreach ( $types as $type ) {
 			$template_id = Database::$active_templates[ $type ];
 
-			if ( $template_id ) {
+			// Skip enqueuing CSS file for disabled header/footer template (@since 1.7)
+			if ( ( $type === 'header' || $type === 'footer' ) && Database::is_template_disabled( $type ) ) {
+				continue;
+			}
+
+			// Template type 'popup' is array of template IDs
+			$template_ids = is_array( $template_id ) ? $template_id : [ $template_id ];
+
+			foreach ( $template_ids as $template_id ) {
 				$css_file_dir = Assets::$css_dir . "/post-$template_id.min.css";
 				$css_file_url = Assets::$css_url . "/post-$template_id.min.css";
 
@@ -89,15 +243,16 @@ class Assets_Files {
 				is_archive() ||
 				is_search()
 			) {
-				wp_enqueue_style( 'bricks-element-posts', BRICKS_URL_ASSETS . '/css/elements/posts.min.css', [], filemtime( BRICKS_PATH_ASSETS . '/css/elements/posts.min.css' ) );
+				wp_enqueue_style( 'bricks-element-posts', BRICKS_URL_ASSETS . 'css/elements/posts.min.css', [], filemtime( BRICKS_PATH_ASSETS . 'css/elements/posts.min.css' ) );
 				wp_enqueue_style( 'bricks-isotope' );
 			} elseif ( is_single() ) {
-				wp_enqueue_style( 'bricks-element-post-author', BRICKS_URL_ASSETS . '/css/elements/post-author.min.css', [], filemtime( BRICKS_PATH_ASSETS . '/css/elements/post-author.min.css' ) );
-				wp_enqueue_style( 'bricks-element-post-comments', BRICKS_URL_ASSETS . '/css/elements/post-comments.min.css', [], filemtime( BRICKS_PATH_ASSETS . '/css/elements/post-comments.min.css' ) );
-				wp_enqueue_style( 'bricks-element-post-navigation', BRICKS_URL_ASSETS . '/css/elements/post-navigation.min.css', [], filemtime( BRICKS_PATH_ASSETS . '/css/elements/post-navigation.min.css' ) );
-				wp_enqueue_style( 'bricks-element-post-sharing', BRICKS_URL_ASSETS . '/css/elements/post-sharing.min.css', [], filemtime( BRICKS_PATH_ASSETS . '/css/elements/post-sharing.min.css' ) );
-				wp_enqueue_style( 'bricks-element-post-taxonomy', BRICKS_URL_ASSETS . '/css/elements/post-taxonomy.min.css', [], filemtime( BRICKS_PATH_ASSETS . '/css/elements/post-taxonomy.min.css' ) );
-				wp_enqueue_style( 'bricks-element-related-posts', BRICKS_URL_ASSETS . '/css/elements/related-posts.min.css', [], filemtime( BRICKS_PATH_ASSETS . '/css/elements/related-posts.min.css' ) );
+				wp_enqueue_style( 'bricks-element-post-author', BRICKS_URL_ASSETS . 'css/elements/post-author.min.css', [], filemtime( BRICKS_PATH_ASSETS . 'css/elements/post-author.min.css' ) );
+				wp_enqueue_style( 'bricks-element-post-comments', BRICKS_URL_ASSETS . 'css/elements/post-comments.min.css', [], filemtime( BRICKS_PATH_ASSETS . 'css/elements/post-comments.min.css' ) );
+				wp_enqueue_style( 'bricks-element-post-navigation', BRICKS_URL_ASSETS . 'css/elements/post-navigation.min.css', [], filemtime( BRICKS_PATH_ASSETS . 'css/elements/post-navigation.min.css' ) );
+				wp_enqueue_style( 'bricks-element-post-sharing', BRICKS_URL_ASSETS . 'css/elements/post-sharing.min.css', [], filemtime( BRICKS_PATH_ASSETS . 'css/elements/post-sharing.min.css' ) );
+				wp_enqueue_style( 'bricks-element-post-taxonomy', BRICKS_URL_ASSETS . 'css/elements/post-taxonomy.min.css', [], filemtime( BRICKS_PATH_ASSETS . 'css/elements/post-taxonomy.min.css' ) );
+				wp_enqueue_style( 'bricks-element-related-posts', BRICKS_URL_ASSETS . 'css/elements/related-posts.min.css', [], filemtime( BRICKS_PATH_ASSETS . 'css/elements/related-posts.min.css' ) );
+				wp_enqueue_style( 'bricks-element-post-content', BRICKS_URL_ASSETS . 'css/elements/post-content.min.css', [], filemtime( BRICKS_PATH_ASSETS . 'css/elements/post-content.min.css' ) );
 			} elseif ( is_404() ) {
 				wp_enqueue_style( 'bricks-404' );
 			}
@@ -108,42 +263,70 @@ class Assets_Files {
 
 		$content_elements = get_post_meta( $content_template_id, BRICKS_DB_PAGE_CONTENT, true );
 
-		if ( is_array( $content_elements ) ) {
-			$post_id = Database::$page_data['preview_or_post_id'];
+		$this->load_content_extra_css_files( $content_elements ); // Recursive
+	}
 
-			// // Do not remove this line to avoid infinite loops
-			if ( get_post_type( $post_id ) === BRICKS_DB_TEMPLATE_SLUG ) {
-				$post_id = Helpers::get_template_setting( 'templatePreviewPostId', $post_id );
+	/**
+	 * Check inside template elements and post content for other CSS file needs
+	 *
+	 * @since 1.5.7
+	 */
+	public function load_content_extra_css_files( $content_elements = [] ) {
+		if ( empty( $content_elements ) ) {
+			return;
+		}
+
+		static $extra_files_ids = [];
+
+		foreach ( $content_elements as $element ) {
+			$check_content_id = 0;
+
+			// STEP: Load CSS file for "Template" elements used on this page (check for content should be enough)
+			$template_id = $element['name'] === 'template' && ! empty( $element['settings']['template'] ) ? $element['settings']['template'] : 0;
+
+			if ( $template_id ) {
+				$template_css_file_dir = Assets::$css_dir . "/post-$template_id.min.css";
+				$template_css_file_url = Assets::$css_url . "/post-$template_id.min.css";
+
+				// Generate template inline CSS to load template webfonts (load_webfonts)
+				$template_inline_css = Assets::generate_inline_css( $template_id );
+
+				if ( file_exists( $template_css_file_dir ) ) {
+					wp_enqueue_style( "bricks-post-$template_id", $template_css_file_url, [], filemtime( $template_css_file_dir ) );
+				}
+
+				$check_content_id = $template_id;
 			}
 
-			foreach ( $content_elements as $element ) {
-				// STEP: Load CSS file for "Template" elements used on this page (check for content should be enough)
-				if ( $element['name'] === 'template' && ! empty( $element['settings']['template'] ) ) {
-					$template_id           = $element['settings']['template'];
-					$template_css_file_dir = Assets::$css_dir . "/post-$template_id.min.css";
-					$template_css_file_url = Assets::$css_url . "/post-$template_id.min.css";
+			// STEP: Check for Post Content elements (with render as Bricks) inside the content (check for content should be enough)
+			if ( $element['name'] === 'post-content' && isset( $element['settings']['dataSource'] ) && $element['settings']['dataSource'] === 'bricks' ) {
+				$post_id = Database::$page_data['preview_or_post_id'];
 
-					// Generate template inline CSS to load template webfonts (load_webfonts)
-					$template_inline_css = Assets::generate_inline_css( $template_id );
-
-					if ( file_exists( $template_css_file_dir ) ) {
-						wp_enqueue_style( "bricks-post-$template_id", $template_css_file_url, [], filemtime( $template_css_file_dir ) );
-					}
+				// Do not remove this line to avoid infinite loops
+				if ( get_post_type( $post_id ) === BRICKS_DB_TEMPLATE_SLUG ) {
+					$post_id = Helpers::get_template_setting( 'templatePreviewPostId', $post_id );
 				}
 
-				// STEP: Check for Post Content elements (with render as Bricks) inside the content (check for content should be enough)
-				if ( $element['name'] === 'post-content' && isset( $element['settings']['dataSource'] ) && $element['settings']['dataSource'] === 'bricks' ) {
+				$css_file_dir = Assets::$css_dir . "/post-$post_id.min.css";
+				$css_file_url = Assets::$css_url . "/post-$post_id.min.css";
 
-					$css_file_dir = Assets::$css_dir . "/post-$post_id.min.css";
-					$css_file_url = Assets::$css_url . "/post-$post_id.min.css";
+				// Generate template inline CSS to load template webfonts (load_webfonts)
+				$page_inline_css = Assets::generate_inline_css( $post_id );
 
-					// Generate template inline CSS to load template webfonts (load_webfonts)
-					$page_inline_css = Assets::generate_inline_css( $post_id );
-
-					if ( file_exists( $css_file_dir ) ) {
-						wp_enqueue_style( "bricks-post-$post_id", $css_file_url, [], filemtime( $css_file_dir ) );
-					}
+				if ( file_exists( $css_file_dir ) ) {
+					wp_enqueue_style( "bricks-post-$post_id", $css_file_url, [], filemtime( $css_file_dir ) );
 				}
+
+				$check_content_id = $post_id;
+			}
+
+			// STEP: Check inside the template (or post-content) content elements for other template elements (@since 1.5.7)
+			if ( ! empty( $check_content_id ) && ! in_array( $check_content_id, $extra_files_ids ) ) {
+				$extra_files_ids[] = $check_content_id;
+
+				$template_content = get_post_meta( $check_content_id, BRICKS_DB_PAGE_CONTENT, true );
+
+				$this->load_content_extra_css_files( $template_content ); // Recursive
 			}
 		}
 	}
@@ -151,8 +334,9 @@ class Assets_Files {
 	/**
 	 * Builder: Generate page-specific CSS file (on builder save)
 	 *
-	 * @param $post_id Post ID.
-	 * @param $content_type header/content/footer (to get correct Bricks post meta data)
+	 * @param int    $post_id Post ID.
+	 * @param string $content_type header/content/footer (to get correct Bricks post meta data).
+	 * @param array  $elements Array of elements.
 	 *
 	 * @return void|string File name
 	 *
@@ -197,8 +381,10 @@ class Assets_Files {
 
 		// STEP: Page settings: Custom CSS
 		$page_settings_css = ! empty( $page_settings['customCss'] ) ? trim( $page_settings['customCss'] ) : false;
+		$page_settings_css = Helpers::parse_css( $page_settings_css );
 
-		if ( $page_settings_css ) {
+		// Add if not already added via Assets::generate_inline_css_from_element() (@since 1.7)
+		if ( $page_settings_css && strpos( $element_css, $page_settings_css ) === false ) {
 			$element_css .= $page_settings_css;
 		}
 
@@ -250,13 +436,6 @@ class Assets_Files {
 
 		$element_css .= Assets::$inline_css[ $content_type ];
 
-		// STEP: Element custom fonts (@font-face)
-		$custom_fonts = Assets::$inline_css['custom_fonts'];
-
-		if ( $custom_fonts ) {
-			$element_css .= $custom_fonts;
-		}
-
 		$element_css = Assets::minify_css( $element_css );
 
 		// STEP: Update OR delete CSS files
@@ -274,6 +453,9 @@ class Assets_Files {
 			fwrite( $file, $element_css );
 			fclose( $file );
 
+			// https://academy.bricksbuilder.io/article/action-bricks-generate_css_file (@since 1.9.5)
+			do_action( 'bricks/generate_css_file', 'post', $file_name );
+
 			return $file_name;
 		}
 	}
@@ -281,12 +463,23 @@ class Assets_Files {
 	/**
 	 * Generate individual CSS file
 	 *
-	 * Trigger: Click on "Regenerate CSS files" button under "CSS loading method - External Files" in Bricks settings.
+	 * @param string $data The type of CSS file to generate: Color palette, Theme style, individual post ID, etc.
+	 * @param string $index The index of the CSS file to generate (e.g. 0 = color palette, 1 = theme style, etc.).
+	 * @param bool   $return Whether to return the generated CSS file name or not.
+	 *
+	 * Trigger 1: Click on "Regenerate CSS files" button under "CSS loading method - External Files" in Bricks settings.
+	 * Trigger 2: Edit default breakpoint 'width' (@since 1.5.1)
+	 * Trigger 3: CLI command: wp bricks regenerate_assets (@since 1.8.1)
+	 * Trigger 4: Theme update (one-click & manual upload) (@since 1.8.1)
 	 */
-	public static function regenerate_css_file() {
-		$data      = isset( $_POST['data'] ) ? $_POST['data'] : false;
-		$index     = isset( $_POST['index'] ) ? $_POST['index'] : false;
-		$file_name = '';
+	public static function regenerate_css_file( $data = false, $index = false, $return = false ) {
+		if ( isset( $_POST['data'] ) ) {
+			$data = $_POST['data'];
+		}
+
+		if ( isset( $_POST['index'] ) ) {
+			$index = $_POST['index'];
+		}
 
 		if ( $data === false || $index === false ) {
 			wp_send_json_success(
@@ -297,6 +490,11 @@ class Assets_Files {
 				]
 			);
 		}
+
+		// Flush unique inline CSS so same styles in different CSS files can be generated again (@since 1.9.4)
+		Assets::$unique_inline_css = [];
+
+		$file_name = '';
 
 		if ( $index == 0 ) {
 			// STEP Directory doesn't exist: Create recursively
@@ -336,9 +534,10 @@ class Assets_Files {
 
 			// Individual post
 			default:
-				$post_id   = $data;
-				$post_type = get_post_type( $post_id );
-				$elements  = false;
+				$generating_type = 'post';
+				$post_id         = $data;
+				$post_type       = get_post_type( $post_id );
+				$elements        = false;
 
 				// Get content type (header, content, footer) & elements
 				if ( $post_type === BRICKS_DB_TEMPLATE_SLUG ) {
@@ -379,6 +578,10 @@ class Assets_Files {
 		// STEP: Set installed theme version in options table (to hide admin_notice_regenerate_css_files)
 		update_option( BRICKS_CSS_FILES_LAST_GENERATED, BRICKS_VERSION );
 
+		if ( $return ) {
+			return $file_name;
+		}
+
 		wp_send_json_success( [ 'file_name' => $file_name ] );
 	}
 
@@ -389,7 +592,7 @@ class Assets_Files {
 	 *
 	 * @return array
 	 */
-	public function get_css_files_list() {
+	public static function get_css_files_list( $return = false ) {
 		// Generic CSS files
 		$list = [
 			'colorPalettes',
@@ -398,13 +601,24 @@ class Assets_Files {
 			'themeStyles',
 		];
 
+		$custom_args = [
+			'lang' => '', // Polylang: Get posts of any language (@since 1.8, @see #86782d47m)
+		];
+
 		// Get all Bricks template IDs
-		$template_ids = Templates::get_all_template_ids();
+		$template_ids = Templates::get_all_template_ids( $custom_args );
 		$list         = array_merge( $list, $template_ids );
 
 		// Get IDs of all Bricks-enabled post types
-		$post_ids = Helpers::get_all_bricks_post_ids();
+		$post_ids = Helpers::get_all_bricks_post_ids( $custom_args );
 		$list     = array_merge( $list, $post_ids );
+
+		// Add option table entry with timestamp of last CSS files generation (@since 1.8.1)
+		update_option( BRICKS_CSS_FILES_LAST_GENERATED_TIMESTAMP, time() );
+
+		if ( $return ) {
+			return $list;
+		}
 
 		wp_send_json_success( $list );
 	}

@@ -25,6 +25,11 @@ class Aria_Walker_Nav_Menu extends Walker_Nav_Menu {
 		// Default class.
 		$classes = [ 'sub-menu' ];
 
+		// STEP: Add .caret class to submenu list element (@since 1.8)
+		if ( ! empty( $args->bricks['caret'] ) ) {
+			$classes[] = 'caret';
+		}
+
 		/**
 		 * Filters the CSS class(es) applied to a menu list element.
 		 *
@@ -37,14 +42,7 @@ class Aria_Walker_Nav_Menu extends Walker_Nav_Menu {
 		$class_names = implode( ' ', apply_filters( 'nav_menu_submenu_css_class', $classes, $args, $depth ) );
 		$class_names = $class_names ? ' class="' . esc_attr( $class_names ) . '"' : '';
 
-		/**
-		 * Submenu ul needs role="menu"
-		 *
-		 * @see: https://www.w3.org/TR/wai-aria-practices/examples/menubar/menubar-1/menubar-1.html
-		 */
-		$role = ' role="menu"';
-
-		$output .= "{$n}{$indent}<ul{$role}{$class_names}>{$n}";
+		$output .= "{$n}{$indent}<ul{$class_names}>{$n}";
 	}
 
 	/**
@@ -88,7 +86,6 @@ class Aria_Walker_Nav_Menu extends Walker_Nav_Menu {
 		 * @param int      $depth   Depth of menu item. Used for padding.
 		 */
 		$class_names = implode( ' ', apply_filters( 'nav_menu_css_class', array_filter( $classes ), $item, $args, $depth ) );
-		$class_names = $class_names ? ' class="' . esc_attr( $class_names ) . '"' : '';
 
 		/**
 		 * Filters the ID applied to a menu item's list item element.
@@ -102,18 +99,51 @@ class Aria_Walker_Nav_Menu extends Walker_Nav_Menu {
 		 * @param int      $depth   Depth of menu item. Used for padding.
 		 */
 		$id = apply_filters( 'nav_menu_item_id', 'menu-item-' . $item->ID, $item, $args, $depth );
-		$id = $id ? ' id="' . esc_attr( $id ) . '"' : '';
 
-		// NOTE: Changed from the WP Core to include the aria attributes
-		// @see: https://www.w3.org/TR/wai-aria-practices/examples/menubar/menubar-1/menubar-1.html (role="menuitem")
-		$output .= sprintf(
-			'%s<li%s%s%s%s>',
-			$indent,
-			$id,
-			$class_names,
-			in_array( 'menu-item-has-children', $classes ) ? ' aria-haspopup="true" aria-expanded="false"' : '',
-			' role="menuitem"'
-		);
+		$output .= $indent;
+
+		// Apply Bricks nav menu item attributes filter
+		$list_item_attributes = [
+			'id'    => $id,
+			'class' => $class_names,
+		];
+
+		// STEP: Add multilevel attributes (data-back-text, data-toggle) to list item (@since 1.8)
+		if ( ! empty( $args->bricks['multiLevel'] ) ) {
+			if ( get_post_meta( $item->ID, '_bricks_multilevel', true ) ) {
+				foreach ( $args->bricks['multiLevel'] as $key => $value ) {
+					$list_item_attributes[ $key ] = $value;
+				}
+			}
+		}
+
+		// STEP: Add .static class to submenu list element (@since 1.8)
+		if ( ! empty( $args->bricks['submenuStatic'] ) ) {
+			$list_item_attributes['data-static'] = 'true';
+			$list_item_attributes['data-toggle'] = 'click';
+		}
+
+		// STEP: Add mega menu attributes (data-toggle="click") to list item (@since 1.8)
+		if ( ! empty( $args->bricks['megaMenu'] ) ) {
+			if ( get_post_meta( $item->ID, '_bricks_mega_menu_template_id', true ) ) {
+				foreach ( $args->bricks['megaMenu'] as $key => $value ) {
+					$list_item_attributes[ $key ] = $value;
+				}
+
+				// Add 'menu-item-has-children' to mega menu (@since 1.8.2)
+				$list_item_attributes['class'] .= ' menu-item-has-children';
+			}
+		}
+
+		$output .= '<li';
+
+		foreach ( $list_item_attributes as $attribute => $value ) {
+			if ( $value ) {
+				$output .= ' ' . $attribute . '="' . $value . '"';
+			}
+		}
+
+		$output .= '>';
 
 		$atts           = [];
 		$atts['title']  = ! empty( $item->attr_title ) ? $item->attr_title : '';

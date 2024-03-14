@@ -83,8 +83,9 @@ $controls['conditions'] = [
 			'type'        => 'select',
 			'label'       => esc_html__( 'Individual', 'bricks' ),
 			'optionsAjax' => [
-				'action'   => 'bricks_get_posts',
-				'postType' => 'any',
+				'action'                 => 'bricks_get_posts',
+				'postType'               => 'any',
+				'addLanguageToPostTitle' => true,
 			],
 			'multiple'    => true,
 			'searchable'  => true,

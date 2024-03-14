@@ -10,7 +10,7 @@ $controls['titleSeparator'] = [
 
 $controls['titlePadding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',
@@ -58,7 +58,7 @@ $controls['titleActiveTypography'] = [
 	'css'   => [
 		[
 			'property' => 'font',
-			'selector' => '.tab-title.active',
+			'selector' => '.tab-title.brx-open',
 		],
 	],
 ];
@@ -69,7 +69,7 @@ $controls['titleActiveBackgroundColor'] = [
 	'css'   => [
 		[
 			'property' => 'background-color',
-			'selector' => '.tab-title.active',
+			'selector' => '.tab-title.brx-open',
 		],
 	],
 ];
@@ -80,7 +80,7 @@ $controls['titleActiveBorder'] = [
 	'css'   => [
 		[
 			'property' => 'border',
-			'selector' => '.tab-title.active',
+			'selector' => '.tab-title.brx-open',
 		],
 	],
 ];
@@ -94,7 +94,7 @@ $controls['contentSeparator'] = [
 
 $controls['contentPadding'] = [
 	'label' => esc_html__( 'Padding', 'bricks' ),
-	'type'  => 'dimensions',
+	'type'  => 'spacing',
 	'css'   => [
 		[
 			'property' => 'padding',

@@ -15,18 +15,32 @@ class Element_Template extends Element {
 
 	public function set_controls() {
 		$this->controls['template'] = [
-			'tab'         => 'content',
 			'label'       => esc_html__( 'Template', 'bricks' ),
 			'type'        => 'select',
-			'options'     => bricks_is_builder() ? Templates::get_templates_list( get_the_ID() ) : [],
+			'options'     => bricks_is_builder() ? Templates::get_templates_list( [ 'section', 'content', 'popup' ], get_the_ID() ) : [],
 			'searchable'  => true,
 			'placeholder' => esc_html__( 'Select template', 'bricks' ),
+		];
+
+		$this->controls['noRoot'] = [
+			'label'       => esc_html__( 'Render without wrapper', 'bricks' ),
+			'type'        => 'checkbox',
+			'description' => esc_html__( 'Render on the front-end without the div wrapper.', 'bricks' ),
 		];
 	}
 
 	public function render() {
 		$settings    = $this->settings;
 		$template_id = ! empty( $settings['template'] ) ? intval( $settings['template'] ) : false;
+
+		// Return: Template has not been published (@since 1.7.1)
+		if ( $template_id && get_post_status( $template_id ) !== 'publish' ) {
+			return $this->render_element_placeholder(
+				[
+					'title' => esc_html__( 'Template has not been published.', 'bricks' ),
+				]
+			);
+		}
 
 		if ( ! $template_id ) {
 			return $this->render_element_placeholder(
@@ -36,7 +50,8 @@ class Element_Template extends Element {
 			);
 		}
 
-		if ( $template_id == $this->post_id || $template_id == get_the_ID() ) {
+		// Ensure $this->post_id is a bricks template when use for comparison, it might be a term ID (#862k7jcn7)
+		if ( $template_id == get_the_ID() || ( Helpers::is_bricks_template( $this->post_id ) && $template_id == $this->post_id ) ) {
 			return $this->render_element_placeholder(
 				[
 					'title' => esc_html__( 'Not allowed: Infinite template loop.', 'bricks' ),
@@ -64,9 +79,34 @@ class Element_Template extends Element {
 			// Store current main render_data self::$elements
 			$store_elements = Frontend::$elements;
 
-			echo "<div {$this->render_attributes( '_root' )}>";
-			echo Frontend::render_data( $template_elements );
-			echo '</div>';
+			/**
+			 * STEP: Render .brxe-template root div
+			 *
+			 * If it's a builder call OR If 'noRoot' setting is not set (@since 1.8) && If template is not a popup template
+			 */
+			$render_root_div = bricks_is_builder_call() || ( ! isset( $settings['noRoot'] ) && Templates::get_template_type( $template_id ) !== 'popup' );
+
+			// Always render .brxe-template in builder (as we need a single root element in the Vue component)
+			if ( $render_root_div ) {
+				echo "<div {$this->render_attributes( '_root' )}>";
+			}
+
+			/**
+			 * Always render Bricks template via shortcode instead of Bricks render_data
+			 *
+			 * To enqueue template CSS file (e.g. template inside Cart page)
+			 *
+			 * Pass $loop_id for 'bricks-shortcode-template-loop' style ID (@since 1.8)
+			 *
+			 * @since 1.5.7
+			 */
+			$loop_id = Query::is_any_looping();
+
+			echo do_shortcode( "[bricks_template id=\"$template_id\" loopid=\"$loop_id\"]" );
+
+			if ( $render_root_div ) {
+				echo '</div>';
+			}
 
 			// Reset the main render_data self::$elements
 			Frontend::$elements = $store_elements;
@@ -77,7 +117,7 @@ class Element_Template extends Element {
 	}
 
 	/**
-	 * Helper function to add information to the builder render call (AJAX or REST API)
+	 * Builder: Helper function to add data to builder render call (AJAX or REST API)
 	 *
 	 * @since 1.5
 	 *
@@ -96,7 +136,7 @@ class Element_Template extends Element {
 		$css  = Templates::generate_inline_css( $template_id, $template_elements );
 		$css .= Assets::$inline_css_dynamic_data;
 
-		// STEP: Add inline CSS
+		// STEP: Add template CSS inline
 		$response['css'] = $css;
 
 		return $response;

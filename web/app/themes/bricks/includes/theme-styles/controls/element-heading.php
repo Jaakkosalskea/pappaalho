@@ -1,6 +1,24 @@
 <?php
 $controls = [];
 
+// Heading: Default <hx> tag
+
+$controls['tag'] = [
+	'tab'         => 'content',
+	'label'       => esc_html__( 'HTML tag', 'bricks' ) . ' (' . esc_html__( 'Default', 'bricks' ) . ')',
+	'type'        => 'select',
+	'inline'      => true,
+	'options'     => [
+		'h1' => 'h1',
+		'h2' => 'h2',
+		'h3' => 'h3',
+		'h4' => 'h4',
+		'h5' => 'h5',
+		'h6' => 'h6',
+	],
+	'placeholder' => 'h3',
+];
+
 // Heading: Separator
 
 $controls['separatorSeparator'] = [
@@ -68,18 +86,17 @@ $controls['separatorSpacing'] = [
 ];
 
 $controls['separatorAlignItems'] = [
-	'label'       => esc_html__( 'Align', 'bricks' ),
-	'type'        => 'align-items',
-	'exclude'     => 'stretch',
-	'css'         => [
+	'label'    => esc_html__( 'Align', 'bricks' ),
+	'type'     => 'align-items',
+	'exclude'  => 'stretch',
+	'css'      => [
 		[
 			'property' => 'align-items',
 			'selector' => '.brxe-heading.has-separator',
 		],
 	],
-	'inline'      => true,
-	'placeholder' => esc_html__( 'Center', 'bricks' ),
-	'required'    => [ 'separator', '!=', '' ],
+	'inline'   => true,
+	'required' => [ 'separator', '!=', '' ],
 ];
 
 $controls['separatorStyle'] = [
@@ -110,7 +127,7 @@ $controls['separatorColor'] = [
 
 $controls['separatorMargin'] = [
 	'label'    => esc_html__( 'Margin', 'bricks' ),
-	'type'     => 'dimensions',
+	'type'     => 'spacing',
 	'css'      => [
 		[
 			'property' => 'margin',
