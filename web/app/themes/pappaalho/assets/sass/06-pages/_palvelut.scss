@@ -4,7 +4,6 @@
     position: relative;
     background-color: #f5f5f5 !important;
     border-radius: 10px;
-    margin: 20px;
     padding: 5px;
 
     &__item {
@@ -54,12 +53,14 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100%;
-        
+        min-height: 100%;
+
+            @include breakpoint(ipad) {
+                height: 350px;
+            }
 
             img {
-                height: 100%;
-                object-fit: contain;
+                background-size: contain;
                 width: 100%;
             }
     }
@@ -145,5 +146,20 @@
 
     &__center {
     text-align: center;
+    }
+}
+
+.service-links {
+
+    a {
+        color: var(--color-black);
+        font-size: 2.5rem;
+        font-weight: 500;
+        transition: color .3s ease;
+
+        &:hover,
+        &:focus {
+            color: var(--color-highlight);
+        }
     }
 }

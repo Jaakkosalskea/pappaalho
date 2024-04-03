@@ -1,9 +1,15 @@
+
+.brx-body {
+    min-height: 100%;
+}
+
 .landing-heading {
     
     h1 {
     color: var(--color-heading-wh);
     letter-spacing: -.005em;
     font-weight: 800;
+    line-height: 1.0;
     }
 
     h2 {
@@ -46,7 +52,7 @@
 
 .button-white {
     background-color: var(--color-white);
-    background-color: #f5f5f5;
+    background-color: #f0f0f0;
     color: var(--color-black);
     padding: 1.5rem 2rem;
     transition: background-color .3s, color .3s;
@@ -65,6 +71,61 @@
     }
 }
 
+.x-toggle-switch_labels {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+    transition: text-decoration-color .3s ease;
+
+        @include breakpoint(mobile) {
+            justify-content: center;
+        }
+        
+}
+
+
+//Palvelu togglejen hoverit
+#x-toggle-switch_label_onycmp_1 {
+    
+    &:hover {
+        text-decoration: underline;
+        text-decoration-thickness: 3px;
+        text-underline-offset: 5px;
+        text-decoration-color: var(--color-highlight);
+    }
+}
+
+#x-toggle-switch_label_onycmp_2 {
+    
+    &:hover {
+        text-decoration: underline;
+        text-decoration-thickness: 3px;
+        text-underline-offset: 5px;
+        text-decoration-color: var(--color-highlight);
+    }
+}
+
+#x-toggle-switch_label_onycmp_3 {
+    
+    &:hover {
+        text-decoration: underline;
+        text-decoration-thickness: 3px;
+        text-underline-offset: 5px;
+        text-decoration-color: var(--color-highlight);
+    }
+}
+
+#x-toggle-switch_label_onycmp_0 {
+    
+    &:hover {
+        text-decoration: underline;
+        text-decoration-thickness: 3px;
+        text-underline-offset: 5px;
+        text-decoration-color: var(--color-highlight);
+    }
+}
+
 .x-toggle-switch {
     display: flex;
     align-items: center;
@@ -75,7 +136,6 @@
 
 .x-toggle-switch_label-active {
     background-color: none !important;
-    text-shadow: 0 0 .65px #333, 0 0 .65px #333;
     text-decoration: underline;
     text-decoration-thickness: 3px;
     text-underline-offset: 5px;

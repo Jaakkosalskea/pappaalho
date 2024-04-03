@@ -78,18 +78,14 @@
   }
 
   a {
-    color: var(--color-white);
-    transition: opacity $transition-duration;
+    color: #fff;
+    font-weight: 400;
+    transition: color .3s ease;
 
-    &:hover,
-    &:focus {
-      color: var(--color-white);
-      opacity: .5;
-
-      &::after {
-        opacity: .2;
+     &:hover,
+      &:focus {
+        color: var(--color-highlight);
       }
-    }
   }
 
   .theme-info {
@@ -113,5 +109,34 @@
 
   h3 {
     color: var(--color-highlight);
+  }
+}
+
+.footer-salskea {
+  
+  a {
+    color: #fff;
+    font-size: 1.4rem;
+    font-weight: 300;
+    transition: color .3s ease;
+
+     &:hover,
+      &:focus {
+        color: var(--color-highlight);
+      }
+  }
+}
+
+.footer-osoite {
+  
+  a {
+    color: #fff;
+    font-weight: 400;
+    transition: color .3s ease;
+
+     &:hover,
+      &:focus {
+        color: var(--color-highlight);
+      }
   }
 }
